@@ -1,0 +1,12 @@
+{
+  "extends": "../../packages/config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowJs": true
+  },
+  "include": ["api", "lib"],
+  "exclude": ["node_modules", "dist"]
+}

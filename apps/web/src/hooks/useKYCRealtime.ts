@@ -1,0 +1,31 @@
+import { useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { KYCStatus } from '@pxo/shared/types';
+
+const useKYCRealtime = (userId: string | undefined, kycStatus: KYCStatus | undefined, onUpdate: () => void) => {
+  useEffect(() => {
+    if (!userId || kycStatus !== KYCStatus.VALIDATING) return;
+
+    const channel = supabase
+      .channel(`kyc-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${userId}`,
+        },
+        () => onUpdate()
+      )
+      .subscribe((status) => {
+        console.log('🔴 Realtime KYC channel status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, kycStatus]);
+};
+
+export default useKYCRealtime;

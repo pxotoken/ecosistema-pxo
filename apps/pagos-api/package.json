@@ -1,0 +1,31 @@
+{
+  "name": "@pxo/pagos-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pxo/shared": "workspace:*",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "@supabase/supabase-js": "^2.55.0",
+    "fastify": "^5.0.0",
+    "qrcode": "^1.5.4",
+    "thirdweb": "5.100.0",
+    "uuid": "^11.1.0",
+    "viem": "^2.33.2"
+  },
+  "devDependencies": {
+    "@pxo/config": "workspace:*",
+    "@types/qrcode": "^1.5.5",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.3"
+  }
+}

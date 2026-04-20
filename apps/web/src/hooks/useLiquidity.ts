@@ -1,0 +1,66 @@
+import { useEffect, useState } from 'react';
+import { useActiveWalletChain } from 'thirdweb/react';
+
+interface LiquidityToken {
+  address: string | null;
+  balance: number;
+  decimals: number;
+  symbol: string;
+}
+
+interface LiquidityData {
+  chainId: number;
+  chainName: string;
+  pxo: LiquidityToken;
+  stable: LiquidityToken;
+}
+
+export function useLiquidity() {
+  const activeChain = useActiveWalletChain();
+  const [data, setData] = useState<LiquidityData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLiquidity = async () => {
+      if (!activeChain?.id) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(
+          `/api/exchange/liquidity?chainId=${activeChain.id}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch liquidity');
+        }
+
+        const json = await response.json();
+        if (!json.success || !json.liquidity) {
+          throw new Error('Invalid liquidity response');
+        }
+
+        setData(json.liquidity as LiquidityData);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Failed to fetch liquidity';
+        setError(message);
+        console.error('Error fetching liquidity:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLiquidity();
+  }, [activeChain?.id]);
+
+  return {
+    liquidity: data,
+    loading,
+    error,
+  };
+}
+

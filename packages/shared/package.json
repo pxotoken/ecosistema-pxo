@@ -1,0 +1,35 @@
+{
+  "name": "@pxo/shared",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./types/*": "./src/types/*.ts",
+    "./consts": "./src/consts/index.ts",
+    "./consts/*": "./src/consts/*.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./schemas/*": "./src/schemas/*.ts",
+    "./helpers": "./src/helpers/index.ts",
+    "./helpers/*": "./src/helpers/*.ts"
+  },
+  "dependencies": {
+    "joi": "^18.0.1"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.5.5",
+    "axios": "^1.13.2",
+    "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "@vercel/node": ">=5.0.0",
+    "axios": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@vercel/node": { "optional": true },
+    "axios": { "optional": true }
+  }
+}

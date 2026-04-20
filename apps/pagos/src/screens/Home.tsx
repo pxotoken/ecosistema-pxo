@@ -1,0 +1,128 @@
+import {
+  ArrowDownLeftIcon,
+  ArrowUpRightIcon,
+  BellIcon,
+  CardIcon,
+  InfoIcon,
+  PlusIcon,
+  QrIcon,
+} from '../components/icons';
+import { balance, profile, recentMovements } from '../data/mockData';
+import type { MovementType, ScreenId } from '../types';
+
+interface Props {
+  onNavigate: (id: ScreenId) => void;
+}
+
+function MovementIcon({ type }: { type: MovementType }) {
+  if (type === 'in') return <ArrowDownLeftIcon width={18} height={18} strokeWidth={2.5} />;
+  if (type === 'pay') return <QrIcon width={16} height={16} strokeWidth={2} />;
+  if (type === 'load') return <CardIcon />;
+  return <ArrowUpRightIcon width={18} height={18} strokeWidth={2.5} />;
+}
+
+export function Home({ onNavigate }: Props) {
+  const greetingName = profile.name || 'invitado';
+  const hasBalance = balance.whole !== '0' || balance.cents !== '.00';
+
+  return (
+    <>
+      <div className="home-hero">
+        <div className="greet">
+          <div className="greet-name">
+            <span>Hola, </span>
+            {greetingName}
+          </div>
+          <div className="greet-actions">
+            <div className="icon-btn">
+              <BellIcon />
+              {hasBalance && <div className="dot" />}
+            </div>
+            <div className="icon-btn">
+              <InfoIcon />
+            </div>
+          </div>
+        </div>
+
+        <div className="bal-label">Tu saldo</div>
+        <div className="bal-headline">
+          <span className="currency">PXO</span>
+          {balance.whole}
+          <span className="cents">{balance.cents}</span>
+        </div>
+        <div className="bal-eq">
+          <span className="pulse" />
+          <span>
+            Equivalente a <strong>{balance.equivalent}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div className="tagline">
+        <div className="tagline-text">
+          El peso mexicano digital,
+          <br />
+          <em>sin fronteras.</em>
+        </div>
+      </div>
+
+      <div className="qa-section">
+        <div className="qa-title">Movimientos rápidos</div>
+        <div className="qa-grid">
+          <div className="qa-item" onClick={() => onNavigate('enviar')}>
+            <div className="qa-ic">
+              <ArrowUpRightIcon />
+            </div>
+            <div className="qa-lb">Enviar</div>
+          </div>
+          <div className="qa-item" onClick={() => onNavigate('recibir')}>
+            <div className="qa-ic">
+              <ArrowDownLeftIcon />
+            </div>
+            <div className="qa-lb">Recibir</div>
+          </div>
+          <div className="qa-item" onClick={() => onNavigate('pagar')}>
+            <div className="qa-ic">
+              <QrIcon />
+            </div>
+            <div className="qa-lb">Pagar</div>
+          </div>
+          <div className="qa-item" onClick={() => onNavigate('cargar')}>
+            <div className="qa-ic">
+              <PlusIcon />
+            </div>
+            <div className="qa-lb">Cargar</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mov-section">
+        <div className="mov-head">
+          <div className="mov-h1">Tu actividad</div>
+          <div className="mov-link" onClick={() => onNavigate('actividad')}>
+            Ver todo
+          </div>
+        </div>
+
+        {recentMovements.length === 0 ? (
+          <div className="act-empty" style={{ paddingTop: 12 }}>
+            <div className="act-empty-txt">Aún no hay movimientos.</div>
+          </div>
+        ) : (
+          recentMovements.map((mov) => (
+            <div key={mov.id} className="mov">
+              <div className={`mov-ic ${mov.type === 'pay' ? 'out' : mov.type}`}>
+                <MovementIcon type={mov.type} />
+              </div>
+              <div className="mov-info">
+                <div className="mov-title">{mov.title}</div>
+                <div className="mov-sub">{mov.subtitle}</div>
+              </div>
+              <div className={`mov-amt${mov.amount.startsWith('+') ? ' in' : ''}`}>{mov.amount}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+}

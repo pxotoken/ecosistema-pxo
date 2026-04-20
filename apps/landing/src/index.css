@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define CSS variables for Tailwind colors */
+:root {
+  --color-light-text: #1e293b;
+  --color-light-text-secondary: #475569;
+  --color-dark-text: #E8E8E8;
+  --color-dark-text-secondary: #A0A0A0;
+  --color-lime-accent: #1e3a8a;
+}
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

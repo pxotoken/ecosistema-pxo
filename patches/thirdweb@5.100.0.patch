@@ -1,0 +1,318 @@
+diff --git a/dist/cjs/react/web/ui/ConnectWallet/Details.js b/dist/cjs/react/web/ui/ConnectWallet/Details.js
+index ba33597fd16fb8e25341d9a1be26bfea614b28f0..46fe70382a38b196cdb99f550674206282aaa661 100644
+--- a/dist/cjs/react/web/ui/ConnectWallet/Details.js
++++ b/dist/cjs/react/web/ui/ConnectWallet/Details.js
+@@ -151,7 +151,7 @@ function detailsBtn_formatTokenBalanceForButton(props) {
+  * @internal Exported for tests only
+  */
+ function DetailsModal(props) {
+-    const [screen, setScreen] = (0, react_1.useState)("main");
++    const [screen, setScreen] = (0, react_1.useState)(props.initialScreen || "main");
+     const { disconnect } = (0, useDisconnect_js_1.useDisconnect)();
+     const [isOpen, setIsOpen] = (0, react_1.useState)(true);
+     const { client, locale } = props;
+@@ -290,13 +290,13 @@ function DetailsModal(props) {
+                                 }
+                             }, children: [(0, jsx_runtime_1.jsx)(react_icons_1.ExitIcon, { width: index_js_1.iconSize.md, height: index_js_1.iconSize.md }), (0, jsx_runtime_1.jsx)(text_js_1.Text, { color: "primaryText", children: locale.disconnectWallet })] }) }), (0, jsx_runtime_1.jsx)(Spacer_js_1.Spacer, { y: "sm" })] }))] }));
+     if (screen === "transactions") {
+-        content = ((0, jsx_runtime_1.jsx)(TransactionsScreen_js_1.TransactionsScreen, { title: locale.buy, onBack: () => setScreen("main"), closeModal: closeModal, locale: locale, setScreen: setScreen, client: client }));
++        content = ((0, jsx_runtime_1.jsx)(TransactionsScreen_js_1.TransactionsScreen, { title: locale.buy, onBack: () => closeModal(), closeModal: closeModal, locale: locale, setScreen: setScreen, client: client }));
+     }
+     if (screen === "wallet-manager" &&
+         activeAccount &&
+         walletChain &&
+         activeWallet) {
+-        content = ((0, jsx_runtime_1.jsx)(WalletManagerScreen_js_1.WalletManagerScreen, { onBack: () => setScreen("main"), accountAbstraction: props.connectOptions?.accountAbstraction, appMetadata: props.connectOptions?.appMetadata, chain: props.connectOptions?.chain, chains: props.connectOptions?.chains, client: client, hiddenWallets: props.connectOptions?.hiddenWallets, connectLocale: locale, recommendedWallets: props.connectOptions?.recommendedWallets, showAllWallets: !!props.connectOptions?.showAllWallets, walletConnect: props.connectOptions?.walletConnect, wallets: props.connectOptions?.wallets, activeAccount: activeAccount, activeChain: walletChain, activeWallet: activeWallet }));
++        content = ((0, jsx_runtime_1.jsx)(WalletManagerScreen_js_1.WalletManagerScreen, { onBack: () => closeModal(), accountAbstraction: props.connectOptions?.accountAbstraction, appMetadata: props.connectOptions?.appMetadata, chain: props.connectOptions?.chain, chains: props.connectOptions?.chains, client: client, hiddenWallets: props.connectOptions?.hiddenWallets, connectLocale: locale, recommendedWallets: props.connectOptions?.recommendedWallets, showAllWallets: !!props.connectOptions?.showAllWallets, walletConnect: props.connectOptions?.walletConnect, wallets: props.connectOptions?.wallets, activeAccount: activeAccount, activeChain: walletChain, activeWallet: activeWallet }));
+     }
+     if (screen === "network-switcher") {
+         content = ((0, jsx_runtime_1.jsx)(NetworkSelector_js_1.NetworkSelectorContent
+@@ -307,22 +307,22 @@ function DetailsModal(props) {
+                 props.chains.find((c) => c.id === walletChain.id) === undefined
+                 ? [walletChain, ...props.chains]
+                 : props.chains, closeModal: closeModal, networkSelector: props.detailsModal?.networkSelector, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, connectLocale: locale, client: client }));
+     }
+     else if (screen === "view-assets") {
+         content = ((0, jsx_runtime_1.jsx)(ViewAssets_js_1.ViewAssets, { supportedTokens: props.supportedTokens, supportedNFTs: props.supportedNFTs, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, theme: props.theme, setScreen: setScreen, client: client, connectLocale: locale, assetTabs: props.detailsModal?.assetTabs }));
+     }
+     else if (screen === "view-nfts") {
+         content = ((0, jsx_runtime_1.jsx)(ViewNFTs_js_1.ViewNFTs, { theme: props.theme, supportedNFTs: props.supportedNFTs, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     else if (screen === "view-tokens") {
+         content = ((0, jsx_runtime_1.jsx)(ViewTokens_js_1.ViewTokens, { supportedTokens: props.supportedTokens, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     else if (screen === "private-key") {
+@@ -332,7 +332,7 @@ function DetailsModal(props) {
+     }
+     else if (screen === "manage-wallet") {
+         content = ((0, jsx_runtime_1.jsx)(ManageWalletScreen_js_1.ManageWalletScreen, { onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, locale: locale, closeModal: closeModal, client: client, setScreen: setScreen }));
+     }
+     else if (screen === "wallet-connect-receiver") {
+@@ -351,18 +351,18 @@ function DetailsModal(props) {
+     // send funds
+     else if (screen === "send") {
+         content = ((0, jsx_runtime_1.jsx)(SendFunds_js_1.SendFunds, { supportedTokens: props.supportedTokens, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     // receive funds
+     else if (screen === "receive") {
+         content = ((0, jsx_runtime_1.jsx)(ReceiveFunds_js_1.ReceiveFunds, { walletId: activeWallet?.id, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     // thirdweb pay
+     else if (screen === "buy") {
+-        content = ((0, jsx_runtime_1.jsx)(LazyBuyScreen_js_1.LazyBuyScreen, { title: locale.buy, isEmbed: false, client: client, onBack: () => setScreen("main"), supportedTokens: props.supportedTokens, connectLocale: locale, payOptions: props.detailsModal?.payOptions || {
++        content = ((0, jsx_runtime_1.jsx)(LazyBuyScreen_js_1.LazyBuyScreen, { title: locale.buy, isEmbed: false, client: client, onBack: () => closeModal(), supportedTokens: props.supportedTokens, connectLocale: locale, payOptions: props.detailsModal?.payOptions || {
+                 mode: "fund_wallet",
+             }, hiddenWallets: props.detailsModal?.hiddenWallets, theme: typeof props.theme === "string" ? props.theme : props.theme.type, onDone: closeModal, connectOptions: undefined }));
+     }
+@@ -628,7 +628,7 @@ function useWalletDetailsModal() {
+                 }, displayBalanceToken: props.displayBalanceToken, theme: props.theme || "dark", supportedTokens: props.supportedTokens, supportedNFTs: props.supportedNFTs, closeModal: closeModal, onDisconnect: (info) => {
+                     props.onDisconnect?.(info);
+                     closeModal();
+-                }, chains: props.chains || [], connectOptions: props.connectOptions }));
++                }, chains: props.chains || [], connectOptions: props.connectOptions, initialScreen: props.initialScreen }));
+         })
+             .catch(() => {
+             closeModal();
+diff --git a/dist/esm/react/web/ui/ConnectWallet/Details.js b/dist/esm/react/web/ui/ConnectWallet/Details.js
+index 840a95c92c34fc8ab0aff3847024925d94853197..c19ac81da246ce6015f878496090527eac3bfadd 100644
+--- a/dist/esm/react/web/ui/ConnectWallet/Details.js
++++ b/dist/esm/react/web/ui/ConnectWallet/Details.js
+@@ -139,7 +139,7 @@ export function detailsBtn_formatTokenBalanceForButton(props) {
+  * @internal Exported for tests only
+  */
+ export function DetailsModal(props) {
+-    const [screen, setScreen] = useState("main");
++    const [screen, setScreen] = useState(props.initialScreen || "main");
+     const { disconnect } = useDisconnect();
+     const [isOpen, setIsOpen] = useState(true);
+     const { client, locale } = props;
+@@ -278,13 +278,13 @@ export function DetailsModal(props) {
+                                 }
+                             }, children: [_jsx(ExitIcon, { width: iconSize.md, height: iconSize.md }), _jsx(Text, { color: "primaryText", children: locale.disconnectWallet })] }) }), _jsx(Spacer, { y: "sm" })] }))] }));
+     if (screen === "transactions") {
+-        content = (_jsx(TransactionsScreen, { title: locale.buy, onBack: () => setScreen("main"), closeModal: closeModal, locale: locale, setScreen: setScreen, client: client }));
++        content = (_jsx(TransactionsScreen, { title: locale.buy, onBack: () => closeModal(), closeModal: closeModal, locale: locale, setScreen: setScreen, client: client }));
+     }
+     if (screen === "wallet-manager" &&
+         activeAccount &&
+         walletChain &&
+         activeWallet) {
+-        content = (_jsx(WalletManagerScreen, { onBack: () => setScreen("main"), accountAbstraction: props.connectOptions?.accountAbstraction, appMetadata: props.connectOptions?.appMetadata, chain: props.connectOptions?.chain, chains: props.connectOptions?.chains, client: client, hiddenWallets: props.connectOptions?.hiddenWallets, connectLocale: locale, recommendedWallets: props.connectOptions?.recommendedWallets, showAllWallets: !!props.connectOptions?.showAllWallets, walletConnect: props.connectOptions?.walletConnect, wallets: props.connectOptions?.wallets, activeAccount: activeAccount, activeChain: walletChain, activeWallet: activeWallet }));
++        content = (_jsx(WalletManagerScreen, { onBack: () => closeModal(), accountAbstraction: props.connectOptions?.accountAbstraction, appMetadata: props.connectOptions?.appMetadata, chain: props.connectOptions?.chain, chains: props.connectOptions?.chains, client: client, hiddenWallets: props.connectOptions?.hiddenWallets, connectLocale: locale, recommendedWallets: props.connectOptions?.recommendedWallets, showAllWallets: !!props.connectOptions?.showAllWallets, walletConnect: props.connectOptions?.walletConnect, wallets: props.connectOptions?.wallets, activeAccount: activeAccount, activeChain: walletChain, activeWallet: activeWallet }));
+     }
+     if (screen === "network-switcher") {
+         content = (_jsx(NetworkSelectorContent
+@@ -295,22 +295,22 @@ export function DetailsModal(props) {
+                 props.chains.find((c) => c.id === walletChain.id) === undefined
+                 ? [walletChain, ...props.chains]
+                 : props.chains, closeModal: closeModal, networkSelector: props.detailsModal?.networkSelector, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, connectLocale: locale, client: client }));
+     }
+     else if (screen === "view-assets") {
+         content = (_jsx(ViewAssets, { supportedTokens: props.supportedTokens, supportedNFTs: props.supportedNFTs, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, theme: props.theme, setScreen: setScreen, client: client, connectLocale: locale, assetTabs: props.detailsModal?.assetTabs }));
+     }
+     else if (screen === "view-nfts") {
+         content = (_jsx(ViewNFTs, { theme: props.theme, supportedNFTs: props.supportedNFTs, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     else if (screen === "view-tokens") {
+         content = (_jsx(ViewTokens, { supportedTokens: props.supportedTokens, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     else if (screen === "private-key") {
+@@ -320,7 +320,7 @@ export function DetailsModal(props) {
+     }
+     else if (screen === "manage-wallet") {
+         content = (_jsx(ManageWalletScreen, { onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, locale: locale, closeModal: closeModal, client: client, setScreen: setScreen }));
+     }
+     else if (screen === "wallet-connect-receiver") {
+@@ -339,18 +339,18 @@ export function DetailsModal(props) {
+     // send funds
+     else if (screen === "send") {
+         content = (_jsx(SendFunds, { supportedTokens: props.supportedTokens, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     // receive funds
+     else if (screen === "receive") {
+         content = (_jsx(ReceiveFunds, { walletId: activeWallet?.id, onBack: () => {
+-                setScreen("main");
++                closeModal();
+             }, client: client, connectLocale: locale }));
+     }
+     // thirdweb pay
+     else if (screen === "buy") {
+-        content = (_jsx(LazyBuyScreen, { title: locale.buy, isEmbed: false, client: client, onBack: () => setScreen("main"), supportedTokens: props.supportedTokens, connectLocale: locale, payOptions: props.detailsModal?.payOptions || {
++        content = (_jsx(LazyBuyScreen, { title: locale.buy, isEmbed: false, client: client, onBack: () => closeModal(), supportedTokens: props.supportedTokens, connectLocale: locale, payOptions: props.detailsModal?.payOptions || {
+                 mode: "fund_wallet",
+             }, hiddenWallets: props.detailsModal?.hiddenWallets, theme: typeof props.theme === "string" ? props.theme : props.theme.type, onDone: closeModal, connectOptions: undefined }));
+     }
+@@ -616,7 +616,7 @@ export function useWalletDetailsModal() {
+                 }, displayBalanceToken: props.displayBalanceToken, theme: props.theme || "dark", supportedTokens: props.supportedTokens, supportedNFTs: props.supportedNFTs, closeModal: closeModal, onDisconnect: (info) => {
+                     props.onDisconnect?.(info);
+                     closeModal();
+-                }, chains: props.chains || [], connectOptions: props.connectOptions }));
++                }, chains: props.chains || [], connectOptions: props.connectOptions, initialScreen: props.initialScreen }));
+         })
+             .catch(() => {
+             closeModal();
+diff --git a/src/react/web/ui/ConnectWallet/Details.tsx b/src/react/web/ui/ConnectWallet/Details.tsx
+index fe7230bc36e3773c3761d5132e7fea2539ad4b31..549dbc057f0048f35d6be1961f5ce6b65cd93e8d 100644
+--- a/src/react/web/ui/ConnectWallet/Details.tsx
++++ b/src/react/web/ui/ConnectWallet/Details.tsx
+@@ -383,8 +383,9 @@ export function DetailsModal(props: {
+   connectOptions: DetailsModalConnectOptions | undefined;
+   assetTabs?: AssetTabs[];
+   showBalanceInFiat?: SupportedFiatCurrency;
++  initialScreen?: string;
+ }) {
+-  const [screen, setScreen] = useState<WalletDetailsModalScreen>("main");
++  const [screen, setScreen] = useState<WalletDetailsModalScreen>(props.initialScreen || "main");
+   const { disconnect } = useDisconnect();
+   const [isOpen, setIsOpen] = useState(true);
+ 
+@@ -781,7 +782,7 @@ export function DetailsModal(props: {
+     content = (
+       <TransactionsScreen
+         title={locale.buy}
+-        onBack={() => setScreen("main")}
++        onBack={() => closeModal()}
+         closeModal={closeModal}
+         locale={locale}
+         setScreen={setScreen}
+@@ -798,7 +799,7 @@ export function DetailsModal(props: {
+   ) {
+     content = (
+       <WalletManagerScreen
+-        onBack={() => setScreen("main")}
++        onBack={() => closeModal()}
+         accountAbstraction={props.connectOptions?.accountAbstraction}
+         appMetadata={props.connectOptions?.appMetadata}
+         chain={props.connectOptions?.chain}
+@@ -830,7 +831,7 @@ export function DetailsModal(props: {
+         closeModal={closeModal}
+         networkSelector={props.detailsModal?.networkSelector}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         connectLocale={locale}
+         client={client}
+@@ -842,7 +843,7 @@ export function DetailsModal(props: {
+         supportedTokens={props.supportedTokens}
+         supportedNFTs={props.supportedNFTs}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         theme={props.theme}
+         setScreen={setScreen}
+@@ -857,7 +858,7 @@ export function DetailsModal(props: {
+         theme={props.theme}
+         supportedNFTs={props.supportedNFTs}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         client={client}
+         connectLocale={locale}
+@@ -868,7 +869,7 @@ export function DetailsModal(props: {
+       <ViewTokens
+         supportedTokens={props.supportedTokens}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         client={client}
+         connectLocale={locale}
+@@ -890,7 +891,7 @@ export function DetailsModal(props: {
+     content = (
+       <ManageWalletScreen
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         locale={locale}
+         closeModal={closeModal}
+@@ -936,7 +937,7 @@ export function DetailsModal(props: {
+       <SendFunds
+         supportedTokens={props.supportedTokens}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         client={client}
+         connectLocale={locale}
+@@ -950,7 +951,7 @@ export function DetailsModal(props: {
+       <ReceiveFunds
+         walletId={activeWallet?.id}
+         onBack={() => {
+-          setScreen("main");
++          closeModal();
+         }}
+         client={client}
+         connectLocale={locale}
+@@ -965,7 +966,7 @@ export function DetailsModal(props: {
+         title={locale.buy}
+         isEmbed={false}
+         client={client}
+-        onBack={() => setScreen("main")}
++        onBack={() => closeModal()}
+         supportedTokens={props.supportedTokens}
+         connectLocale={locale}
+         payOptions={
+@@ -1663,6 +1664,12 @@ export type UseWalletDetailsModalOptions = {
+    * @param screen The name of the screen that was being shown when user closed the modal
+    */
+   onClose?: (screen: string) => void;
++
++  /**
++   * Set the initial screen to show when the modal opens
++   * @default "main"
++   */
++  initialScreen?: string;
+ };
+ 
+ /**
+@@ -1744,6 +1751,7 @@ export function useWalletDetailsModal() {
+             }}
+             chains={props.chains || []}
+             connectOptions={props.connectOptions}
++            initialScreen={props.initialScreen}
+           />,
+         );
+       })

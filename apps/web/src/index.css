@@ -1,0 +1,87 @@
+@import 'swiper/css';
+@import 'swiper/css/pagination';
+@import 'swiper/css/navigation';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define CSS variables for Tailwind colors */
+:root {
+  --color-light-text: #1e293b;
+  --color-light-text-secondary: #475569;
+  --color-dark-text: #E8E8E8;
+  --color-dark-text-secondary: #A0A0A0;
+  --color-lime-accent: #1e3a8a;
+}
+
+/* Custom Swiper Navigation and Pagination Styles */
+.swiper-button-next,
+.swiper-button-prev {
+  color: var(--color-light-text) !important; /* Default for light mode */
+  width: 32px !important;
+  height: 32px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s ease !important;
+  top: auto !important;
+  bottom: 16px !important;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  transform: scale(1.1) !important;
+}
+
+.swiper-button-next::after,
+.swiper-button-prev::after {
+  font-size: 16px !important;
+  font-weight: bold !important;
+}
+
+.dark .swiper-button-next,
+.dark .swiper-button-prev {
+  color: var(--color-dark-text) !important; /* White for dark mode */
+  background: rgba(30, 41, 59, 0.9) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .swiper-button-next:hover,
+.dark .swiper-button-prev:hover {
+  background: rgba(30, 41, 59, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.swiper-pagination {
+  margin-top: 20px !important; /* Espacio arriba de los puntos */
+}
+
+.swiper-pagination-bullet {
+  background: var(--color-light-text-secondary) !important; /* Default for light mode */
+  opacity: 0.5 !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: var(--color-lime-accent) !important; /* Accent color for active bullet */
+  opacity: 1 !important;
+}
+
+.dark .swiper-pagination-bullet {
+  background: var(--color-dark-text-secondary) !important; /* Dark mode secondary text color */
+}
+
+.dark .swiper-pagination-bullet-active {
+  background: var(--color-lime-accent) !important; /* Accent color for active bullet in dark mode */
+}
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

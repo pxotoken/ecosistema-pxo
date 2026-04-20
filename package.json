@@ -1,0 +1,33 @@
+{
+  "name": "pxotoken",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@pxo/web",
+    "dev:landing": "turbo run dev --filter=@pxo/landing",
+    "dev:api": "turbo run dev --filter=@pxo/api",
+    "dev:pagos": "turbo run dev --filter=@pxo/pagos",
+    "dev:pagos-api": "turbo run dev --filter=@pxo/pagos-api",
+    "build": "turbo run build",
+    "build:web": "turbo run build --filter=@pxo/web",
+    "build:landing": "turbo run build --filter=@pxo/landing",
+    "build:api": "turbo run build --filter=@pxo/api",
+    "build:pagos": "turbo run build --filter=@pxo/pagos",
+    "build:pagos-api": "turbo run build --filter=@pxo/pagos-api",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.5.3"
+  },
+  "packageManager": "pnpm@9.0.6",
+  "pnpm": {
+    "patchedDependencies": {
+      "thirdweb@5.100.0": "patches/thirdweb@5.100.0.patch"
+    }
+  }
+}
