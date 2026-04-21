@@ -11,6 +11,7 @@
     "dev:pagos": "turbo run dev --filter=@pxo/pagos",
     "dev:api-pagos": "turbo run dev --filter=@pxo/api-pagos",
     "dev:api-auth": "turbo run dev --filter=@pxo/api-auth",
+    "dev:api-orchestrator": "turbo run dev --filter=@pxo/api-orchestrator",
     "build": "turbo run build",
     "build:web": "turbo run build --filter=@pxo/web",
     "build:landing": "turbo run build --filter=@pxo/landing",
@@ -18,6 +19,7 @@
     "build:pagos": "turbo run build --filter=@pxo/pagos",
     "build:api-pagos": "turbo run build --filter=@pxo/api-pagos",
     "build:api-auth": "turbo run build --filter=@pxo/api-auth",
+    "build:api-orchestrator": "turbo run build --filter=@pxo/api-orchestrator",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules"
