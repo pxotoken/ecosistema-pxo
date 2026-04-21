@@ -1,5 +1,5 @@
 {
-  "name": "@pxo/pagos-api",
+  "name": "@pxo/api-pagos",
   "private": true,
   "version": "1.0.0",
   "type": "module",
