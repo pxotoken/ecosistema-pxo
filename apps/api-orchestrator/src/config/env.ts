@@ -4,7 +4,11 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
 
   UPSTREAM_API_AUTH: process.env.UPSTREAM_API_AUTH || 'http://localhost:3002',
+  UPSTREAM_API_EMAIL: process.env.UPSTREAM_API_EMAIL || 'http://localhost:3004',
   UPSTREAM_API_PAGOS: process.env.UPSTREAM_API_PAGOS || 'http://localhost:3001',
+  UPSTREAM_API_USERS: process.env.UPSTREAM_API_USERS || 'http://localhost:3005',
+  UPSTREAM_API_KYC: process.env.UPSTREAM_API_KYC || 'http://localhost:3006',
+  UPSTREAM_API_WALLET: process.env.UPSTREAM_API_WALLET || 'http://localhost:3007',
   UPSTREAM_API_LEGACY: process.env.UPSTREAM_API_LEGACY || 'http://localhost:3000',
 
   ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS ||

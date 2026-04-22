@@ -1,29 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import useAuth from '../hooks/useAuth';
-import { useKYC } from '../hooks/useKYC';
 import { KYCStatus } from '@pxo/shared/types';
 
 export const UserProfile: React.FC = () => {
-  const { user, loadingLogin: loading, error, isAuthenticated, login, logout, refreshUser } = useAuth();
-  const { submitKYCData, updateKYCStatus } = useKYC();
-
-  const handleSubmitKYC = async () => {
-    if (!user?.id) return;
-
-    try {
-      await submitKYCData(user.id, {
-        legal_identification: 'ABC123456',
-        imagen_KYC: 'https://example.com/kyc-image.jpg',
-        selfie_pictures: ['https://example.com/selfie1.jpg'],
-        identification_photos: ['https://example.com/id1.jpg', 'https://example.com/id2.jpg']
-      });
-      
-      // Refresh user data after KYC submission
-      await refreshUser();
-    } catch (error) {
-      console.error('Error submitting KYC:', error);
-    }
-  };
+  const { user, loadingLogin: loading, error, isAuthenticated, login, logout } = useAuth();
 
   if (loading) {
     return (
@@ -120,12 +100,9 @@ export const UserProfile: React.FC = () => {
           )}
           
           {user.KYC_status === KYCStatus.PENDING && (
-            <button
-              onClick={handleSubmitKYC}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Submit KYC
-            </button>
+            <p className="text-sm text-gray-600">
+              Complete your KYC from the Settings page to activate your account.
+            </p>
           )}
         </div>
       ) : (

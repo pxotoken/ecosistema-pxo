@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { KycRequest } from "../../../types/kyc";
+import type { KycSubmission, KycSubmissionStatus } from "@pxo/shared/types";
 import { useKycRequests } from "../../hooks/useKycRequests";
 import { Loader2, Eye, ChevronDown, ChevronRight, Search } from "lucide-react";
 
-// Simple Button component
 const Button = ({ children, variant = "default", size = "default", onClick, className = "" }: any) => (
   <button
     onClick={onClick}
@@ -17,7 +16,6 @@ const Button = ({ children, variant = "default", size = "default", onClick, clas
   </button>
 );
 
-// Simple Input component
 const Input = ({ placeholder, value, onChange, className = "" }: any) => (
   <input
     type="text"
@@ -29,76 +27,77 @@ const Input = ({ placeholder, value, onChange, className = "" }: any) => (
 );
 
 interface KycRequestsTableProps {
-  status: KycRequest["status"];
-  onViewDetails: (request: KycRequest) => void;
+  status: KycSubmissionStatus;
+  onViewDetails: (submission: KycSubmission) => void;
   revalidationKey?: number;
 }
 
-interface GroupedRequests {
+interface GroupedSubmissions {
   [userId: string]: {
-    latest: KycRequest;
-    history: KycRequest[];
-  }
+    latest: KycSubmission;
+    history: KycSubmission[];
+  };
 }
 
-export function KycRequestsTable({ 
-  status, 
+const STATUS_LABEL: Record<KycSubmissionStatus, string> = {
+  pending_review: 'Under Validation',
+  approved: 'Validated',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
+};
+
+const STATUS_BADGE: Record<KycSubmissionStatus, string> = {
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800',
+  pending_review: 'bg-yellow-100 text-yellow-800',
+  cancelled: 'bg-gray-100 text-gray-800',
+};
+
+export function KycRequestsTable({
+  status,
   onViewDetails,
-  revalidationKey = 0
+  revalidationKey = 0,
 }: KycRequestsTableProps) {
-  const { requests, isLoading } = useKycRequests(status, revalidationKey);
+  const { submissions, isLoading } = useKycRequests(status, revalidationKey);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  // Debounce effect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Filtrar y agrupar requests
-  const groupedRequests = useMemo(() => {
-    const filteredRequests = requests.filter(request => {
-      const searchTerm = debouncedQuery.toLowerCase();
-      const fullName = `${request.first_name} ${request.last_name}`.toLowerCase();
-      const email = request.email.toLowerCase();
-      
-      return fullName.includes(searchTerm) || email.includes(searchTerm);
+  const grouped = useMemo<GroupedSubmissions>(() => {
+    const term = debouncedQuery.toLowerCase();
+    const filtered = submissions.filter((s) => {
+      const fullName = (s.personal_info?.fullName ?? '').toLowerCase();
+      const email = (s.personal_info?.email ?? '').toLowerCase();
+      return fullName.includes(term) || email.includes(term);
     });
 
-    return filteredRequests.reduce((acc: GroupedRequests, request) => {
-      if (!acc[request.user_id]) {
-        acc[request.user_id] = {
-          latest: request,
-          history: []
-        };
+    return filtered.reduce<GroupedSubmissions>((acc, submission) => {
+      if (!acc[submission.user_id]) {
+        acc[submission.user_id] = { latest: submission, history: [] };
       } else {
-        const currentDate = new Date(request.created_at!);
-        const latestDate = new Date(acc[request.user_id].latest.created_at!);
-        
+        const currentDate = new Date(submission.created_at);
+        const latestDate = new Date(acc[submission.user_id].latest.created_at);
         if (currentDate > latestDate) {
-          acc[request.user_id].history.push(acc[request.user_id].latest);
-          acc[request.user_id].latest = request;
+          acc[submission.user_id].history.push(acc[submission.user_id].latest);
+          acc[submission.user_id].latest = submission;
         } else {
-          acc[request.user_id].history.push(request);
+          acc[submission.user_id].history.push(submission);
         }
       }
       return acc;
     }, {});
-  }, [requests, debouncedQuery]);
+  }, [submissions, debouncedQuery]);
 
   const toggleUser = (userId: string) => {
-    const newExpanded = new Set(expandedUsers);
-    if (newExpanded.has(userId)) {
-      newExpanded.delete(userId);
-    } else {
-      newExpanded.add(userId);
-    }
-    setExpandedUsers(newExpanded);
+    const next = new Set(expandedUsers);
+    if (next.has(userId)) next.delete(userId);
+    else next.add(userId);
+    setExpandedUsers(next);
   };
 
   if (isLoading) {
@@ -128,88 +127,73 @@ export function KycRequestsTable({
           <div>Document Type</div>
           <div>Status</div>
           <div>Date</div>
-          <div>Acciones</div>
+          <div>Actions</div>
         </div>
 
         <div className="divide-y">
-          {Object.entries(groupedRequests).map(([userId, { latest, history }]) => (
-            <div key={userId}>
-              <div className="p-4 grid grid-cols-6 gap-4 items-center">
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleUser(userId)}
-                  >
-                    {expandedUsers.has(userId) ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <span>{latest.first_name} {latest.last_name}</span>
-                </div>
-                <div>{latest.email}</div>
-                <div className="capitalize">{latest.legal_identification_type}</div>
-                <div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    latest.status === 'VALIDATED' ? 'bg-green-100 text-green-800' :
-                    latest.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                    latest.status === 'VALIDATING' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {latest.status}
-                  </span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {new Date(latest.created_at!).toLocaleDateString()}
-                </div>
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onViewDetails(latest)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver
-                  </Button>
-                </div>
-              </div>
-
-              {expandedUsers.has(userId) && history.length > 0 && (
-                <div className="bg-muted/30 p-4">
-                  <h4 className="font-medium mb-2">Request history:</h4>
-                  <div className="space-y-2">
-                    {history.map((request) => (
-                      <div key={request.id} className="grid grid-cols-5 gap-4 text-sm">
-                        <div>{request.first_name} {request.last_name}</div>
-                        <div>{request.email}</div>
-                        <div className="capitalize">{request.legal_identification_type}</div>
-                        <div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            request.status === 'VALIDATED' ? 'bg-green-100 text-green-800' :
-                            request.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                            request.status === 'VALIDATING' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {request.status}
-                          </span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          {new Date(request.created_at!).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
+          {Object.entries(grouped).map(([userId, { latest, history }]) => {
+            const pi = latest.personal_info;
+            return (
+              <div key={userId}>
+                <div className="p-4 grid grid-cols-6 gap-4 items-center">
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="sm" onClick={() => toggleUser(userId)}>
+                      {expandedUsers.has(userId) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <span>{pi?.fullName ?? '—'}</span>
+                  </div>
+                  <div>{pi?.email ?? '—'}</div>
+                  <div className="capitalize">{pi?.documentType ?? '—'}</div>
+                  <div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[latest.status]}`}>
+                      {STATUS_LABEL[latest.status]}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(latest.created_at).toLocaleDateString()}
+                  </div>
+                  <div>
+                    <Button variant="outline" size="sm" onClick={() => onViewDetails(latest)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expandedUsers.has(userId) && history.length > 0 && (
+                  <div className="bg-muted/30 p-4">
+                    <h4 className="font-medium mb-2">Submission history:</h4>
+                    <div className="space-y-2">
+                      {history.map((s) => (
+                        <div key={s.id} className="grid grid-cols-5 gap-4 text-sm">
+                          <div>{s.personal_info?.fullName ?? '—'}</div>
+                          <div>{s.personal_info?.email ?? '—'}</div>
+                          <div className="capitalize">{s.personal_info?.documentType ?? '—'}</div>
+                          <div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_BADGE[s.status]}`}>
+                              {STATUS_LABEL[s.status]}
+                            </span>
+                          </div>
+                          <div className="text-muted-foreground">
+                            {new Date(s.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        {Object.keys(groupedRequests).length === 0 && (
+        {Object.keys(grouped).length === 0 && (
           <div className="p-8 text-center text-muted-foreground">
-            No requests with status "{status.toLowerCase()}"
+            No submissions with status "{STATUS_LABEL[status].toLowerCase()}"
           </div>
         )}
       </div>

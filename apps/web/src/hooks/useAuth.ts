@@ -396,7 +396,7 @@ const useAuth = (onLogin?: () => void) => {
   const refreshUserProfile = useCallback(async () => {
     console.log("🔄 Refreshing user profile from backend...");
     
-    const response = await fetch('/api/user/profile', {
+    const response = await fetch('/api/users/me', {
       method: 'GET',
       credentials: 'include',
     });
@@ -407,8 +407,8 @@ const useAuth = (onLogin?: () => void) => {
     }
 
     const result = await response.json();
-    
-    if (result.success && result.user) {
+
+    if (result.user) {
       setUser(result.user);
       storage.set('pxo_user', JSON.stringify(result.user));
       console.log("✅ User profile refreshed successfully");

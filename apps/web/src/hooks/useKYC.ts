@@ -1,159 +1,209 @@
 import { useState } from 'react';
-import { User } from '@pxo/shared/types';
+import { ROUTES } from '../config/routes';
+import type {
+  KycDocument,
+  KycPersonalInfo,
+  KycSubmission,
+  ReviewKycPayload,
+  SubmitKycPayload,
+} from '@pxo/shared/types';
 
-const API_BASE_URL = '/api/users/kyc';
+const API_BASE = ROUTES.API.KYC; // /api/kyc
 
-// Helper to extract error message
-const getErrorMessage = (err: unknown): string => {
-  return err instanceof Error ? err.message : 'Unknown error';
+// ISO-2 countries usados en el form. Centralizado acá para que el form quede limpio.
+const COUNTRY_LABEL_TO_ISO2: Record<string, string> = {
+  Mexico: 'MX',
+  'United States': 'US',
+  Canada: 'CA',
+  Spain: 'ES',
+  Argentina: 'AR',
+  Chile: 'CL',
+  Colombia: 'CO',
+  Peru: 'PE',
+  Brazil: 'BR',
 };
+
+export function normalizeCountryToIso2(value: string | undefined | null): string {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (/^[A-Z]{2}$/.test(trimmed)) return trimmed;
+  return COUNTRY_LABEL_TO_ISO2[trimmed] ?? '';
+}
+
+const getErrorMessage = (err: unknown): string =>
+  err instanceof Error ? err.message : 'Unknown error';
+
+interface SubmitKycInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  country: string; // puede venir como label o ISO-2
+  dateOfBirth: string; // ISO date YYYY-MM-DD
+  documentType: 'dni' | 'passport';
+  documentNumber: string;
+  frontDocument?: File;
+  backDocument?: File;
+  passport?: File;
+  existingPassportPath?: string;
+  existingFrontPath?: string;
+  existingBackPath?: string;
+}
 
 export const useKYC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper wrapper for API requests with consistent error handling
   const withErrorHandling = async <T,>(fn: () => Promise<T>): Promise<T> => {
     setLoading(true);
     setError(null);
     try {
       return await fn();
     } catch (err) {
-      const errorMessage = getErrorMessage(err);
-      setError(errorMessage);
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const getKYCData = async (userId: string) => {
-    return withErrorHandling(async () => {
-      const response = await fetch(`${API_BASE_URL}?user_id=${userId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch KYC data');
-      }
-
-      const result = await response.json();
-      return result.data;
-    });
-  };
-
-  const uploadFile = async (file: File, folder: string = 'kyc-documents'): Promise<string> => {
+  /**
+   * Sube un archivo y devuelve el supabase storage path (NO la URL pública).
+   * El microservicio api-kyc espera paths para luego construir URLs firmadas.
+   */
+  const uploadFile = async (
+    file: File,
+    folder = 'identification-photos',
+  ): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
 
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
+    const response = await fetch('/api/upload', { method: 'POST', body: formData });
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || 'Failed to upload file');
     }
-
-    const result = await response.json();
-    return result.url;
+    const result: { path?: string; url?: string } = await response.json();
+    if (!result.path) throw new Error('Upload response missing storage path');
+    return result.path;
   };
 
-  const submitKYCData = async (
-    userId: string,
-    kycData: {
-      first_name?: string;
-      last_name?: string;
-      email?: string;
-      phone?: string;
-      country?: string;
-      legal_identification_type?: "dni" | "passport";
-      frontDocument?: File;
-      backDocument?: File;
-      passport?: File;
-      existingPassport?: string;
-      existingFrontPhoto?: string;
-      existingBackPhoto?: string;
-    }
-  ) => {
+  /**
+   * GET /api/kyc/status — devuelve el último submission del caller (resuelto por JWT).
+   */
+  const getKycStatus = async (): Promise<{
+    submission: KycSubmission | null;
+    status: KycSubmission['status'] | 'not_started';
+  }> => {
     return withErrorHandling(async () => {
-      // Upload files based on document type
-      const [frontPhotoUrl, backPhotoUrl, passportUrl] = await Promise.all([
-        kycData.frontDocument ? uploadFile(kycData.frontDocument, 'identification-photos') : Promise.resolve(undefined),
-        kycData.backDocument ? uploadFile(kycData.backDocument, 'identification-photos') : Promise.resolve(undefined),
-        kycData.passport ? uploadFile(kycData.passport, 'passport') : Promise.resolve(undefined),
+      const response = await fetch(`${API_BASE}/status`, { credentials: 'include' });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch KYC status');
+      }
+      return response.json();
+    });
+  };
+
+  /**
+   * POST /api/kyc/submit — crea una nueva submission de KYC.
+   * El caller se deriva del JWT (no se envía user_id).
+   */
+  const submitKyc = async (input: SubmitKycInput): Promise<KycSubmission> => {
+    return withErrorHandling(async () => {
+      // 1) Subir archivos nuevos en paralelo y juntar con existentes
+      const [frontPath, backPath, passportPath] = await Promise.all([
+        input.frontDocument ? uploadFile(input.frontDocument, 'identification-photos') : Promise.resolve(undefined),
+        input.backDocument ? uploadFile(input.backDocument, 'identification-photos') : Promise.resolve(undefined),
+        input.passport ? uploadFile(input.passport, 'passport') : Promise.resolve(undefined),
       ]);
 
-      // Submit KYC data with file URLs
-      const response = await fetch(API_BASE_URL, {
+      // 2) Armar el array de documents según el tipo
+      const documents: KycDocument[] = [];
+      if (input.documentType === 'passport') {
+        const path = passportPath ?? input.existingPassportPath;
+        if (!path) throw new Error('Passport document is required');
+        documents.push({ type: 'id_front', path });
+      } else {
+        const front = frontPath ?? input.existingFrontPath;
+        const back = backPath ?? input.existingBackPath;
+        if (!front) throw new Error('Front ID document is required');
+        if (!back) throw new Error('Back ID document is required');
+        documents.push({ type: 'id_front', path: front });
+        documents.push({ type: 'id_back', path: back });
+      }
+
+      // 3) Armar personalInfo según el contract del microservicio
+      const country = normalizeCountryToIso2(input.country);
+      if (!country) throw new Error(`Unsupported country: ${input.country}`);
+
+      const personalInfo: KycPersonalInfo = {
+        fullName: `${input.firstName.trim()} ${input.lastName.trim()}`.trim(),
+        dateOfBirth: input.dateOfBirth,
+        country,
+        documentType: input.documentType, // 'dni' | 'passport' son válidos en el enum del microservicio
+        documentNumber: input.documentNumber.trim(),
+        // D1.3 — auditoría: guardamos email/phone en personal_info además de en users
+        email: input.email,
+        phone: input.phone,
+      };
+
+      const payload: SubmitKycPayload = { documents, personalInfo };
+
+      const response = await fetch(`${API_BASE}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          first_name: kycData.first_name,
-          last_name: kycData.last_name,
-          email: kycData.email,
-          phone: kycData.phone,
-          country: kycData.country,
-          legal_identification_type: kycData.legal_identification_type,
-          frontPhotoUrl,
-          backPhotoUrl,
-          passport: passportUrl,
-          existingPassport: kycData.existingPassport,
-          existingFrontPhoto: kycData.existingFrontPhoto,
-          existingBackPhoto: kycData.existingBackPhoto,
-          KYC_status: 'VALIDATING'
-        }),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit KYC data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to submit KYC');
       }
-
-      const result = await response.json();
-      return result.data;
+      const result: { submission: KycSubmission } = await response.json();
+      return result.submission;
     });
   };
 
-  const updateKYCStatus = async (
-    userId: string,
-    status: "PENDING" | "VALIDATING" | "VALIDATED" | "BLOCKED"
-  ) => {
+  /**
+   * POST /api/kyc/submissions/:id/review — admin only.
+   * El microservicio sólo soporta approve/reject.
+   */
+  const reviewSubmission = async (
+    submissionId: string,
+    action: 'approve' | 'reject',
+    rejectionReason?: string,
+  ): Promise<KycSubmission> => {
     return withErrorHandling(async () => {
-      const response = await fetch(API_BASE_URL, {
-        method: 'PUT',
+      const payload: ReviewKycPayload = {
+        action,
+        ...(action === 'reject' ? { rejectionReason } : {}),
+      };
+      const response = await fetch(`${API_BASE}/submissions/${submissionId}/review`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          KYC_status: status,
-        }),
+        credentials: 'include',
+        body: JSON.stringify(payload),
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update KYC status');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to review submission');
       }
-
-      const result = await response.json();
-      return result.data;
+      const result: { submission: KycSubmission } = await response.json();
+      return result.submission;
     });
   };
 
-  const clearError = () => {
-    setError(null);
-  };
+  const clearError = () => setError(null);
 
   return {
     loading,
     error,
-    getKYCData,
-    submitKYCData,
-    updateKYCStatus,
+    getKycStatus,
+    submitKyc,
+    reviewSubmission,
     uploadFile,
     clearError,
   };
 };
-
-

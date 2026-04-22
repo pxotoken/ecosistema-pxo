@@ -1,43 +1,38 @@
 import { useState, useEffect } from 'react';
-import { KycRequest } from '@pxo/shared/types';
+import { ROUTES } from '../config/routes';
+import type { KycSubmission, KycSubmissionStatus } from '@pxo/shared/types';
 
-export function useKycRequests(status: KycRequest['status'], revalidationKey?: number) {
-  const [requests, setRequests] = useState<KycRequest[]>([]);
+export function useKycRequests(
+  status: KycSubmissionStatus,
+  revalidationKey?: number,
+) {
+  const [submissions, setSubmissions] = useState<KycSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchSubmissions = async () => {
       try {
-        console.log('🔄 Fetching KYC requests for status:', status);
         setIsLoading(true);
-        
-        const response = await fetch(`/api/kyc/requests?status=${status}`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        console.log('📡 Response status:', response.status);
-
+        const response = await fetch(
+          `${ROUTES.API.KYC}/submissions?status=${status}`,
+          { method: 'GET', credentials: 'include' },
+        );
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error('❌ API Error:', errorData);
-          throw new Error(errorData.error || 'Error fetching KYC requests');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Error fetching KYC submissions');
         }
-
-        const data = await response.json();
-        console.log('📋 Received data:', data);
-        setRequests(data);
+        const data: { submissions: KycSubmission[] } = await response.json();
+        setSubmissions(data.submissions ?? []);
       } catch (err) {
-        console.error('❌ Hook error:', err);
-        setError(err instanceof Error ? err : new Error('Error fetching KYC requests'));
+        setError(err instanceof Error ? err : new Error('Error fetching KYC submissions'));
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRequests();
+    fetchSubmissions();
   }, [status, revalidationKey]);
 
-  return { requests, isLoading, error };
+  return { submissions, isLoading, error };
 }

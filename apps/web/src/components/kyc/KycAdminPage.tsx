@@ -1,24 +1,33 @@
 import { useState } from "react";
 import { KycRequestsTable } from "./KycRequestsTable";
 import { KycDetailsModal } from "./KycDetailsModal";
-import { KycRequest } from "../../../types/kyc";
+import type { KycSubmission, KycSubmissionStatus } from "@pxo/shared/types";
 import useAuth from "../../hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
+type AdminTab = Extract<KycSubmissionStatus, 'pending_review' | 'approved' | 'rejected'>;
+
+const TABS: Array<{ value: AdminTab; label: string }> = [
+  { value: 'pending_review', label: 'Under Validation' },
+  { value: 'approved', label: 'Validated' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
 export function KycAdminPage() {
   const { user, isAuthenticated, loading } = useAuth();
-  const [selectedRequest, setSelectedRequest] = useState<KycRequest | null>(null);
+  const [selected, setSelected] = useState<KycSubmission | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [revalidationKey, setRevalidationKey] = useState(0);
-  const [activeTab, setActiveTab] = useState("validating");
+  const [activeTab, setActiveTab] = useState<AdminTab>('pending_review');
 
   const handleStatusUpdate = () => {
-    setRevalidationKey(prev => prev + 1);
+    setRevalidationKey((prev) => prev + 1);
   };
 
-  // Check if user is admin
-  const isAdmin = user?.user_type?.includes("989e3702-b515-4d6e-8627-fa0142a1a88f") || 
-                  user?.mail === "admin@pxo.com";
+  // TODO ADR-0001: reemplazar este check por un helper hasRole(user, 'admin').
+  const isAdmin =
+    user?.user_type?.includes("989e3702-b515-4d6e-8627-fa0142a1a88f") ||
+    user?.mail === "admin@pxo.com";
 
   if (loading) {
     return (
@@ -46,19 +55,12 @@ export function KycAdminPage() {
     );
   }
 
-  const tabs = [
-    { value: "validating", label: "Under Validation" },
-    { value: "validated", label: "Validated" },
-    { value: "rejected", label: "Rejected" }
-  ];
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
 
-      {/* Tabs */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
@@ -73,44 +75,17 @@ export function KycAdminPage() {
         ))}
       </div>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === "validating" && (
-          <KycRequestsTable 
-            status="VALIDATING"
-            onViewDetails={(request) => {
-              setSelectedRequest(request);
-              setIsModalOpen(true);
-            }}
-            revalidationKey={revalidationKey}
-          />
-        )}
-        
-        {activeTab === "validated" && (
-          <KycRequestsTable 
-            status="VALIDATED"
-            onViewDetails={(request) => {
-              setSelectedRequest(request);
-              setIsModalOpen(true);
-            }}
-            revalidationKey={revalidationKey}
-          />
-        )}
-        
-        {activeTab === "rejected" && (
-          <KycRequestsTable 
-            status="REJECTED"
-            onViewDetails={(request) => {
-              setSelectedRequest(request);
-              setIsModalOpen(true);
-            }}
-            revalidationKey={revalidationKey}
-          />
-        )}
-      </div>
+      <KycRequestsTable
+        status={activeTab}
+        onViewDetails={(submission) => {
+          setSelected(submission);
+          setIsModalOpen(true);
+        }}
+        revalidationKey={revalidationKey}
+      />
 
       <KycDetailsModal
-        request={selectedRequest}
+        submission={selected}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         onStatusUpdate={handleStatusUpdate}

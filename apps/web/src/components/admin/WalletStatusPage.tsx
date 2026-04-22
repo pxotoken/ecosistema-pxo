@@ -59,7 +59,7 @@ export const WalletStatusPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/wallet-status`);
+      const response = await fetch(`/api/wallet/admin/status`);
       
       if (!response.ok) {
         const errorData = await response.json();

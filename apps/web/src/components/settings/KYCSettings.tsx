@@ -1,46 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  FileText, 
-  CheckCircle, 
-  AlertTriangle, 
-  Clock, 
-  Upload,
+import {
+  User,
+  FileText,
+  CheckCircle,
+  AlertTriangle,
   Save,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { KYCStatusBadge } from './KYCStatusBadge';
-import { useKYC } from '../../hooks/useKYC';
+import { useKYC, normalizeCountryToIso2 } from '../../hooks/useKYC';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { KYCStatus } from '@pxo/shared/types';
 import { Toast } from '../common/Toast';
 import { useToast } from '../../hooks/useToast';
+
+const COUNTRY_OPTIONS: Array<{ code: string; label: string }> = [
+  { code: 'MX', label: 'Mexico' },
+  { code: 'US', label: 'United States' },
+  { code: 'CA', label: 'Canada' },
+  { code: 'ES', label: 'Spain' },
+  { code: 'AR', label: 'Argentina' },
+  { code: 'CL', label: 'Chile' },
+  { code: 'CO', label: 'Colombia' },
+  { code: 'PE', label: 'Peru' },
+  { code: 'BR', label: 'Brazil' },
+];
 
 interface KYCFormData {
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  country: string;
-  documentType: "dni" | "passport";
+  country: string; // ISO-2
+  dateOfBirth: string; // YYYY-MM-DD
+  documentType: 'dni' | 'passport';
+  documentNumber: string;
   frontDocument: File | null;
   backDocument: File | null;
   passport: File | null;
 }
 
-interface KYCFormErrors {
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  country?: string;
-  documentType?: string;
-  frontDocument?: string;
-  backDocument?: string;
-  passport?: string;
-}
+type KYCFormErrors = Partial<Record<keyof KYCFormData, string>>;
 
 const ValidationWarning = () => (
   <motion.div
@@ -115,36 +117,35 @@ const FormInput = ({
       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors ${
         isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
       } ${
-        formErrors[field as keyof KYCFormErrors]
+        formErrors[field]
           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
           : 'border-light-border dark:border-dark-border bg-light-base dark:bg-dark-base'
       }`}
       placeholder={placeholder}
     />
-    {formErrors[field as keyof KYCFormErrors] && (
-      <p className="text-sm text-red-500 mt-1">{formErrors[field as keyof KYCFormErrors]}</p>
+    {formErrors[field] && (
+      <p className="text-sm text-red-500 mt-1">{formErrors[field]}</p>
     )}
   </div>
 );
 
 export const KYCSettings: React.FC = () => {
   const { user, updateUser, refreshUserProfile } = useAuthContext();
-  const { submitKYCData, loading, error, clearError } = useKYC();
+  const { submitKyc, loading, error, clearError } = useKYC();
   const { toast, showToast, hideToast } = useToast();
-  
-  // State for profile loading
+
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  
-  // Disable form when KYC is validating
   const isFormDisabled = user?.KYC_status === KYCStatus.VALIDATING;
-  
+
   const [formData, setFormData] = useState<KYCFormData>({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    country: 'Mexico',
+    country: 'MX',
+    dateOfBirth: '',
     documentType: 'dni',
+    documentNumber: '',
     frontDocument: null,
     backDocument: null,
     passport: null,
@@ -155,19 +156,17 @@ export const KYCSettings: React.FC = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formErrors, setFormErrors] = useState<KYCFormErrors>({});
 
-  // Refresh user data when component mounts to get latest KYC status
   useEffect(() => {
     const loadUserData = async () => {
       if (!user) {
         setIsLoadingProfile(false);
         return;
       }
-      
       setIsLoadingProfile(true);
       try {
         await refreshUserProfile();
-      } catch (error) {
-        console.error('Error refreshing profile:', error);
+      } catch (err) {
+        console.error('Error refreshing profile:', err);
       } finally {
         setIsLoadingProfile(false);
       }
@@ -176,116 +175,95 @@ export const KYCSettings: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load user data when component mounts or user changes
   useEffect(() => {
     if (user) {
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         email: user.mail || '',
         phone: user.phone || '',
-        country: user.country || 'Mexico',
+        country: normalizeCountryToIso2(user.country) || 'MX',
         documentType: user.legal_identification === 'passport' ? 'passport' : 'dni',
-        frontDocument: null,
-        backDocument: null,
-        passport: null,
-      });
+        // dateOfBirth y documentNumber no existen en users — el usuario los re-ingresa
+      }));
     }
   }, [user]);
 
-  const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
-  };
-
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validatePhone = (phone: string) => /^\+?[1-9]\d{1,14}$/.test(phone.replace(/\s/g, ''));
+  const validateDate = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d));
 
   const hasRequiredDocuments = (): boolean => {
     if (formData.documentType === 'dni') {
-      const hasFrontImage = formData.frontDocument || user?.identification_photos?.[0];
-      const hasBackImage = formData.backDocument || user?.identification_photos?.[1];
-      return !!(hasFrontImage && hasBackImage);
-    } else {
-      const hasPassportImage = formData.passport || user?.passport;
-      return !!hasPassportImage;
+      const front = formData.frontDocument;
+      const back = formData.backDocument;
+      return Boolean(front && back);
     }
+    return Boolean(formData.passport);
   };
 
   const validateForm = (): boolean => {
     const errors: KYCFormErrors = {};
 
-    // Validate required fields
     if (!formData.firstName.trim()) errors.firstName = 'First name is required';
     if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
     if (!formData.email.trim()) errors.email = 'Email is required';
+    else if (!validateEmail(formData.email)) errors.email = 'Please enter a valid email';
     if (!formData.phone.trim()) errors.phone = 'Phone is required';
+    else if (!validatePhone(formData.phone)) errors.phone = 'Please enter a valid phone number';
+    if (!formData.dateOfBirth) errors.dateOfBirth = 'Date of birth is required';
+    else if (!validateDate(formData.dateOfBirth)) errors.dateOfBirth = 'Invalid date format';
+    if (!formData.documentNumber.trim()) errors.documentNumber = 'Document number is required';
+    else if (formData.documentNumber.trim().length < 3) errors.documentNumber = 'Min 3 characters';
+    if (!formData.country) errors.country = 'Country is required';
 
-    // Validate email format
-    if (formData.email && !validateEmail(formData.email)) {
-      errors.email = 'Please enter a valid email';
-    }
-
-    // Validate phone format
-    if (formData.phone && !validatePhone(formData.phone)) {
-      errors.phone = 'Please enter a valid phone number';
-    }
-
-    // Validate documents - allow existing images
     if (formData.documentType === 'dni') {
-      const hasFrontImage = formData.frontDocument || user?.identification_photos?.[0];
-      const hasBackImage = formData.backDocument || user?.identification_photos?.[1];
-      if (!hasFrontImage) errors.frontDocument = 'Front ID photo is required';
-      if (!hasBackImage) errors.backDocument = 'Back ID photo is required';
+      if (!formData.frontDocument) errors.frontDocument = 'Front ID photo is required';
+      if (!formData.backDocument) errors.backDocument = 'Back ID photo is required';
     } else if (formData.documentType === 'passport') {
-      const hasPassportImage = formData.passport || user?.passport;
-      if (!hasPassportImage) errors.passport = 'Passport photo is required';
+      if (!formData.passport) errors.passport = 'Passport photo is required';
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const isFormValid = (): boolean => {
-    const hasRequiredFields = formData.firstName.trim() && 
-                             formData.lastName.trim() && 
-                             formData.email.trim() && 
-                             formData.phone.trim();
-    
-    const isEmailValid = validateEmail(formData.email);
-    const isPhoneValid = validatePhone(formData.phone);
-
-    return Boolean(
-      hasRequiredFields && 
-      isEmailValid && 
-      isPhoneValid && 
-      hasRequiredDocuments() && 
-      acceptedTerms && 
-      acceptedDisclaimer
+  const isFormValid = (): boolean =>
+    Boolean(
+      formData.firstName.trim() &&
+        formData.lastName.trim() &&
+        formData.email.trim() &&
+        validateEmail(formData.email) &&
+        formData.phone.trim() &&
+        validatePhone(formData.phone) &&
+        formData.dateOfBirth &&
+        validateDate(formData.dateOfBirth) &&
+        formData.documentNumber.trim().length >= 3 &&
+        formData.country &&
+        hasRequiredDocuments() &&
+        acceptedTerms &&
+        acceptedDisclaimer,
     );
-  };
 
   const handleInputChange = (field: keyof KYCFormData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({ ...formData, [field]: e.target.value });
-    // Clear field error when user types
-    if (formErrors[field as keyof KYCFormErrors]) {
-      setFormErrors({ ...formErrors, [field as keyof KYCFormErrors]: undefined });
+    if (formErrors[field]) {
+      setFormErrors({ ...formErrors, [field]: undefined });
     }
+    if (error) clearError();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user?.id) {
       showToast('User not authenticated', 'error');
       return;
     }
 
-    // Show confirmation dialog if KYC is already validated or validating
     if (user.KYC_status === KYCStatus.VALIDATING || user.KYC_status === KYCStatus.VALIDATED) {
       setShowConfirmDialog(true);
       return;
@@ -298,42 +276,28 @@ export const KYCSettings: React.FC = () => {
     if (!validateForm() || !user?.id) return;
 
     try {
-      const kycData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+      await submitKyc({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         country: formData.country,
-        legal_identification_type: formData.documentType,
-        ...(formData.documentType === 'passport' 
-          ? { 
-              passport: formData.passport || undefined,
-              // Send existing URL if no new file
-              existingPassport: !formData.passport && user?.passport ? user.passport : undefined
-            }
-          : { 
-              // Send new files with position info
-              frontDocument: formData.frontDocument || undefined,
-              backDocument: formData.backDocument || undefined,
-              // Send existing URLs if no new files at that position
-              existingFrontPhoto: !formData.frontDocument && user?.identification_photos?.[0] ? user.identification_photos[0] : undefined,
-              existingBackPhoto: !formData.backDocument && user?.identification_photos?.[1] ? user.identification_photos[1] : undefined
-            }
-        )
-      };
+        dateOfBirth: formData.dateOfBirth,
+        documentType: formData.documentType,
+        documentNumber: formData.documentNumber,
+        frontDocument: formData.frontDocument ?? undefined,
+        backDocument: formData.backDocument ?? undefined,
+        passport: formData.passport ?? undefined,
+      });
 
-      const updatedUserData = await submitKYCData(user.id, kycData);
-      
-      // Show success notification
       showToast('KYC submitted successfully. Your information is being validated.', 'success');
-      
-      // Update user data with backend response
-      if (updatedUserData) {
-        updateUser(updatedUserData);
+
+      // El microservicio ya actualiza users.KYC_status → refrescamos el perfil.
+      if (updateUser && user) {
+        updateUser({ ...user, KYC_status: KYCStatus.VALIDATING });
       }
-      
-    } catch (error) {
-      console.error('Error submitting KYC:', error);
+    } catch (err) {
+      console.error('Error submitting KYC:', err);
       showToast('Error submitting KYC. Please try again.', 'error');
     }
   };
@@ -351,7 +315,6 @@ export const KYCSettings: React.FC = () => {
     );
   }
 
-  // Show loading state while fetching profile
   if (isLoadingProfile) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -367,7 +330,6 @@ export const KYCSettings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text font-editorial">
@@ -380,26 +342,24 @@ export const KYCSettings: React.FC = () => {
         <KYCStatusBadge status={user.KYC_status || 'PENDING'} />
       </div>
 
-      {/* Status Messages */}
       <AnimatePresence>
         {user.KYC_status === KYCStatus.VALIDATING && <ValidationWarning />}
         {user.KYC_status === KYCStatus.VALIDATED && <ValidationSuccess />}
       </AnimatePresence>
 
-      {/* Form */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-light-surface dark:bg-dark-surface rounded-xl p-6 border border-light-border dark:border-dark-border"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information */}
+          {/* Personal information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
               <User className="w-5 h-5" />
               Personal Information
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInput
                 label="First Name"
@@ -444,49 +404,71 @@ export const KYCSettings: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
-                Country
-              </label>
-              <select
-                value={formData.country}
-                onChange={handleInputChange('country')}
-                disabled={isFormDisabled}
-                className={`w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors bg-light-base dark:bg-dark-base ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <option value="Mexico">Mexico</option>
-                <option value="United States">United States</option>
-                <option value="Canada">Canada</option>
-                <option value="Spain">Spain</option>
-                <option value="Argentina">Argentina</option>
-                <option value="Chile">Chile</option>
-                <option value="Colombia">Colombia</option>
-                <option value="Peru">Peru</option>
-                <option value="Brazil">Brazil</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormInput
+                label="Date of Birth"
+                field="dateOfBirth"
+                type="date"
+                formData={formData}
+                formErrors={formErrors}
+                isFormDisabled={isFormDisabled}
+                onChange={handleInputChange('dateOfBirth')}
+              />
+              <div>
+                <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+                  Country *
+                </label>
+                <select
+                  value={formData.country}
+                  onChange={handleInputChange('country')}
+                  disabled={isFormDisabled}
+                  className={`w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors bg-light-base dark:bg-dark-base ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Document Upload */}
+          {/* Identity verification */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
               <FileText className="w-5 h-5" />
               Identity Verification
             </h3>
-            
-            <div>
-              <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
-                Document Type *
-              </label>
-              <select
-                value={formData.documentType}
-                onChange={handleInputChange('documentType')}
-                disabled={isFormDisabled}
-                className={`w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors bg-light-base dark:bg-dark-base ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <option value="dni">ID Card / INE</option>
-                <option value="passport">Passport</option>
-              </select>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+                  Document Type *
+                </label>
+                <select
+                  value={formData.documentType}
+                  onChange={handleInputChange('documentType')}
+                  disabled={isFormDisabled}
+                  className={`w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors bg-light-base dark:bg-dark-base ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <option value="dni">ID Card / INE</option>
+                  <option value="passport">Passport</option>
+                </select>
+              </div>
+              <FormInput
+                label="Document Number"
+                field="documentNumber"
+                placeholder="e.g. 12345678"
+                formData={formData}
+                formErrors={formErrors}
+                isFormDisabled={isFormDisabled}
+                onChange={handleInputChange('documentNumber')}
+              />
             </div>
 
             {formData.documentType === 'dni' ? (
@@ -523,12 +505,12 @@ export const KYCSettings: React.FC = () => {
             )}
           </div>
 
-          {/* Terms and Conditions */}
+          {/* Terms */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
               Terms and Conditions
             </h3>
-            
+
             <div className="space-y-3">
               <label className={`flex items-start space-x-3 ${isFormDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                 <input
@@ -564,7 +546,6 @@ export const KYCSettings: React.FC = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <motion.button
             type="submit"
             disabled={!isFormValid() || loading || isFormDisabled}
@@ -603,7 +584,6 @@ export const KYCSettings: React.FC = () => {
         </form>
       </motion.div>
 
-      {/* Confirmation Dialog */}
       <AnimatePresence>
         {showConfirmDialog && (
           <motion.div
@@ -624,10 +604,9 @@ export const KYCSettings: React.FC = () => {
                 Are you sure?
               </h3>
               <p className="text-light-text-secondary dark:text-dark-text-secondary mb-6">
-                {user.KYC_status === KYCStatus.VALIDATED 
+                {user.KYC_status === KYCStatus.VALIDATED
                   ? 'Your KYC is currently validated. If you modify your data, you will need to go through the KYC validation process again. Do you want to continue?'
-                  : 'Your KYC is currently under validation. Modifying your data at this time could cause delays in the process. Do you want to continue?'
-                }
+                  : 'Your KYC is currently under validation. Modifying your data at this time could cause delays in the process. Do you want to continue?'}
               </p>
               <div className="flex space-x-3">
                 <button
@@ -651,7 +630,6 @@ export const KYCSettings: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Toast Notification */}
       <Toast
         message={toast.message}
         type={toast.type}

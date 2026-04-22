@@ -20,10 +20,26 @@ async function bootstrap() {
     service: 'api-orchestrator',
     upstreams: {
       api_auth: env.UPSTREAM_API_AUTH,
+      api_email: env.UPSTREAM_API_EMAIL,
       api_pagos: env.UPSTREAM_API_PAGOS,
+      api_users: env.UPSTREAM_API_USERS,
+      api_kyc: env.UPSTREAM_API_KYC,
+      api_wallet: env.UPSTREAM_API_WALLET,
       api_legacy: env.UPSTREAM_API_LEGACY,
     },
   }));
+
+  // Inject verified identity into upstream requests so internal APIs can trust
+  // `x-pxo-wallet-address` without each re-verifying the JWT.
+  const injectIdentity = {
+    rewriteRequestHeaders: (originalReq: unknown, headers: Record<string, string | string[] | undefined>) => {
+      const identity = (originalReq as { identity?: { walletAddress?: string } }).identity;
+      return {
+        ...headers,
+        'x-pxo-wallet-address': identity?.walletAddress ?? '',
+      };
+    },
+  };
 
   // Demo of JWT verify capability — protected route that echoes the identity.
   app.get('/whoami', { preHandler: requireAuth }, async (req) => ({
@@ -41,12 +57,51 @@ async function bootstrap() {
     http2: false,
   });
 
+  // /api/email/* -> api-email
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EMAIL,
+    prefix: '/api/email',
+    rewritePrefix: '/api/email',
+    http2: false,
+  });
+
+  // /api/users/* -> api-users (authenticated, identity propagated)
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_USERS,
+    prefix: '/api/users',
+    rewritePrefix: '/api/users',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // /api/kyc/* -> api-kyc (authenticated, identity propagated)
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_KYC,
+    prefix: '/api/kyc',
+    rewritePrefix: '/api/kyc',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
   // /v1/payments/* -> api-pagos
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_PAGOS,
     prefix: '/v1/payments',
     rewritePrefix: '/v1/payments',
     http2: false,
+  });
+
+  // /api/wallet/* -> api-wallet (authenticated, identity propagated).
+  // Admin sub-routes enforce role inside api-wallet via Supabase lookup.
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_WALLET,
+    prefix: '/api/wallet',
+    rewritePrefix: '/api/wallet',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
   });
 
   // /api/* (catch-all) -> api legacy

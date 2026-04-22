@@ -77,7 +77,7 @@ export function useBlockchainTransactionHistory(initialFilters?: BlockchainTrans
     const chainId = activeChain?.id || filters.chain?.[0] || 137;
     
     try {
-      const response = await fetch(`/api/transactions?chain=${chainId}&${queryParams.toString()}`, {
+      const response = await fetch(`/api/wallet/transactions?chain=${chainId}&${queryParams.toString()}`, {
         headers: {
           'Accept': 'application/json',
         },
