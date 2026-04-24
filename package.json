@@ -16,6 +16,7 @@
     "dev:api-users": "turbo run dev --filter=@pxo/api-users",
     "dev:api-kyc": "turbo run dev --filter=@pxo/api-kyc",
     "dev:api-wallet": "turbo run dev --filter=@pxo/api-wallet",
+    "dev:api-exchange": "turbo run dev --filter=@pxo/api-exchange",
     "build": "turbo run build",
     "build:web": "turbo run build --filter=@pxo/web",
     "build:landing": "turbo run build --filter=@pxo/landing",
@@ -28,6 +29,7 @@
     "build:api-users": "turbo run build --filter=@pxo/api-users",
     "build:api-kyc": "turbo run build --filter=@pxo/api-kyc",
     "build:api-wallet": "turbo run build --filter=@pxo/api-wallet",
+    "build:api-exchange": "turbo run build --filter=@pxo/api-exchange",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules"

@@ -25,6 +25,7 @@ async function bootstrap() {
       api_users: env.UPSTREAM_API_USERS,
       api_kyc: env.UPSTREAM_API_KYC,
       api_wallet: env.UPSTREAM_API_WALLET,
+      api_exchange: env.UPSTREAM_API_EXCHANGE,
       api_legacy: env.UPSTREAM_API_LEGACY,
     },
   }));
@@ -99,6 +100,45 @@ async function bootstrap() {
     upstream: env.UPSTREAM_API_WALLET,
     prefix: '/api/wallet',
     rewritePrefix: '/api/wallet',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // Exchange — Phase 1: only migrated endpoints route to api-exchange.
+  // The rest of /api/exchange/* (buy-pxo, sell-pxo, orders, gas-subsidy) still
+  // falls through to the legacy catch-all below until Phase 2.
+
+  // /api/exchange/tokens -> api-exchange (public)
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/tokens',
+    rewritePrefix: '/api/exchange/tokens',
+    http2: false,
+  });
+
+  // /api/exchange/liquidity -> api-exchange (public)
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/liquidity',
+    rewritePrefix: '/api/exchange/liquidity',
+    http2: false,
+  });
+
+  // /api/prices -> api-exchange (public)
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/prices',
+    rewritePrefix: '/api/prices',
+    http2: false,
+  });
+
+  // /api/admin/pricing-rules -> api-exchange (authenticated, identity propagated;
+  // admin role enforced inside api-exchange via Supabase lookup).
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/admin/pricing-rules',
+    rewritePrefix: '/api/admin/pricing-rules',
     http2: false,
     preHandler: requireAuth,
     replyOptions: injectIdentity,
