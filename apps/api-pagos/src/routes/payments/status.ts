@@ -1,11 +1,25 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { AppServices } from '../../services/index.js';
 
-export async function paymentStatusRoute(app: FastifyInstance) {
-  app.get('/:paymentId/status', async (_req, _reply) => {
-    // TODO: Implement GET /v1/payments/:paymentId/status
-    // 1. Lookup payment by paymentId
-    // 2. Check TTL expiration → mark EXPIRED if applicable
-    // 3. Return PaymentStatusResponse
-    throw new Error('Not implemented');
-  });
+interface Params {
+  paymentId: string;
+}
+
+export function paymentStatusRoute(services: AppServices): FastifyPluginAsync {
+  return async (app: FastifyInstance) => {
+    app.get<{ Params: Params }>('/:paymentId/status', async (req, reply) => {
+      const { paymentId } = req.params;
+      try {
+        const status = await services.payments.getStatus(paymentId);
+        if (!status) return reply.code(404).send({ error: 'Payment not found' });
+        return reply.send(status);
+      } catch (err) {
+        req.log.error({ err }, 'payments/status failed');
+        return reply.code(500).send({
+          error: 'Failed to fetch payment status',
+          details: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    });
+  };
 }

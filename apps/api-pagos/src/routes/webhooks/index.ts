@@ -1,6 +1,9 @@
-import type { FastifyInstance } from 'fastify';
-import { polygonTransferWebhookRoute } from './polygon-transfer.js';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { AppServices } from '../../services/index.js';
+import { transferWebhookRoute } from './transfer.js';
 
-export async function webhookRoutes(app: FastifyInstance) {
-  await app.register(polygonTransferWebhookRoute);
+export function webhookRoutes(services: AppServices): FastifyPluginAsync {
+  return async (app: FastifyInstance) => {
+    await app.register(transferWebhookRoute(services));
+  };
 }

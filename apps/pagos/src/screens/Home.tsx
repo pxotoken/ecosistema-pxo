@@ -7,7 +7,8 @@ import {
   PlusIcon,
   QrIcon,
 } from '../components/icons';
-import { balance, profile, recentMovements } from '../data/mockData';
+import { balance, recentMovements } from '../data/mockData';
+import { useAuthContext } from '../contexts/AuthContext';
 import type { MovementType, ScreenId } from '../types';
 
 interface Props {
@@ -21,8 +22,14 @@ function MovementIcon({ type }: { type: MovementType }) {
   return <ArrowUpRightIcon width={18} height={18} strokeWidth={2.5} />;
 }
 
+function shortAddr(addr: string): string {
+  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
+}
+
 export function Home({ onNavigate }: Props) {
-  const greetingName = profile.name || 'invitado';
+  const { user, account } = useAuthContext();
+  const greetingName =
+    user?.mail || (account?.address ? shortAddr(account.address) : 'invitado');
   const hasBalance = balance.whole !== '0' || balance.cents !== '.00';
 
   return (

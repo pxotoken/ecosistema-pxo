@@ -1,17 +1,42 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { generatePaymentSchema } from '../../schemas/payment.js';
+import type { AppServices } from '../../services/index.js';
+import { authenticateApiKey } from '../../middleware/auth.js';
+import type { GeneratePaymentRequest } from '../../types/payment.js';
 
-export async function generatePaymentRoute(app: FastifyInstance) {
-  app.post('/generate', async (_req, _reply) => {
-    // TODO: Implement POST /v1/payments/generate
-    // 1. Validate request body (generatePaymentSchema)
-    // 2. Validate merchantId + posId in DB
-    // 3. Verify merchant wallet is active on Polygon Amoy
-    // 4. Calculate amountPXO (paridad 1:1 MXN)
-    // 5. Generate paymentId (UUID v4)
-    // 6. Build EIP-681 QR payload
-    // 7. Generate QR image (base64 PNG 400x400)
-    // 8. Persist Payment in PENDING state with TTL 5 min
-    // 9. Return GeneratePaymentResponse
-    throw new Error('Not implemented');
-  });
+export function generatePaymentRoute(services: AppServices): FastifyPluginAsync {
+  return async (app: FastifyInstance) => {
+    app.post<{ Body: GeneratePaymentRequest }>(
+      '/generate',
+      { preHandler: authenticateApiKey(services.merchants) },
+      async (req, reply) => {
+        const { error, value } = generatePaymentSchema.validate(req.body, {
+          abortEarly: false,
+          stripUnknown: true,
+        });
+        if (error) {
+          return reply.code(400).send({
+            error: 'Validation failed',
+            code: 'INVALID_AMOUNT',
+            details: error.details.map((d) => d.message),
+          });
+        }
+
+        const auth = req.merchantAuth!;
+        try {
+          const response = await services.payments.generate(value as GeneratePaymentRequest, {
+            merchant: auth.merchant,
+            pos: auth.pos,
+          });
+          return reply.send(response);
+        } catch (err) {
+          req.log.error({ err }, 'payments/generate failed');
+          return reply.code(500).send({
+            error: 'Failed to generate payment',
+            details: err instanceof Error ? err.message : 'Unknown error',
+          });
+        }
+      },
+    );
+  };
 }

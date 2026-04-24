@@ -14,7 +14,7 @@ export interface Payment {
   expiresAt: Date;
   createdAt: Date;
   confirmedAt?: Date;
-  chainId: 56;
+  chainId: number;
 }
 
 export interface GeneratePaymentRequest {
@@ -33,7 +33,7 @@ export interface GeneratePaymentResponse {
   amountPXO: string;
   amountMXN: number;
   expiresAt: string;
-  chainId: 56;
+  chainId: number;
 }
 
 export interface PaymentStatusResponse {
@@ -43,4 +43,8 @@ export interface PaymentStatusResponse {
   confirmedAt?: string;
   amountMXN: number;
   amountPXO: string;
+  merchantWallet: string;
+  reference?: string;
+  chainId: number;
+  expiresAt: string;
 }

@@ -4,44 +4,43 @@ export const env = {
   HOST: process.env.HOST || '0.0.0.0',
   NODE_ENV: process.env.NODE_ENV || 'development',
 
-  // Supabase
-  SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
-  SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || '',
-  // TODO: pedir al admin del proyecto Supabase la SERVICE ROLE KEY para QA.
-  // El backend la necesita para operar saltando RLS (insertar/actualizar payments y merchants sin políticas de usuario).
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS ||
+    'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3003')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
 
-  // Thirdweb
-  THIRDWEB_CLIENT_ID: process.env.VITE_THIRDWEB_CLIENT_ID || '',
-  THIRDWEB_AUTH_DOMAIN: process.env.VITE_THIRDWEB_AUTH_DOMAIN || '',
-  THIRDWEB_ADMIN_PRIVATE_KEY: process.env.THIRDWEB_ADMIN_PRIVATE_KEY || '',
+  // Supabase — backend uses secret key (service role) to bypass RLS
+  SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',
 
-  // Polygon Amoy / PXO Token
-  POLYGON_AMOY_PXO_RECEIVER_ADDRESS: process.env.POLYGON_AMOY_PXO_RECEIVER_ADDRESS || '',
-  PXO_TOKEN_ADDRESS_TESTNET: process.env.PXO_TOKEN_ADDRESS_TESTNET || '',
+  // Payments chain — parametrised to decouple from any single L2.
+  // Supported: 80002 (Polygon Amoy, dev default), 137 (Polygon Mainnet),
+  // 56 (BSC Mainnet — production target per DF-POSBlokko).
+  PAYMENTS_CHAIN_ID: Number(process.env.PAYMENTS_CHAIN_ID) || 80002,
+
+  // RPC endpoints (optional overrides; fall back to public RPCs).
   ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY || '',
+  BSC_RPC_URL: process.env.BSC_RPC_URL || '',
+  POLYGON_MAINNET_RPC_URL: process.env.POLYGON_MAINNET_RPC_URL || '',
 
-  // Wallet
-  WALLET_PRIVATE_KEY_ENCRYPTED: process.env.WALLET_PRIVATE_KEY_ENCRYPTED || '',
+  // PXO token address per chain (resolved in chains.ts).
+  PXO_TOKEN_ADDRESS_BSC: process.env.PXO_TOKEN_ADDRESS_BSC || '',
+  PXO_TOKEN_ADDRESS_MAINNET: process.env.PXO_TOKEN_ADDRESS_MAINNET || '',
+  PXO_TOKEN_ADDRESS_TESTNET: process.env.PXO_TOKEN_ADDRESS_TESTNET || '',
 
-  // Binance
-  BINANCE_API_KEY: process.env.BINANCE_API_KEY || '',
-  BINANCE_API_BASE_URL: process.env.BINANCE_API_BASE_URL || '',
+  // Payment TTL (minutes) — DF says 5; configurable for tests.
+  PAYMENT_TTL_MINUTES: Number(process.env.PAYMENT_TTL_MINUTES) || 5,
 
-  // Resend (email)
-  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
-  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || '',
-  RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || '',
-  RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || '',
+  // HMAC secrets.
+  // - Inbound webhook (QuickNode / Alchemy) → X-QN-Signature
+  WEBHOOK_INBOUND_SECRET: process.env.WEBHOOK_INBOUND_SECRET || '',
+  // - Outbound webhook (api-pagos → POS) → X-PXO-Signature. Per-merchant override
+  //   lives in merchants.callback_secret; this is the fallback used when empty.
+  WEBHOOK_OUTBOUND_SECRET: process.env.WEBHOOK_OUTBOUND_SECRET || '',
 
-  // Upstash Redis
-  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
-  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-
-  // Cron
-  CRON_SECRET: process.env.CRON_SECRET || '',
-
-  // Session / Admin
-  SESSION_WARNING_THRESHOLD: Number(process.env.VITE_SESSION_WARNING_THRESHOLD) || 120,
-  ENABLE_ADMIN_TESTNET: process.env.VITE_ENABLE_ADMIN_TESTNET === 'true',
+  // Worker intervals (ms).
+  EXPIRATION_WORKER_INTERVAL_MS: Number(process.env.EXPIRATION_WORKER_INTERVAL_MS) || 30_000,
+  RECONCILIATION_WORKER_INTERVAL_MS:
+    Number(process.env.RECONCILIATION_WORKER_INTERVAL_MS) || 60_000,
 } as const;

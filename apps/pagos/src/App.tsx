@@ -12,16 +12,24 @@ import { PagarConfirm } from './screens/PagarConfirm';
 import { Cargar } from './screens/Cargar';
 import { CargarConfirm } from './screens/CargarConfirm';
 import { Actividad } from './screens/Actividad';
+import { Cobrar } from './screens/Cobrar';
+import { Login } from './screens/Login';
+import { Perfil } from './screens/Perfil';
+import { useAuthContext } from './contexts/AuthContext';
+import { POS_MODE_ENABLED } from './config/env';
 import type { ScreenId } from './types';
 
 const EMPTY_SUCCESS: SuccessState = { title: '', subtitle: '', amount: '' };
 
 export default function App() {
+  const { isAuthenticated, loading, isLoadingAutoConnect } = useAuthContext();
+
   const [active, setActive] = useState<ScreenId>('home');
   const [leaving, setLeaving] = useState<ScreenId | null>(null);
   const [success, setSuccess] = useState<SuccessState>(EMPTY_SUCCESS);
   const [showSuccess, setShowSuccess] = useState(false);
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
+  const [scannedPaymentId, setScannedPaymentId] = useState<string | null>(null);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,67 +70,98 @@ export default function App() {
     setTimeout(() => navigate('home'), 200);
   }, [navigate]);
 
+  const handleScannedPayment = useCallback(
+    (paymentId: string) => {
+      setScannedPaymentId(paymentId);
+      navigate('pagar-confirm');
+    },
+    [navigate],
+  );
+
   const classFor = (id: ScreenId) => {
     if (id === active) return 'screen active';
     if (id === leaving) return 'screen leaving';
     return 'screen';
   };
 
+  const showGate = !isAuthenticated || loading || isLoadingAutoConnect;
+
   return (
     <>
-      <div className="shell-label">PXO Wallet · POC Demo</div>
+      <div className="shell-label">
+        PXO Wallet · POC Demo{POS_MODE_ENABLED ? ' · POS Mode' : ''}
+      </div>
 
       <div className="device">
         <div className="island" />
         <StatusBar />
 
-        <div className="screens-wrap">
-          <div className={classFor('home')}>
-            <Home onNavigate={navigate} />
+        {showGate ? (
+          <div className="screens-wrap">
+            <div className="screen active">
+              <Login />
+            </div>
           </div>
-          <div className={classFor('enviar')}>
-            <Enviar
-              onBack={() => navigate('home')}
-              onSuccess={finishWithSuccess}
-              onNavigate={navigate}
-            />
-          </div>
-          <div className={classFor('recibir')}>
-            <Recibir onBack={() => navigate('home')} onToast={showToast} />
-          </div>
-          <div className={classFor('pagar')}>
-            <Pagar onBack={() => navigate('home')} onNavigate={navigate} />
-          </div>
-          <div className={classFor('pagar-manual')}>
-            <PagarManual
-              onBack={() => navigate('pagar')}
-              onNavigate={navigate}
-              onSuccess={finishWithSuccess}
-            />
-          </div>
-          <div className={classFor('pagar-confirm')}>
-            <PagarConfirm
-              onBack={() => navigate('pagar')}
-              onConfirm={finishWithSuccess}
-              onCancel={() => navigate('pagar')}
-            />
-          </div>
-          <div className={classFor('cargar')}>
-            <Cargar onBack={() => navigate('home')} onNavigate={navigate} />
-          </div>
-          <div className={classFor('cargar-confirm')}>
-            <CargarConfirm onBack={() => navigate('cargar')} onConfirm={finishWithSuccess} />
-          </div>
-          <div className={classFor('actividad')}>
-            <Actividad onBack={() => navigate('home')} onToast={showToast} />
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="screens-wrap">
+              <div className={classFor('home')}>
+                <Home onNavigate={navigate} />
+              </div>
+              <div className={classFor('enviar')}>
+                <Enviar
+                  onBack={() => navigate('home')}
+                  onSuccess={finishWithSuccess}
+                  onNavigate={navigate}
+                />
+              </div>
+              <div className={classFor('recibir')}>
+                <Recibir onBack={() => navigate('home')} onToast={showToast} />
+              </div>
+              <div className={classFor('pagar')}>
+                <Pagar
+                  onBack={() => navigate('home')}
+                  onNavigate={navigate}
+                  onScanned={handleScannedPayment}
+                />
+              </div>
+              <div className={classFor('pagar-manual')}>
+                <PagarManual
+                  onBack={() => navigate('pagar')}
+                  onNavigate={navigate}
+                  onSuccess={finishWithSuccess}
+                />
+              </div>
+              <div className={classFor('pagar-confirm')}>
+                <PagarConfirm
+                  paymentId={scannedPaymentId}
+                  onBack={() => navigate('pagar')}
+                  onConfirm={finishWithSuccess}
+                  onCancel={() => navigate('pagar')}
+                />
+              </div>
+              <div className={classFor('cargar')}>
+                <Cargar onBack={() => navigate('home')} onNavigate={navigate} />
+              </div>
+              <div className={classFor('cargar-confirm')}>
+                <CargarConfirm onBack={() => navigate('cargar')} onConfirm={finishWithSuccess} />
+              </div>
+              <div className={classFor('actividad')}>
+                <Actividad onBack={() => navigate('home')} onToast={showToast} />
+              </div>
+              {POS_MODE_ENABLED && (
+                <div className={classFor('cobrar')}>
+                  <Cobrar onBack={() => navigate('home')} onConfirmed={finishWithSuccess} />
+                </div>
+              )}
+              <div className={classFor('perfil')}>
+                <Perfil onBack={() => navigate('home')} onToast={showToast} />
+              </div>
+            </div>
 
-        <BottomNav
-          active={active}
-          onNavigate={navigate}
-          onProfile={() => showToast('Perfil (demo)')}
-        />
+            <BottomNav active={active} onNavigate={navigate} />
+          </>
+        )}
 
         <div className="home-ind" />
         <SuccessOverlay show={showSuccess} state={success} onClose={closeSuccess} />

@@ -7,7 +7,9 @@ export type ScreenId =
   | 'pagar-confirm'
   | 'cargar'
   | 'cargar-confirm'
-  | 'actividad';
+  | 'actividad'
+  | 'cobrar'
+  | 'perfil';
 
 export type MovementType = 'in' | 'out' | 'load' | 'pay';
 

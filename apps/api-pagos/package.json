@@ -15,10 +15,10 @@
     "@fastify/cors": "^10.0.0",
     "@fastify/rate-limit": "^10.0.0",
     "@supabase/supabase-js": "^2.55.0",
+    "dotenv": "^17.4.2",
     "fastify": "^5.0.0",
     "qrcode": "^1.5.4",
     "thirdweb": "5.100.0",
-    "uuid": "^11.1.0",
     "viem": "^2.33.2"
   },
   "devDependencies": {

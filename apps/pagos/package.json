@@ -12,14 +12,19 @@
   },
   "dependencies": {
     "@pxo/shared": "workspace:*",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.344.0",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "thirdweb": "5.100.0"
   },
   "devDependencies": {
     "@pxo/config": "workspace:*",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-basic-ssl": "^1.2.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
     "postcss": "^8.4.35",
