@@ -10,7 +10,6 @@ export const env = {
   UPSTREAM_API_KYC: process.env.UPSTREAM_API_KYC || 'http://localhost:3006',
   UPSTREAM_API_WALLET: process.env.UPSTREAM_API_WALLET || 'http://localhost:3007',
   UPSTREAM_API_EXCHANGE: process.env.UPSTREAM_API_EXCHANGE || 'http://localhost:3008',
-  UPSTREAM_API_LEGACY: process.env.UPSTREAM_API_LEGACY || 'http://localhost:3000',
 
   ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS ||
     'http://localhost:5173,http://localhost:5174,http://localhost:5175')

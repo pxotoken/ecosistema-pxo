@@ -5,6 +5,10 @@ import { env } from './config/env.js';
 import { tokensRoutes } from './routes/tokens.js';
 import { liquidityRoutes } from './routes/liquidity.js';
 import { pricesRoutes } from './routes/prices.js';
+import { buyPxoRoutes } from './routes/buy-pxo.js';
+import { sellPxoRoutes } from './routes/sell-pxo.js';
+import { gasSubsidyRoutes } from './routes/gas-subsidy.js';
+import { ordersRoutes } from './routes/orders.js';
 import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
 
 const app = Fastify({ logger: true });
@@ -23,6 +27,10 @@ async function bootstrap() {
 
   await app.register(tokensRoutes, { prefix: '/api/exchange' });
   await app.register(liquidityRoutes, { prefix: '/api/exchange' });
+  await app.register(buyPxoRoutes, { prefix: '/api/exchange' });
+  await app.register(sellPxoRoutes, { prefix: '/api/exchange' });
+  await app.register(gasSubsidyRoutes, { prefix: '/api/exchange' });
+  await app.register(ordersRoutes, { prefix: '/api/exchange' });
   await app.register(pricesRoutes, { prefix: '/api' });
   await app.register(pricingRulesRoutes, { prefix: '/api/admin' });
 

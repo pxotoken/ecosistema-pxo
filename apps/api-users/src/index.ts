@@ -6,6 +6,7 @@ import { getServerSupabase } from './lib/supabase.js';
 import { UserRepository } from './lib/user-repository.js';
 import { usersRoutes } from './routes/users.js';
 import { adminUsersRoutes } from './routes/admin-users.js';
+import { cronRoutes } from './routes/cron.js';
 
 const app = Fastify({ logger: true });
 
@@ -16,10 +17,12 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
   });
 
-  const users = new UserRepository(getServerSupabase());
+  const supabase = getServerSupabase();
+  const users = new UserRepository(supabase);
 
   app.get('/health', async () => ({ status: 'ok', service: 'api-users' }));
 
+  await app.register(cronRoutes(supabase), { prefix: '/api/users/cron' });
   await app.register(adminUsersRoutes(users), { prefix: '/api/users/admin' });
   await app.register(usersRoutes(users), { prefix: '/api/users' });
 

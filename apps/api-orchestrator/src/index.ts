@@ -14,7 +14,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
-  // Health (local — no proxied)
+  // Health (local — not proxied)
   app.get('/health', async () => ({
     status: 'ok',
     service: 'api-orchestrator',
@@ -26,7 +26,6 @@ async function bootstrap() {
       api_kyc: env.UPSTREAM_API_KYC,
       api_wallet: env.UPSTREAM_API_WALLET,
       api_exchange: env.UPSTREAM_API_EXCHANGE,
-      api_legacy: env.UPSTREAM_API_LEGACY,
     },
   }));
 
@@ -63,6 +62,16 @@ async function bootstrap() {
     upstream: env.UPSTREAM_API_EMAIL,
     prefix: '/api/email',
     rewritePrefix: '/api/email',
+    http2: false,
+  });
+
+  // /api/users/cron/* -> api-users (public; authenticated via CRON_SECRET header
+  // inside the service). Must register BEFORE /api/users/* so the general JWT
+  // gate does not intercept it.
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_USERS,
+    prefix: '/api/users/cron',
+    rewritePrefix: '/api/users/cron',
     http2: false,
   });
 
@@ -105,11 +114,8 @@ async function bootstrap() {
     replyOptions: injectIdentity,
   });
 
-  // Exchange — Phase 1: only migrated endpoints route to api-exchange.
-  // The rest of /api/exchange/* (buy-pxo, sell-pxo, orders, gas-subsidy) still
-  // falls through to the legacy catch-all below until Phase 2.
-
-  // /api/exchange/tokens -> api-exchange (public)
+  // Exchange — public read-only endpoints.
+  // /api/exchange/tokens -> api-exchange
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_EXCHANGE,
     prefix: '/api/exchange/tokens',
@@ -117,12 +123,53 @@ async function bootstrap() {
     http2: false,
   });
 
-  // /api/exchange/liquidity -> api-exchange (public)
+  // /api/exchange/liquidity -> api-exchange
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_EXCHANGE,
     prefix: '/api/exchange/liquidity',
     rewritePrefix: '/api/exchange/liquidity',
     http2: false,
+  });
+
+  // Exchange — authenticated endpoints (identity propagated).
+  // /api/exchange/buy-pxo -> api-exchange
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/buy-pxo',
+    rewritePrefix: '/api/exchange/buy-pxo',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // /api/exchange/sell-pxo -> api-exchange
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/sell-pxo',
+    rewritePrefix: '/api/exchange/sell-pxo',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // /api/exchange/gas-subsidy -> api-exchange
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/gas-subsidy',
+    rewritePrefix: '/api/exchange/gas-subsidy',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // /api/exchange/orders -> api-exchange
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/orders',
+    rewritePrefix: '/api/exchange/orders',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
   });
 
   // /api/prices -> api-exchange (public)
@@ -133,8 +180,7 @@ async function bootstrap() {
     http2: false,
   });
 
-  // /api/admin/pricing-rules -> api-exchange (authenticated, identity propagated;
-  // admin role enforced inside api-exchange via Supabase lookup).
+  // /api/admin/pricing-rules -> api-exchange (authenticated, admin enforced inside).
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_EXCHANGE,
     prefix: '/api/admin/pricing-rules',
@@ -142,14 +188,6 @@ async function bootstrap() {
     http2: false,
     preHandler: requireAuth,
     replyOptions: injectIdentity,
-  });
-
-  // /api/* (catch-all) -> api legacy
-  await app.register(httpProxy, {
-    upstream: env.UPSTREAM_API_LEGACY,
-    prefix: '/api',
-    rewritePrefix: '/api',
-    http2: false,
   });
 
   await app.listen({ port: env.PORT, host: env.HOST });

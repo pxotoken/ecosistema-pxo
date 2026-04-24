@@ -11,4 +11,6 @@ export const env = {
 
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',
+
+  CRON_SECRET: process.env.CRON_SECRET || '',
 } as const;
