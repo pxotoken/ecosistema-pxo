@@ -76,4 +76,42 @@ export class UserRepository {
       .eq('id', id);
     if (error) throw new Error(`Failed to update last_access: ${error.message}`);
   }
+
+  async listPaginated(params: {
+    search?: string;
+    limit: number;
+    offset: number;
+  }): Promise<{ users: UserRow[]; total: number }> {
+    const { search, limit, offset } = params;
+
+    let query = this.supabase
+      .from('users')
+      .select(PROFILE_COLUMNS, { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (search) {
+      const term = search.replace(/[,()]/g, '');
+      query = query.or(
+        `mail.ilike.%${term}%,wallet_address.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%`,
+      );
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw new Error(`Failed to list users: ${error.message}`);
+
+    return { users: (data ?? []) as UserRow[], total: count ?? 0 };
+  }
+
+  async updateUserType(id: string, userType: string | null): Promise<UserRow> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .update({ user_type: userType, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select(PROFILE_COLUMNS)
+      .single();
+    if (error) throw new Error(`Failed to update user_type: ${error.message}`);
+    return data as UserRow;
+  }
 }

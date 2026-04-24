@@ -49,7 +49,7 @@ export const useUsers = (): UseUsersResult => {
         params.append('search', search);
       }
 
-      const response = await fetch(`/api/admin/users?${params.toString()}`);
+      const response = await fetch(`/api/users/admin?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -70,7 +70,7 @@ export const useUsers = (): UseUsersResult => {
 
   const updateUserRole = useCallback(async (userId: string, action: 'grant_admin' | 'revoke_admin') => {
     try {
-      const response = await fetch(`/api/admin/users`, {
+      const response = await fetch(`/api/users/admin`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

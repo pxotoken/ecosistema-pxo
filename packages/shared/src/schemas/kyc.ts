@@ -15,8 +15,11 @@ const personalInfoSchema = Joi.object({
   country: Joi.string().trim().length(2).uppercase().required(),
   documentType: Joi.string().valid('passport', 'ine', 'dni', 'other').required(),
   documentNumber: Joi.string().trim().min(3).max(64).required(),
-  // ADR 0002 D1.3 — auditoría: el frontend duplica email/phone aquí además de users
-  email: Joi.string().email().max(254).optional(),
+  // ADR 0002 D1.3 — auditoría: el frontend duplica email/phone aquí además de users.
+  // No usamos Joi.email() porque algunos usuarios entran con un placeholder generado
+  // por la wallet (formato "0x...@wallet.local") que viola RFC 5321 por dots
+  // consecutivos. El form ya valida formato user-facing.
+  email: Joi.string().trim().min(3).max(254).optional(),
   phone: Joi.string().trim().min(5).max(32).optional(),
 });
 

@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { env } from './config/env.js';
 import { getServerSupabase } from './lib/supabase.js';
 import { KycRepository, UserKycStatusRepository } from './lib/kyc-repository.js';
+import { KycStorage } from './lib/kyc-storage.js';
 import { kycRoutes } from './routes/kyc.js';
 
 const app = Fastify({ logger: true });
@@ -15,13 +17,21 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'OPTIONS'],
   });
 
+  await app.register(multipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5 MB
+      files: 1,
+    },
+  });
+
   const supabase = getServerSupabase();
   const submissions = new KycRepository(supabase);
   const userStatus = new UserKycStatusRepository(supabase);
+  const storage = new KycStorage(supabase);
 
   app.get('/health', async () => ({ status: 'ok', service: 'api-kyc' }));
 
-  await app.register(kycRoutes(submissions, userStatus), { prefix: '/api/kyc' });
+  await app.register(kycRoutes(submissions, userStatus, storage), { prefix: '/api/kyc' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
 }

@@ -68,8 +68,8 @@ export const useKYC = () => {
   };
 
   /**
-   * Sube un archivo y devuelve el supabase storage path (NO la URL pública).
-   * El microservicio api-kyc espera paths para luego construir URLs firmadas.
+   * Sube un archivo al microservicio api-kyc y devuelve el supabase storage path
+   * (NO la URL pública). Endpoint: POST /api/kyc/upload (ADR 0003).
    */
   const uploadFile = async (
     file: File,
@@ -79,7 +79,11 @@ export const useKYC = () => {
     formData.append('file', file);
     formData.append('folder', folder);
 
-    const response = await fetch('/api/upload', { method: 'POST', body: formData });
+    const response = await fetch(`${API_BASE}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error || 'Failed to upload file');
@@ -144,9 +148,10 @@ export const useKYC = () => {
         country,
         documentType: input.documentType, // 'dni' | 'passport' son válidos en el enum del microservicio
         documentNumber: input.documentNumber.trim(),
-        // D1.3 — auditoría: guardamos email/phone en personal_info además de en users
-        email: input.email,
-        phone: input.phone,
+        // D1.3 — auditoría: guardamos email/phone en personal_info además de en users.
+        // Sólo enviamos si tienen valor — Joi rechaza strings vacios.
+        ...(input.email?.trim() ? { email: input.email.trim() } : {}),
+        ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}),
       };
 
       const payload: SubmitKycPayload = { documents, personalInfo };

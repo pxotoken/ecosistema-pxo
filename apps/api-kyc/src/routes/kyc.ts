@@ -7,6 +7,7 @@ import {
   type KycPersonalInfo,
   type KycSubmissionStatus,
 } from '../lib/kyc-repository.js';
+import { KycStorage } from '../lib/kyc-storage.js';
 import { requireAdmin, requireCaller } from '../middleware/identity.js';
 
 interface SubmitBody {
@@ -22,8 +23,46 @@ interface ReviewBody {
 export function kycRoutes(
   submissions: KycRepository,
   userStatus: UserKycStatusRepository,
+  storage: KycStorage,
 ): FastifyPluginAsync {
   return async (app: FastifyInstance) => {
+    // --- File upload (ADR 0003) ---
+    app.post('/upload', { preHandler: requireCaller }, async (req, reply) => {
+      const data = await req.file();
+      if (!data) return reply.code(400).send({ error: 'No file uploaded' });
+
+      if (!KycStorage.isAllowedMime(data.mimetype)) {
+        return reply.code(400).send({
+          error: 'Invalid file type. Only JPEG, PNG and WebP images are allowed.',
+        });
+      }
+
+      // Optional folder field — keeps contract with legacy uploader
+      const folderField = data.fields.folder;
+      const folder =
+        folderField && 'value' in folderField && typeof folderField.value === 'string'
+          ? folderField.value
+          : undefined;
+
+      const buffer = await data.toBuffer();
+      try {
+        const result = await storage.uploadImage(buffer, data.mimetype, folder);
+        return reply.send({
+          success: true,
+          url: result.url,
+          path: result.path,
+          message: 'File uploaded successfully',
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown upload error';
+        req.log.error({ err }, 'Upload failed');
+        return reply.code(500).send({
+          error: 'Failed to upload file to storage',
+          details: message,
+        });
+      }
+    });
+
     // --- User-facing endpoints ---
     app.get('/status', { preHandler: requireCaller }, async (req, reply) => {
       const userId = await userStatus.getIdByWalletAddress(req.caller!.walletAddress);
