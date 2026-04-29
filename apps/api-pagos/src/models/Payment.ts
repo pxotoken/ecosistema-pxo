@@ -82,6 +82,7 @@ export class PaymentRepository {
       .maybeSingle();
 
     if (error) throw new Error(`Failed to fetch payment: ${error.message}`);
+    
     return data ? rowToPayment(data as PaymentRow) : null;
   }
 
