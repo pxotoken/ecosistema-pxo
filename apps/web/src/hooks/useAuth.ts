@@ -40,6 +40,7 @@ const useAuth = (onLogin?: () => void) => {
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const { data: autoConnected, isLoading: isLoadingAutoConnect } = useAutoConnect({ client });
+  
   const { currentChains } = useWalletStore();
   
   const [user, setUser] = useState<User | null>(null);
