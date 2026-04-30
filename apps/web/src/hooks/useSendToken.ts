@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../lib/api';
 import { useActiveAccount, useActiveWallet, useActiveWalletChain } from 'thirdweb/react';
 import { getContract } from 'thirdweb/contract';
 import { getGasPrice } from 'thirdweb';
@@ -100,22 +101,16 @@ export function useSendToken() {
       if (!isNative) {
         try {
           const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
-          const subsidyRes = await fetch('/api/exchange/gas-subsidy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              userAddress: account.address,
-              paymentAmount: numAmount,
-              chainId: activeChain.id,
-              source: 'transfer',
-              tokenContractAddress: tokenAddress,
-              receiverAddress,
-              tokenDecimals: decimals,
-            }),
+          const { data: subsidyData } = await api.post('/api/exchange/gas-subsidy', {
+            userAddress: account.address,
+            paymentAmount: numAmount,
+            chainId: activeChain.id,
+            source: 'transfer',
+            tokenContractAddress: tokenAddress,
+            receiverAddress,
+            tokenDecimals: decimals,
           });
-          const subsidyData = await subsidyRes.json();
-          if (subsidyRes.ok && subsidyData.needsSubsidy) {
+          if (subsidyData.needsSubsidy) {
             await new Promise(resolve => setTimeout(resolve, 5000));
           }
         } catch (subsidyErr) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../lib/api';
 
 export interface Token {
   id: string;
@@ -25,13 +26,7 @@ export const useTokens = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/exchange/tokens');
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch tokens');
-      }
-
+      const { data } = await api.get('/api/exchange/tokens');
       setTokens(data.tokens);
     } catch (err) {
       console.error('Error fetching tokens:', err);

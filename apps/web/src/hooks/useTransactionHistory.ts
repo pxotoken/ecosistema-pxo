@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HistoryItem, TransactionType } from '@pxo/shared/types';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
+import api from '../lib/api';
 
 interface TransactionHistoryFilters {
   type?: TransactionType[];
@@ -22,14 +23,7 @@ export function useTransactionHistory(initialFilters?: TransactionHistoryFilters
     try {
       setIsLoading(true);
       const chainId = activeChain?.id ?? 137;
-      const response = await fetch(`/api/exchange/orders?userAddress=${account.address}&chainId=${chainId}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const { data } = await api.get(`/api/exchange/orders?userAddress=${account.address}&chainId=${chainId}`);
       
       if (data.success && data.orders) {
         // Transform orders to HistoryItem format

@@ -8,6 +8,7 @@ import {
 } from "thirdweb/react";
 
 import { generatePayload, signLoginPayload, JWT_EXPIRATION_SECONDS } from "../lib/authActions";
+import api from "../lib/api";
 import { User } from '@pxo/shared/types';
 import { getThirdwebClient } from "../lib/client";
 import useKYCRealtime from './useKYCRealtime';
@@ -158,22 +159,11 @@ const useAuth = (onLogin?: () => void) => {
           console.log("🔍 Verifying JWT with server...");
           try {
             const jwtToken = jwtCookie || jwtStorage;
-            const response = await fetch('/api/auth/verify-localStorage', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-              body: JSON.stringify({ jwt: jwtToken }),
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              setUser(result.user);
-              setIsAuthenticated(true);
-              console.log("✅ Auth verified successfully");
-              return;
-            }
+            const { data: result } = await api.post('/api/auth/verify-localStorage', { jwt: jwtToken });
+            setUser(result.user);
+            setIsAuthenticated(true);
+            console.log("✅ Auth verified successfully");
+            return;
           } catch (error) {
             console.error("Error verifying JWT:", error);
           }
@@ -205,11 +195,7 @@ const useAuth = (onLogin?: () => void) => {
       setUser(null);
       storage.clear();
       
-      // Call logout API to clear cookies (but don't wait for it)
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      }).catch(error => {
+      api.post('/api/auth/logout').catch(error => {
         console.error("Error clearing cookies on wallet disconnect:", error);
       });
     }
@@ -238,21 +224,7 @@ const useAuth = (onLogin?: () => void) => {
       const loginEndpoint = '/api/auth/login-vercel';
       console.log('🌐 Using login endpoint:', loginEndpoint);
       
-      const response = await fetch(loginEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ payload: signatureResult }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.post(loginEndpoint, { payload: signatureResult });
       
       // Store in localStorage as fallback for Vercel
       storage.set('pxo_jwt', result.jwt || 'temp-jwt');
@@ -268,14 +240,7 @@ const useAuth = (onLogin?: () => void) => {
 
       try {
         const providerInfo = getWalletProviderInfo(wallet);
-        await fetch('/api/auth/provider', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(providerInfo),
-        });
+        await api.post('/api/auth/provider', providerInfo);
       } catch (providerSyncError) {
         console.error("❌ Failed to sync auth provider post-login:", providerSyncError);
       }
@@ -342,11 +307,7 @@ const useAuth = (onLogin?: () => void) => {
         sessionMonitorRef.current = null;
       }
       
-      // Call logout API to clear cookies
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await api.post('/api/auth/logout');
       
       // Clear local state and storage
       setUser(null);
@@ -396,17 +357,7 @@ const useAuth = (onLogin?: () => void) => {
   const refreshUserProfile = useCallback(async () => {
     console.log("🔄 Refreshing user profile from backend...");
     
-    const response = await fetch('/api/users/me', {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      console.error("❌ Failed to refresh user profile:", response.status);
-      throw new Error(`Failed to refresh profile: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const { data: result } = await api.get('/api/users/me');
 
     if (result.user) {
       setUser(result.user);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../lib/api';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
 import { getContract } from 'thirdweb/contract';
@@ -62,24 +63,15 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
     pxoAmount: number;
   }) => {
     try {
-      const response = await fetch('/api/exchange/gas-subsidy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          userAddress: params.userAddress,
-          paymentAmount: params.pxoAmount,
-          chainId: params.chainId,
-          source: 'transfer',
-          tokenContractAddress: getPXOContractAddress(params.chainId),
-          receiverAddress: getPXOReceiverAddress(params.chainId),
-          tokenDecimals: params.chainId === 137 ? 6 : 18,
-        }),
+      const { data } = await api.post('/api/exchange/gas-subsidy', {
+        userAddress: params.userAddress,
+        paymentAmount: params.pxoAmount,
+        chainId: params.chainId,
+        source: 'transfer',
+        tokenContractAddress: getPXOContractAddress(params.chainId),
+        receiverAddress: getPXOReceiverAddress(params.chainId),
+        tokenDecimals: params.chainId === 137 ? 6 : 18,
       });
-      const data = await response.json();
-      if (!response.ok) {
-        return { success: false, message: data.error || 'Failed to validate gas', needsSubsidy: false };
-      }
       return {
         success: true,
         needsSubsidy: data.needsSubsidy,
@@ -200,27 +192,15 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         receipt = await sendTransaction({ transaction: tx, account });
       }
 
-      const response = await fetch('/api/exchange/sell-pxo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          transactionHash: receipt.transactionHash,
-          pxoAmount,
-          userAddress: account.address,
-          tokenSymbol,
-          expectedSellPrice: sellPrice,
-          expectedUsdcAmount: usdcAmount,
-          chainId,
-        }),
+      const { data: result } = await api.post('/api/exchange/sell-pxo', {
+        transactionHash: receipt.transactionHash,
+        pxoAmount,
+        userAddress: account.address,
+        tokenSymbol,
+        expectedSellPrice: sellPrice,
+        expectedUsdcAmount: usdcAmount,
+        chainId,
       });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to process sell');
-      }
-
-      const result = await response.json();
       setPxoAmount(0);
       setUsdcAmount(0);
       if (onSellSuccess) onSellSuccess();
