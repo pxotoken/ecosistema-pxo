@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, CreateUserRequest, UpdateUserRequest } from '@pxo/shared/types';
+import api, { getApiError } from '../lib/api';
 
 const API_BASE_URL = '/api/users';
 
@@ -11,26 +12,12 @@ export const useUser = () => {
   const createUser = async (userData: CreateUserRequest): Promise<User> => {
     setLoading(true);
     setError(null);
-    
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create user');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.post(API_BASE_URL, userData);
       setUser(result.data);
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = getApiError(err, 'Failed to create user');
       setError(errorMessage);
       throw err;
     } finally {
@@ -41,20 +28,12 @@ export const useUser = () => {
   const getUserByWalletAddress = async (walletAddress: string): Promise<User | null> => {
     setLoading(true);
     setError(null);
-    
     try {
-      const response = await fetch(`${API_BASE_URL}?wallet_address=${walletAddress}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch user');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get(`${API_BASE_URL}?wallet_address=${walletAddress}`);
       setUser(result.data);
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = getApiError(err, 'Failed to fetch user');
       setError(errorMessage);
       throw err;
     } finally {
@@ -65,20 +44,12 @@ export const useUser = () => {
   const getUserByEmail = async (email: string): Promise<User | null> => {
     setLoading(true);
     setError(null);
-    
     try {
-      const response = await fetch(`${API_BASE_URL}?email=${encodeURIComponent(email)}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch user');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get(`${API_BASE_URL}?email=${encodeURIComponent(email)}`);
       setUser(result.data);
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = getApiError(err, 'Failed to fetch user');
       setError(errorMessage);
       throw err;
     } finally {
@@ -89,26 +60,12 @@ export const useUser = () => {
   const updateUser = async (userData: UpdateUserRequest): Promise<User> => {
     setLoading(true);
     setError(null);
-    
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update user');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.put(API_BASE_URL, userData);
       setUser(result.data);
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = getApiError(err, 'Failed to update user');
       setError(errorMessage);
       throw err;
     } finally {

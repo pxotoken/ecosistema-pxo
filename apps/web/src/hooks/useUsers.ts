@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User } from '@pxo/shared/types';
+import api, { getApiError } from '../lib/api';
 
 interface UserWithRole extends Omit<User, 'user_type'> {
   user_type?: string;
@@ -49,19 +50,11 @@ export const useUsers = (): UseUsersResult => {
         params.append('search', search);
       }
 
-      const response = await fetch(`/api/users/admin?${params.toString()}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch users');
-      }
-
-      const result: ApiResponse = await response.json();
+      const { data: result } = await api.get<ApiResponse>(`/api/users/admin?${params.toString()}`);
       setUsers(result.data);
       setTotalCount(result.count);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
+      setError(getApiError(err, 'Failed to fetch users'));
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
@@ -70,20 +63,7 @@ export const useUsers = (): UseUsersResult => {
 
   const updateUserRole = useCallback(async (userId: string, action: 'grant_admin' | 'revoke_admin') => {
     try {
-      const response = await fetch(`/api/users/admin`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId, action }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update user role');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.put('/api/users/admin', { userId, action });
       
       setUsers(prevUsers =>
         prevUsers.map(user =>
@@ -93,9 +73,8 @@ export const useUsers = (): UseUsersResult => {
 
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error updating user role:', err);
-      throw new Error(errorMessage);
+      throw new Error(getApiError(err, 'Failed to update user role'));
     }
   }, []);
 

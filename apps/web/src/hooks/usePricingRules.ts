@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import api, { getApiError } from '../lib/api';
 
 export interface PricingRule {
   id: string;
@@ -30,18 +31,10 @@ export const usePricingRules = (): UsePricingRulesResult => {
     setError(null);
 
     try {
-      const response = await fetch('/api/admin/pricing-rules');
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch pricing rules');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get('/api/admin/pricing-rules');
       setRules(result.data || []);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
+      setError(getApiError(err, 'Failed to fetch pricing rules'));
       console.error('Error fetching pricing rules:', err);
     } finally {
       setLoading(false);
@@ -50,87 +43,39 @@ export const usePricingRules = (): UsePricingRulesResult => {
 
   const createRule = useCallback(async (rule: Omit<PricingRule, 'id' | 'updated_at'>): Promise<PricingRule> => {
     try {
-      const response = await fetch('/api/admin/pricing-rules', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(rule),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create pricing rule');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.post('/api/admin/pricing-rules', rule);
       setRules(prev => [...prev, result.data]);
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error creating pricing rule:', err);
-      throw new Error(errorMessage);
+      throw new Error(getApiError(err, 'Failed to create pricing rule'));
     }
   }, []);
 
   const updateRule = useCallback(async (id: string, updates: Partial<Omit<PricingRule, 'id' | 'updated_at'>>): Promise<PricingRule> => {
     try {
-      const response = await fetch('/api/admin/pricing-rules', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id, ...updates }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update pricing rule');
-      }
-
-      const result = await response.json();
-      setRules(prev =>
-        prev.map(rule =>
-          rule.id === id ? result.data : rule
-        )
-      );
+      const { data: result } = await api.put('/api/admin/pricing-rules', { id, ...updates });
+      setRules(prev => prev.map(rule => rule.id === id ? result.data : rule));
       return result.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error updating pricing rule:', err);
-      throw new Error(errorMessage);
+      throw new Error(getApiError(err, 'Failed to update pricing rule'));
     }
   }, []);
 
   const deleteRule = useCallback(async (id: string): Promise<void> => {
     try {
-      const response = await fetch(`/api/admin/pricing-rules?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete pricing rule');
-      }
-
+      await api.delete(`/api/admin/pricing-rules?id=${id}`);
       setRules(prev => prev.filter(rule => rule.id !== id));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error deleting pricing rule:', err);
-      throw new Error(errorMessage);
+      throw new Error(getApiError(err, 'Failed to delete pricing rule'));
     }
   }, []);
 
   const testPrice = useCallback(async (pair: string, type: 'buy' | 'sell'): Promise<{ price: number; basePrice: number; spread: number }> => {
     try {
-      const response = await fetch(`/api/prices?pair=${pair}`);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to test price');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get(`/api/prices?pair=${pair}`);
       const rule = rules.find(r => r.pair === pair);
       
       if (!rule) {
@@ -149,9 +94,8 @@ export const usePricingRules = (): UsePricingRulesResult => {
         spread
       };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error testing price:', err);
-      throw new Error(errorMessage);
+      throw new Error(getApiError(err, 'Failed to test price'));
     }
   }, [rules]);
 

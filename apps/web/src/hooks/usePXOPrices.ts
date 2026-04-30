@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import api, { getApiError } from '../lib/api';
 
 interface PXOPrices {
   buy: number;
@@ -24,15 +25,8 @@ export const usePXOPrices = (tokenSymbol: string = 'USDC') => {
       }
       
       const pair = `PXO/${tokenSymbol}`;
-      const response = await fetch(`/api/prices?pair=${pair}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch prices');
-      }
+      const { data } = await api.get(`/api/prices?pair=${pair}`);
 
-      const data = await response.json();
-      
       setPrices({
         buy: data.buy,
         sell: data.sell,
@@ -41,11 +35,10 @@ export const usePXOPrices = (tokenSymbol: string = 'USDC') => {
         error: null,
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setPrices(prev => ({
         ...prev,
         loading: false,
-        error: errorMessage,
+        error: getApiError(err, 'Failed to fetch prices'),
       }));
       console.error('Error fetching PXO prices:', err);
     }

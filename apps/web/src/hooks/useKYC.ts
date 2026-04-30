@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ROUTES } from '../config/routes';
+import api, { getApiError } from '../lib/api';
 import type {
   KycDocument,
   KycPersonalInfo,
@@ -79,16 +80,7 @@ export const useKYC = () => {
     formData.append('file', file);
     formData.append('folder', folder);
 
-    const response = await fetch(`${API_BASE}/upload`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to upload file');
-    }
-    const result: { path?: string; url?: string } = await response.json();
+    const { data: result } = await api.post<{ path?: string; url?: string }>(`${API_BASE}/upload`, formData);
     if (!result.path) throw new Error('Upload response missing storage path');
     return result.path;
   };
@@ -101,12 +93,8 @@ export const useKYC = () => {
     status: KycSubmission['status'] | 'not_started';
   }> => {
     return withErrorHandling(async () => {
-      const response = await fetch(`${API_BASE}/status`, { credentials: 'include' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch KYC status');
-      }
-      return response.json();
+      const { data } = await api.get(`${API_BASE}/status`);
+      return data;
     });
   };
 
@@ -156,17 +144,7 @@ export const useKYC = () => {
 
       const payload: SubmitKycPayload = { documents, personalInfo };
 
-      const response = await fetch(`${API_BASE}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to submit KYC');
-      }
-      const result: { submission: KycSubmission } = await response.json();
+      const { data: result } = await api.post<{ submission: KycSubmission }>(`${API_BASE}/submit`, payload);
       return result.submission;
     });
   };
@@ -185,17 +163,7 @@ export const useKYC = () => {
         action,
         ...(action === 'reject' ? { rejectionReason } : {}),
       };
-      const response = await fetch(`${API_BASE}/submissions/${submissionId}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to review submission');
-      }
-      const result: { submission: KycSubmission } = await response.json();
+      const { data: result } = await api.post<{ submission: KycSubmission }>(`${API_BASE}/submissions/${submissionId}/review`, payload);
       return result.submission;
     });
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useActiveWalletChain } from 'thirdweb/react';
+import api from '../lib/api';
 
 interface LiquidityToken {
   address: string | null;
@@ -29,20 +30,10 @@ export function useLiquidity() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(
-          `/api/exchange/liquidity?chainId=${activeChain.id}`
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch liquidity');
-        }
-
-        const json = await response.json();
+        const { data: json } = await api.get(`/api/exchange/liquidity?chainId=${activeChain.id}`);
         if (!json.success || !json.liquidity) {
           throw new Error('Invalid liquidity response');
         }
-
         setData(json.liquidity as LiquidityData);
       } catch (err) {
         const message =

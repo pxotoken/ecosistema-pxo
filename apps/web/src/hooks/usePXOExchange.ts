@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../lib/api';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
 import { getContract } from 'thirdweb/contract';
@@ -252,29 +253,15 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
 
       // Call backend to process the purchase
       // Send expected price and amount for validation
-      const response = await fetch('/api/exchange/buy-pxo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          transactionHash: receipt.transactionHash,
-          amount: amount,
-          userAddress: account.address,
-          tokenSymbol: tokenType,
-          expectedPrice: exchangeRate,
-          expectedPxoAmount: pxoAmount,
-          chainId: resolvedChainId,
-        }),
+      const { data: result } = await api.post('/api/exchange/buy-pxo', {
+        transactionHash: receipt.transactionHash,
+        amount,
+        userAddress: account.address,
+        tokenSymbol: tokenType,
+        expectedPrice: exchangeRate,
+        expectedPxoAmount: pxoAmount,
+        chainId: resolvedChainId,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process purchase');
-      }
-
-      const result = await response.json();
       console.log('Purchase processed:', result);
 
       // Reset form
@@ -324,29 +311,12 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
     try {
       console.log('🔍 Requesting gas subsidy...');
       
-      const response = await fetch('/api/exchange/gas-subsidy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          userAddress,
-          paymentAmount,
-          chainId: chain.id,
-          tokenType: getDefaultTokenType(chain.id),
-        }),
+      const { data } = await api.post('/api/exchange/gas-subsidy', {
+        userAddress,
+        paymentAmount,
+        chainId: chain.id,
+        tokenType: getDefaultTokenType(chain.id),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          success: false,
-          message: data.error || 'Failed to validate gas',
-          needsSubsidy: data.needsSubsidy || false,
-        };
-      }
 
       return {
         success: true,
@@ -356,8 +326,8 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
         message: data.message,
       };
 
-    } catch (error) {
-      console.error('Error validating gas:', error);
+    } catch (err) {
+      console.error('Error validating gas:', err);
       return {
         success: false,
         message: 'Error validating gas requirements',
