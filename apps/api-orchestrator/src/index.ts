@@ -6,7 +6,7 @@ import { env } from './config/env.js';
 import { requireAuth } from './middleware/auth.js';
 
 const app = Fastify({ logger: true });
-const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+const allowedOrigins = env.ALLOWED_ORIGINS;
 
 async function bootstrap() {
   await app.register(cors, {
