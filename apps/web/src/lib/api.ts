@@ -5,6 +5,14 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  const jwt = localStorage.getItem('pxo_jwt');
+  if (jwt) {
+    config.headers.Authorization = `Bearer ${jwt}`;
+  }
+  return config;
+});
+
 export function getApiError(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
     return (err.response?.data as { error?: string })?.error || fallback;
