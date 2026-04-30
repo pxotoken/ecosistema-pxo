@@ -6,10 +6,11 @@ import { env } from './config/env.js';
 import { requireAuth } from './middleware/auth.js';
 
 const app = Fastify({ logger: true });
+const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
 
 async function bootstrap() {
   await app.register(cors, {
-    origin: env.ALLOWED_ORIGINS.length === 1 && env.ALLOWED_ORIGINS[0] === '*' ? true : env.ALLOWED_ORIGINS,
+    origin: env.ALLOWED_ORIGINS.length === 1 && env.ALLOWED_ORIGINS[0] === '*' ? true : allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
