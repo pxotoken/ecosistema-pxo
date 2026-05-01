@@ -12,7 +12,8 @@ import { usePXOExchange } from "../hooks/usePXOExchange";
 import { usePXOSell } from "../hooks/usePXOSell";
 import { useTokens } from "../hooks/useTokens";
 import { useTokenBalance } from "../hooks/useTokenBalance";
-import { useNavigate } from "../hooks/useNavigate";
+import { useNavigate } from "react-router-dom";
+import { PATHS } from "../routes/paths";
 import useWalletStore from "../store/useWalletStore";
 import { TransactionHistory } from "./TransactionHistory";
 import { useToast } from "./ui/Toast";
@@ -327,7 +328,7 @@ export const ExchangeRates: React.FC = () => {
           action: { label: "View transaction", onClick: () => window.open(getExplorerTxUrl(activeChain?.id, result.transactionHash ?? ''), "_blank") },
         });
         setAmount(0);
-        setTimeout(() => navigate("wallet"), 2000);
+        setTimeout(() => navigate(PATHS.dashboard.wallet), 2000);
       } else {
         if (handleAuthError(result)) return;
         const msg = result?.error || "Transaction error";
@@ -389,7 +390,7 @@ export const ExchangeRates: React.FC = () => {
         setSellPxoAmount(0);
         setSellInputValue("");
         setSellBalanceError("");
-        setTimeout(() => navigate("wallet"), 2000);
+        setTimeout(() => navigate(PATHS.dashboard.wallet), 2000);
       } else {
         if (handleAuthError(result)) return;
         const msg = result?.error || "Sell failed";

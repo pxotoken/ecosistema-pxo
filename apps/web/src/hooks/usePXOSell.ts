@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { PATHS } from '../routes/paths';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
 import { getContract } from 'thirdweb/contract';
@@ -43,6 +45,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
 
   const account = useActiveAccount();
   const wallet = useActiveWallet();
+  const navigate = useNavigate();
   const { user } = useAuthContext();
   const { sell: sellPrice, loading: pricesLoading, error: pricesError } = usePXOPrices('USDC');
   const { liquidity, loading: liquidityLoading, error: liquidityError } = useLiquidity();
@@ -91,7 +94,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
     }
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
       setError('Debes completar y validar tu KYC para poder vender PXO.');
-      globalThis.dispatchEvent(new CustomEvent('navigateToSection', { detail: { section: 'settings' } }));
+      navigate(PATHS.dashboard.settings);
       return;
     }
     if (pxoAmount <= 0) {

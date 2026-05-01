@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { PATHS } from "../routes/paths";
 import { motion } from "framer-motion";
 import {
   Loader2,
@@ -110,13 +112,8 @@ const getAmountColor = (type: string) => {
     : "text-light-text dark:text-dark-text";
 };
 
-interface TransactionTimelineProps {
-  onNavigateToHistory?: () => void;
-}
-
-export const TransactionTimeline: React.FC<TransactionTimelineProps> = ({
-  onNavigateToHistory,
-}) => {
+export const TransactionTimeline: React.FC = () => {
+  const navigate = useNavigate();
   const activeChain = useActiveWalletChain();
   const [selectedTx, setSelectedTx] = useState<HistoryItem | null>(null);
 
@@ -299,7 +296,7 @@ export const TransactionTimeline: React.FC<TransactionTimelineProps> = ({
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={onNavigateToHistory}
+            onClick={() => navigate(PATHS.dashboard.insights)}
             className="w-full mt-6 py-3 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-xl text-light-text dark:text-dark-text hover:border-lime-accent/30 hover:text-lime-accent transition-all font-medium duration-300"
           >
             View All Transactions

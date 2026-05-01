@@ -7,7 +7,7 @@ const useKYCRealtime = (userId: string | undefined, kycStatus: KYCStatus | undef
     if (!userId || kycStatus !== KYCStatus.VALIDATING) return;
 
     const channel = supabase
-      .channel(`kyc-${userId}`)
+      .channel(`kyc-${userId}-${Date.now()}`)
       .on(
         'postgres_changes',
         {

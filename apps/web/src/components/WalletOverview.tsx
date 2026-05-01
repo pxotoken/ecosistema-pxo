@@ -4,12 +4,14 @@ import { ArrowDownUp, Send, Download, Loader2, ChevronDown } from 'lucide-react'
 import { useActiveAccount, useActiveWalletChain, useNetworkSwitcherModal, useWalletDetailsModal, useActiveWallet } from "thirdweb/react";
 import { getBalance } from "thirdweb/extensions/erc20";
 import { getWalletBalance } from "thirdweb/wallets";
+import { useNavigate } from 'react-router-dom';
 import { getThirdwebClient } from '../lib/client';
 import useWalletStore from '../store/useWalletStore';
 import { Chain } from "thirdweb";
 import { useAuthContext } from '../contexts/AuthContext';
 import { KYCStatus } from '@pxo/shared/types';
 import { SendFundsModal } from './crypto/SendFundsModal';
+import { PATHS } from '../routes/paths';
 
 const client = getThirdwebClient();
 
@@ -20,6 +22,7 @@ const networkNames: Record<number, string> = {
 };
 
 export const WalletOverview: React.FC = () => {
+  const navigate = useNavigate();
   const [balance, setBalance] = useState<string>("0");
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedToken, setSelectedToken] = useState<string>("");
@@ -98,9 +101,7 @@ export const WalletOverview: React.FC = () => {
 
   const handleSend = () => {
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
-      globalThis.dispatchEvent(new CustomEvent('navigateToSection', {
-        detail: { section: 'settings' }
-      }));
+      navigate(PATHS.dashboard.settings);
       return;
     }
     setIsSendModalOpen(true);

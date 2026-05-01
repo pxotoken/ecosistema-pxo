@@ -1,14 +1,17 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../ui/Toast';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { PATHS } from '../../routes/paths';
 
 interface KYCGuardProps {
   children: React.ReactNode;
-  user: any;
-  onRedirect: () => void;
 }
 
-export const KYCGuard: React.FC<KYCGuardProps> = ({ children, user, onRedirect }) => {
+export const KYCGuard: React.FC<KYCGuardProps> = ({ children }) => {
+  const { user } = useAuthContext();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const hasShownToast = useRef(false);
   const isKYCValidated = user?.KYC_status === 'VALIDATED';
 
@@ -21,13 +24,11 @@ export const KYCGuard: React.FC<KYCGuardProps> = ({ children, user, onRedirect }
         description: 'Complete your KYC verification in Settings to access this feature.',
         duration: 6000,
       });
-      onRedirect();
+      navigate(PATHS.dashboard.settings);
     }
-  }, [isKYCValidated, addToast, onRedirect]);
+  }, [isKYCValidated, addToast, navigate]);
 
-  if (!isKYCValidated) {
-    return null;
-  }
+  if (!isKYCValidated) return null;
 
   return <>{children}</>;
 };

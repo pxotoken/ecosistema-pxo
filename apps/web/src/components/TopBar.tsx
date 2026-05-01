@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, LogOut, Settings, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { useActiveWallet } from 'thirdweb/react';
 import { WalletModal } from './crypto';
 import { useAuthContext } from '../contexts/AuthContext';
+import { PATHS } from '../routes/paths';
 
 interface TopBarProps {
-  onNavigateToSection?: (section: string) => void;
   onToggleMobileMenu?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ onNavigateToSection, onToggleMobileMenu }) => {
+export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
+  const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const wallet = useActiveWallet();
@@ -132,8 +134,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigateToSection, onToggleMob
                     <span>Profile</span>
                   </button>
                    */}
-                  <button 
-                    onClick={() => onNavigateToSection?.('settings')}
+                  <button
+                    onClick={() => navigate(PATHS.dashboard.settings)}
                     className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-glass dark:hover:bg-dark-glass transition-colors"
                   >
                     <Settings className="w-4 h-4" />
@@ -169,7 +171,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigateToSection, onToggleMob
       <WalletModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
-        onNavigateToSection={onNavigateToSection}
       />
     </motion.div>
   );

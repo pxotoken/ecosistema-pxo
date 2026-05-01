@@ -12,8 +12,9 @@ declare module 'fastify' {
 
 export function authPreHandler(userService: UserService) {
   return async function (req: FastifyRequest, reply: FastifyReply) {
+    const authHeader = req.headers.authorization;
     const cookies = parseCookies(req.headers.cookie);
-    const jwt = cookies.pxo_jwt;
+    const jwt = (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null) ?? cookies.pxo_jwt;
     if (!jwt) {
       return reply.code(401).send({ error: 'No JWT token found' });
     }

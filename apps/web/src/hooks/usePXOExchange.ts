@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { PATHS } from '../routes/paths';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
 import { getContract } from 'thirdweb/contract';
@@ -71,6 +73,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
   
   const account = useActiveAccount();
   const wallet = useActiveWallet();
+  const navigate = useNavigate();
   const { loading: tokensLoading, getTokenBySymbol } = useTokens();
   const { user } = useAuthContext();
 
@@ -104,9 +107,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
 
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
       setError('Debes completar y validar tu KYC para poder comprar PXO. Redirigiendo a Configuración...');
-      globalThis.dispatchEvent(new CustomEvent('navigateToSection', {
-        detail: { section: 'settings' }
-      }));
+      navigate(PATHS.dashboard.settings);
       return;
     }
 

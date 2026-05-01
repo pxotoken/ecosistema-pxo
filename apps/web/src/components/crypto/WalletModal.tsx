@@ -23,11 +23,13 @@ import { getThirdwebClient } from '../../lib/client';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useNavigate } from 'react-router-dom';
 import useWalletStore from '../../store/useWalletStore';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useToast } from '../ui/Toast';
 import { KYCStatus } from '@pxo/shared/types';
 import { SendFundsModal } from './SendFundsModal';
+import { PATHS } from '../../routes/paths';
 
 const client = getThirdwebClient();
 
@@ -71,14 +73,10 @@ const getNetworkIcon = (chainId: number | undefined) => {
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigateToSection?: (section: string) => void;
 }
 
-export const WalletModal: React.FC<WalletModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onNavigateToSection
-}) => {
+export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const networkSwitcher = useNetworkSwitcherModal();
   const account = useActiveAccount();
   const wallet = useActiveWallet();
@@ -165,9 +163,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               description: 'You must complete and validate your KYC to be able to send tokens. Go to Settings to complete your verification.',
             });
             onClose();
-            if (onNavigateToSection) {
-              onNavigateToSection('settings');
-            }
+            navigate(PATHS.dashboard.settings);
             return;
           }
           setIsSendModalOpen(true);
@@ -186,7 +182,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
           } as any),
       },
     ],
-    [open, currentChains, supportedTokens, user, addToast, onClose, onNavigateToSection]
+    [open, currentChains, supportedTokens, user, addToast, onClose, navigate]
   );
 
   const menuItems = useMemo(
@@ -207,9 +203,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         text: "Transactions",
         onClick: () => {
           onClose();
-          if (onNavigateToSection) {
-            onNavigateToSection('insights');
-          }
+          navigate(PATHS.dashboard.insights);
         },
       },
       // {
@@ -228,9 +222,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         icon: User,
         text: "Verify KYC",
         onClick: () => {
-          window.dispatchEvent(new CustomEvent('navigateToSection', {
-            detail: { section: "settings" }
-          }));
+          navigate(PATHS.dashboard.settings);
           onClose();
         },
       },
