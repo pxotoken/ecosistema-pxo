@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@pxo/shared": "workspace:*",
+    "axios": "^1.16.0",
     "framer-motion": "^10.16.16",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

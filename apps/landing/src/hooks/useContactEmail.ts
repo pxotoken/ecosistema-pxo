@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { SendContactEmailRequest, SendContactEmailResponse } from '@pxo/shared/types/email';
-
-const API_BASE_URL = '/api/email/contact';
+import api, { getApiError } from '../lib/api';
 
 export const useContactEmail = () => {
   const [loading, setLoading] = useState(false);
@@ -14,25 +13,12 @@ export const useContactEmail = () => {
     setSuccess(false);
 
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to send message');
-      }
-
+      const response = await api.post<SendContactEmailResponse>('/api/email/contact', data);
       setSuccess(true);
-      return result;
+      return response.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      const message = getApiError(err, 'Failed to send message');
+      setError(message);
       throw err;
     } finally {
       setLoading(false);
