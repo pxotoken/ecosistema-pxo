@@ -15,6 +15,7 @@ import {
   generatePayload,
   signLoginPayload,
 } from '../lib/auth-actions';
+import { API_BASE_URL } from '../config/env';
 
 export interface AuthUser {
   id?: string;
@@ -208,7 +209,7 @@ export default function useAuth(onLogin?: () => void) {
       });
       const signatureResult = await signLoginPayload({ account, payload });
 
-      const response = await fetch('/api/auth/login-vercel', {
+      const response = await fetch(API_BASE_URL+'/api/auth/login-vercel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -256,7 +257,7 @@ export default function useAuth(onLogin?: () => void) {
 
       // Best-effort: tell the backend which wallet kind logged in.
       try {
-        await fetch('/api/auth/provider', {
+        await fetch(API_BASE_URL+'/api/auth/provider', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -441,7 +442,7 @@ export default function useAuth(onLogin?: () => void) {
         clearInterval(sessionMonitorRef.current);
         sessionMonitorRef.current = null;
       }
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(
+      await fetch(API_BASE_URL+'/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(
         () => {},
       );
       // Only clear the active session, not the list of linked accounts.
@@ -466,7 +467,7 @@ export default function useAuth(onLogin?: () => void) {
   }, []);
 
   const refreshUserProfile = useCallback(async () => {
-    const res = await fetch('/api/users/me', { method: 'GET', credentials: 'include' });
+    const res = await fetch(API_BASE_URL+'/api/users/me', { method: 'GET', credentials: 'include' });
     if (!res.ok) throw new Error(`Failed to refresh profile: ${res.status}`);
     const body = (await res.json()) as { user?: AuthUser };
     if (body.user) {
