@@ -16,7 +16,12 @@ const useKYCRealtime = (userId: string | undefined, kycStatus: KYCStatus | undef
           table: 'users',
           filter: `id=eq.${userId}`,
         },
-        () => onUpdate()
+        (payload) => {
+          const newStatus = (payload.new as { KYC_status?: string })?.KYC_status;
+          if (newStatus === KYCStatus.VALIDATED || newStatus === KYCStatus.REJECTED) {
+            onUpdate();
+          }
+        }
       )
       .subscribe((status) => {
         console.log('🔴 Realtime KYC channel status:', status);

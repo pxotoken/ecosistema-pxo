@@ -131,7 +131,7 @@ const FormInput = ({
 
 export const KYCSettings: React.FC = () => {
   const { user, updateUser, refreshUserProfile } = useAuthContext();
-  const { submitKyc, loading, error, clearError } = useKYC();
+  const { submitKyc, getKycStatus, loading, error, clearError } = useKYC();
   const { toast, showToast, hideToast } = useToast();
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -151,10 +151,26 @@ export const KYCSettings: React.FC = () => {
     passport: null,
   });
 
+  const [existingDocs, setExistingDocs] = useState<{
+    front:    { url: string; path: string } | null;
+    back:     { url: string; path: string } | null;
+    passport: { url: string; path: string } | null;
+  }>({ front: null, back: null, passport: null });
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formErrors, setFormErrors] = useState<KYCFormErrors>({});
+
+  const toDateInputValue = (raw: string | undefined): string => {
+    if (!raw) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return '';
+    const yyyy = d.getUTCFullYear();
+    const mm   = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -165,8 +181,42 @@ export const KYCSettings: React.FC = () => {
       setIsLoadingProfile(true);
       try {
         await refreshUserProfile();
+        const { submission } = await getKycStatus();
+        if (submission) {
+          const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string ?? '').replace(/\/$/, '');
+          const toPublicUrl = (path: string) =>
+            `${supabaseUrl}/storage/v1/object/public/pxos-files/${path}`;
+
+          if (submission.personal_info) {
+            const info = submission.personal_info;
+            const [firstName, ...rest] = (info.fullName || '').trim().split(' ');
+            const lastName = rest.join(' ');
+            setFormData((prev) => ({
+              ...prev,
+              firstName: firstName || prev.firstName,
+              lastName: lastName || prev.lastName,
+              email: info.email || prev.email,
+              phone: info.phone || prev.phone,
+              country: info.country || prev.country,
+              documentType: info.documentType === 'passport' ? 'passport' : 'dni',
+              dateOfBirth: toDateInputValue(info.dateOfBirth) || prev.dateOfBirth,
+              documentNumber: info.documentNumber || prev.documentNumber,
+            }));
+          }
+
+          if (submission.documents?.length) {
+            const front    = submission.documents.find((d: { type: string }) => d.type === 'id_front');
+            const back     = submission.documents.find((d: { type: string }) => d.type === 'id_back');
+            const passport = submission.documents.find((d: { type: string }) => d.type === 'passport');
+            setExistingDocs({
+              front:    front    ? { url: toPublicUrl(front.path),    path: front.path    } : null,
+              back:     back     ? { url: toPublicUrl(back.path),     path: back.path     } : null,
+              passport: passport ? { url: toPublicUrl(passport.path), path: passport.path } : null,
+            });
+          }
+        }
       } catch (err) {
-        console.error('Error refreshing profile:', err);
+        console.error('Error loading KYC data:', err);
       } finally {
         setIsLoadingProfile(false);
       }
@@ -179,13 +229,9 @@ export const KYCSettings: React.FC = () => {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        email: user.mail || '',
-        phone: user.phone || '',
-        country: normalizeCountryToIso2(user.country) || 'MX',
-        documentType: user.legal_identification === 'passport' ? 'passport' : 'dni',
-        // dateOfBirth y documentNumber no existen en users — el usuario los re-ingresa
+        email: prev.email || user.mail || '',
+        phone: prev.phone || user.phone || '',
+        country: prev.country || normalizeCountryToIso2(user.country) || 'MX',
       }));
     }
   }, [user]);
@@ -196,11 +242,9 @@ export const KYCSettings: React.FC = () => {
 
   const hasRequiredDocuments = (): boolean => {
     if (formData.documentType === 'dni') {
-      const front = formData.frontDocument;
-      const back = formData.backDocument;
-      return Boolean(front && back);
+      return Boolean((formData.frontDocument || existingDocs.front) && (formData.backDocument || existingDocs.back));
     }
-    return Boolean(formData.passport);
+    return Boolean(formData.passport || existingDocs.passport);
   };
 
   const validateForm = (): boolean => {
@@ -219,10 +263,10 @@ export const KYCSettings: React.FC = () => {
     if (!formData.country) errors.country = 'Country is required';
 
     if (formData.documentType === 'dni') {
-      if (!formData.frontDocument) errors.frontDocument = 'Front ID photo is required';
-      if (!formData.backDocument) errors.backDocument = 'Back ID photo is required';
+      if (!formData.frontDocument && !existingDocs.front) errors.frontDocument = 'Front ID photo is required';
+      if (!formData.backDocument && !existingDocs.back) errors.backDocument = 'Back ID photo is required';
     } else if (formData.documentType === 'passport') {
-      if (!formData.passport) errors.passport = 'Passport photo is required';
+      if (!formData.passport && !existingDocs.passport) errors.passport = 'Passport photo is required';
     }
 
     setFormErrors(errors);
@@ -285,9 +329,12 @@ export const KYCSettings: React.FC = () => {
         dateOfBirth: formData.dateOfBirth,
         documentType: formData.documentType,
         documentNumber: formData.documentNumber,
-        frontDocument: formData.frontDocument ?? undefined,
-        backDocument: formData.backDocument ?? undefined,
-        passport: formData.passport ?? undefined,
+        frontDocument:        formData.frontDocument  ?? undefined,
+        backDocument:         formData.backDocument   ?? undefined,
+        passport:             formData.passport       ?? undefined,
+        existingFrontPath:    !formData.frontDocument  ? (existingDocs.front?.path   ?? undefined) : undefined,
+        existingBackPath:     !formData.backDocument   ? (existingDocs.back?.path    ?? undefined) : undefined,
+        existingPassportPath: !formData.passport       ? (existingDocs.passport?.path ?? undefined) : undefined,
       });
 
       showToast('KYC submitted successfully. Your information is being validated.', 'success');
@@ -477,19 +524,25 @@ export const KYCSettings: React.FC = () => {
                   label="Front ID Photo *"
                   required
                   value={formData.frontDocument}
-                  onChange={(file) => setFormData({ ...formData, frontDocument: file })}
+                  onChange={(file) => {
+                    setFormData({ ...formData, frontDocument: file });
+                    if (!file) setExistingDocs((prev) => ({ ...prev, front: null }));
+                  }}
                   error={formErrors.frontDocument}
                   disabled={isFormDisabled}
-                  existingImageUrl={user?.identification_photos?.[0] || null}
+                  existingImageUrl={existingDocs.front?.url ?? null}
                 />
                 <FileUpload
                   label="Back ID Photo *"
                   required
                   value={formData.backDocument}
-                  onChange={(file) => setFormData({ ...formData, backDocument: file })}
+                  onChange={(file) => {
+                    setFormData({ ...formData, backDocument: file });
+                    if (!file) setExistingDocs((prev) => ({ ...prev, back: null }));
+                  }}
                   error={formErrors.backDocument}
                   disabled={isFormDisabled}
-                  existingImageUrl={user?.identification_photos?.[1] || null}
+                  existingImageUrl={existingDocs.back?.url ?? null}
                 />
               </div>
             ) : (
@@ -497,10 +550,13 @@ export const KYCSettings: React.FC = () => {
                 label="Passport Photo *"
                 required
                 value={formData.passport}
-                onChange={(file) => setFormData({ ...formData, passport: file })}
+                onChange={(file) => {
+                  setFormData({ ...formData, passport: file });
+                  if (!file) setExistingDocs((prev) => ({ ...prev, passport: null }));
+                }}
                 error={formErrors.passport}
                 disabled={isFormDisabled}
-                existingImageUrl={user?.passport || null}
+                existingImageUrl={existingDocs.passport?.url ?? null}
               />
             )}
           </div>

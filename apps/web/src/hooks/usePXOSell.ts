@@ -93,12 +93,12 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       return;
     }
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
-      setError('Debes completar y validar tu KYC para poder vender PXO.');
+      setError('You must complete and validate your KYC to sell PXO.');
       navigate(PATHS.dashboard.settings);
       return;
     }
     if (pxoAmount <= 0) {
-      setError('Introduce una cantidad válida de PXO');
+      setError('Enter a valid PXO amount');
       return;
     }
 
@@ -150,7 +150,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       const balance = await getBalance({ contract: pxoContract, address: account.address });
       const balanceNum = Number(balance.displayValue);
       if (balanceNum < pxoAmount) {
-        throw new Error(`Saldo insuficiente de PXO. Tienes ${balanceNum.toFixed(4)} PXO.`);
+        throw new Error(`Insufficient PXO balance. You have ${balanceNum.toFixed(4)} PXO.`);
       }
 
       const gasValidation = await validateAndSubsidizeGasForTransfer({

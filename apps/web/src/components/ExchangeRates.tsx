@@ -258,7 +258,7 @@ export const ExchangeRates: React.FC = () => {
       addToast({
         type: "error",
         title: "Invalid amount",
-        description: "Introduce una cantidad válida de PXO",
+        description: "Enter a valid PXO amount",
       });
       return;
     }
@@ -266,7 +266,7 @@ export const ExchangeRates: React.FC = () => {
       addToast({
         type: "error",
         title: "Insufficient balance",
-        description: `Tienes ${pxoBalance.toFixed(4)} PXO`,
+        description: `You have ${pxoBalance.toFixed(4)} PXO`,
       });
       return;
     }
@@ -383,9 +383,9 @@ export const ExchangeRates: React.FC = () => {
         setTransactionSteps((prev) => prev.map((s, i) => (i === 2 ? { ...s, status: "completed", txHash: result.transactionHash } : s)));
         addToast({
           type: "success",
-          title: "Venta completada",
-          description: `Recibiste ${result.usdcAmount?.toFixed(2) ?? sellUsdcAmount.toFixed(2)} ${sellTokenSymbol} por ${result.pxoAmount} PXO`,
-          action: { label: "Ver transacción", onClick: () => window.open(getExplorerTxUrl(activeChain?.id, result.transactionHash ?? ''), "_blank") },
+          title: "Sale completed",
+          description: `You received ${result.usdcAmount?.toFixed(2) ?? sellUsdcAmount.toFixed(2)} ${sellTokenSymbol} for ${result.pxoAmount} PXO`,
+          action: { label: "View transaction", onClick: () => window.open(getExplorerTxUrl(activeChain?.id, result.transactionHash ?? ''), "_blank") },
         });
         setSellPxoAmount(0);
         setSellInputValue("");
@@ -398,7 +398,7 @@ export const ExchangeRates: React.FC = () => {
           setShowTransactionProgress(false);
           setTransactionSteps([]);
           setCurrentStep(0);
-          addToast({ type: "error", title: "Límite de liquidez", description: msg });
+          addToast({ type: "error", title: "Liquidity limit", description: msg });
           return;
         }
         throw new Error(msg);
@@ -412,13 +412,13 @@ export const ExchangeRates: React.FC = () => {
         setShowTransactionProgress(false);
         setTransactionSteps([]);
         setCurrentStep(0);
-        addToast({ type: "error", title: "Límite de liquidez", description: errorMessage });
+        addToast({ type: "error", title: "Liquidity limit", description: errorMessage });
         return;
       }
       setTransactionSteps((prev) =>
         prev.map((s, i) => (i === currentStep ? { ...s, status: "error", error: errorMessage } : s)),
       );
-      addToast({ type: "error", title: "Error en la venta", description: errorMessage });
+      addToast({ type: "error", title: "Sale error", description: errorMessage });
     }
   };
 
@@ -617,7 +617,7 @@ export const ExchangeRates: React.FC = () => {
                 : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
             }`}
           >
-            Comprar
+            Buy
           </button>
           <button
             type="button"
@@ -628,7 +628,7 @@ export const ExchangeRates: React.FC = () => {
                 : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
             }`}
           >
-            Vender
+            Sell
           </button>
         </div>
 
@@ -704,7 +704,7 @@ export const ExchangeRates: React.FC = () => {
                 </select>
                 <input
                   type="number"
-                  placeholder="Equivalente en PXO"
+                  placeholder="PXO equivalent"
                   value={pxoAmount || ""}
                   readOnly
                   className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300"
@@ -752,7 +752,7 @@ export const ExchangeRates: React.FC = () => {
                 </select>
                 <input
                   type="number"
-                  placeholder={sellPrice ? "Cantidad de PXO" : "Loading..."}
+                  placeholder={sellPrice ? "PXO amount" : "Loading..."}
                   value={sellInputValue}
                   disabled={!sellPrice}
                   onKeyDown={(e) => {
@@ -804,7 +804,7 @@ export const ExchangeRates: React.FC = () => {
                 </select>
                 <input
                   type="number"
-                  placeholder="Recibirás"
+                  placeholder="You'll receive"
                   value={sellUsdcAmount || ""}
                   readOnly
                   className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300"
@@ -825,7 +825,7 @@ export const ExchangeRates: React.FC = () => {
                     <span>Processing...</span>
                   </>
                 ) : (
-                  <span>Vender PXO</span>
+                  <span>Sell PXO</span>
                 )}
               </motion.button>
             </div>
@@ -877,13 +877,13 @@ export const ExchangeRates: React.FC = () => {
           setPendingConfirmMode(null);
         }}
         onConfirm={confirmExchange}
-        title={pendingConfirmMode === "sell" ? "Confirmar venta" : "Confirm exchange"}
+        title={pendingConfirmMode === "sell" ? "Confirm sale" : "Confirm exchange"}
         description={
           pendingConfirmMode === "sell"
-            ? `¿Vender ${sellPxoAmount.toFixed(8)} PXO por aproximadamente ${sellUsdcAmount.toFixed(2)} ${sellTokenSymbol}?`
+            ? `Sell ${sellPxoAmount.toFixed(8)} PXO for approximately ${sellUsdcAmount.toFixed(2)} ${sellTokenSymbol}?`
             : `Are you sure you want to exchange ${amount} ${tokenSymbol} for ${pxoAmount.toFixed(8)} PXO?`
         }
-        confirmText={pendingConfirmMode === "sell" ? "Vender PXO" : "Confirm exchange"}
+        confirmText={pendingConfirmMode === "sell" ? "Sell PXO" : "Confirm exchange"}
         cancelText="Cancel"
         type="info"
       />

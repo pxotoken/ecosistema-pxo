@@ -106,7 +106,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
     }
 
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
-      setError('Debes completar y validar tu KYC para poder comprar PXO. Redirigiendo a Configuración...');
+      setError('You must complete and validate your KYC to buy PXO. Redirecting to Settings...');
       navigate(PATHS.dashboard.settings);
       return;
     }
@@ -179,7 +179,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
       });
 
       if (Number(userBalance.displayValue) < amount) {
-        throw new Error(`Saldo insuficiente de ${tokenType}. Tienes ${userBalance.displayValue} y necesitas ${amount}.`);
+        throw new Error(`Insufficient ${tokenType} balance. You have ${userBalance.displayValue} and need ${amount}.`);
       }
       console.log('🔍 Validating gas for transaction...');
       const gasValidation = await validateAndSubsidizeGas({

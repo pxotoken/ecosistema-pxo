@@ -46,12 +46,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     // Validate file type with specific MIME types
     const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validImageTypes.includes(file.type)) {
-      return 'Solo se permiten archivos JPG, PNG o WEBP';
+      return 'Only JPG, PNG or WEBP files are allowed';
     }
 
     // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
-      return `El archivo no puede ser mayor a ${maxSize}MB`;
+      return `File cannot be larger than ${maxSize}MB`;
     }
 
     return null;
@@ -118,14 +118,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Vista previa</title>
+            <title>Preview</title>
             <style>
               body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
               img { max-width: 90%; max-height: 90vh; object-fit: contain; }
             </style>
           </head>
           <body>
-            <img src="${imageUrl}" alt="Vista previa" />
+            <img src="${imageUrl}" alt="Preview" />
           </body>
         </html>
       `);
@@ -213,10 +213,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         >
           <Upload className="w-8 h-8 mx-auto mb-3 text-light-text-secondary dark:text-dark-text-secondary" />
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-1">
-            Haz clic para subir o arrastra el archivo aquí
+            Click to upload or drag the file here
           </p>
           <p className="text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/70">
-            Máximo {maxSize}MB • Solo imágenes
+            Max {maxSize}MB • Images only
           </p>
         </motion.div>
       ) : (
@@ -256,7 +256,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               <div className="relative h-full">
                 <img
                   src={existingImageUrl || ''}
-                  alt="Documento cargado"
+                  alt="Uploaded document"
                   className="w-full h-full object-cover rounded"
                 />
                 <div className="absolute top-2 right-2 flex space-x-2">

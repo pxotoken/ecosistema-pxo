@@ -129,7 +129,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
         .catch(() => {
           addToast({
             type: 'error',
-            title: 'Error al copiar',
+            title: 'Copy error',
             description: 'Could not copy address to clipboard',
           });
         });

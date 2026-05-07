@@ -94,9 +94,7 @@ export function kycRoutes(
           submissionId: existing.id,
         });
       }
-      if (existing && existing.status === 'approved') {
-        return reply.code(409).send({ error: 'KYC already approved' });
-      }
+
 
       const body = value as SubmitBody;
       const created = await submissions.create({
