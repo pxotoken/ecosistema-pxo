@@ -31,6 +31,21 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
   const [scannedPaymentId, setScannedPaymentId] = useState<string | null>(null);
 
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('pagos-theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  const toggleTheme = useCallback(() => {
+    setIsDark((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem('pagos-theme', next ? 'dark' : 'light');
+      return next;
+    });
+  }, []);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -89,7 +104,14 @@ export default function App() {
   return (
     <>
       <div className="shell-label">
-        PXO Wallet · POC Demo{POS_MODE_ENABLED ? ' · POS Mode' : ''}
+        <span>PXO Wallet · POC Demo{POS_MODE_ENABLED ? ' · POS Mode' : ''}</span>
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Modo claro' : 'Modo oscuro'}
+        >
+          {isDark ? '☀' : '☾'}
+        </button>
       </div>
 
       <div className="device">

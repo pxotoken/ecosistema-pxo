@@ -7,6 +7,7 @@ export function Login() {
 
   return (
     <div
+      className="login-screen"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -15,7 +16,6 @@ export function Login() {
         height: '100%',
         padding: 32,
         textAlign: 'center',
-        color: '#0f172a',
       }}
     >
       <div

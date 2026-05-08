@@ -73,51 +73,22 @@ export function Perfil({ onBack, onToast }: Props) {
           <div className="manual-intro-sub">Con esta cuenta operás en esta sesión.</div>
         </div>
 
-        <div
-          style={{
-            border: '1px solid #e2e8f0',
-            borderRadius: 12,
-            padding: 14,
-            display: 'grid',
-            gap: 10,
-            background: '#f8fafc',
-          }}
-        >
+        <div className="perfil-card">
           <div>
+            <div className="field-label">Email</div>
             <div
-              style={{
-                fontSize: 11,
-                color: '#64748b',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
-            >
-              Email
-            </div>
-            <div
-              style={{ fontSize: 15, fontWeight: 600, cursor: activeMail ? 'pointer' : 'default' }}
+              className="perfil-card-value"
+              style={{ cursor: activeMail ? 'pointer' : 'default' }}
               onClick={() => activeMail && copy(activeMail, 'Email')}
             >
               {activeMail || '(sin email asociado)'}
             </div>
           </div>
           <div>
+            <div className="field-label">Wallet</div>
             <div
-              style={{
-                fontSize: 11,
-                color: '#64748b',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
-            >
-              Wallet
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                fontFamily: 'ui-monospace, monospace',
-                cursor: activeDisplayAddr ? 'pointer' : 'default',
-              }}
+              className="perfil-card-value perfil-card-mono"
+              style={{ cursor: activeDisplayAddr ? 'pointer' : 'default' }}
               onClick={() => activeDisplayAddr && copy(activeDisplayAddr, 'Address')}
             >
               {activeDisplayAddr ? shortAddr(activeDisplayAddr) : '—'}
@@ -125,17 +96,8 @@ export function Perfil({ onBack, onToast }: Props) {
           </div>
           {activeProvider && (
             <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#64748b',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                Proveedor
-              </div>
-              <div style={{ fontSize: 13 }}>{activeProvider}</div>
+              <div className="field-label">Proveedor</div>
+              <div className="perfil-card-value">{activeProvider}</div>
             </div>
           )}
         </div>
@@ -153,41 +115,14 @@ export function Perfil({ onBack, onToast }: Props) {
               {others.map((acc) => (
                 <div
                   key={acc.address}
+                  className="perfil-account-row"
                   onClick={() => switchAccount(acc.address)}
-                  style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 12,
-                    padding: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    cursor: 'pointer',
-                    background: '#fff',
-                  }}
                 >
-                  <div
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      border: '2px solid #cbd5e1',
-                      flexShrink: 0,
-                    }}
-                  />
+                  <div className="perfil-account-dot" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>
-                      {primaryIdentifier(acc)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: '#64748b',
-                        fontFamily: 'ui-monospace, monospace',
-                      }}
-                    >
-                      {shortAddr(acc.address)}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    <div className="perfil-account-name">{primaryIdentifier(acc)}</div>
+                    <div className="perfil-account-addr">{shortAddr(acc.address)}</div>
+                    <div className="perfil-account-meta">
                       {providerLabel(acc)} · usada {relativeTime(acc.lastUsed)}
                     </div>
                   </div>

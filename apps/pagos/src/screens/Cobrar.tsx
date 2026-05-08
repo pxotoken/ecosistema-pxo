@@ -95,36 +95,20 @@ export function Cobrar({ onBack, onConfirmed }: Props) {
       <>
         <ScreenHeader title="Cobro generado" onBack={onBack} />
 
-        <div style={{ padding: 20, textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
-            Mostrá este QR al cliente para que pague
-          </div>
+        <div className="flex flex-col items-center gap-4 px-6 py-4 text-center overflow-y-auto flex-1">
+          <p className="text-sm text-slate-400">Mostrá este QR al cliente para que pague</p>
           <img
             src={payment.qrData}
             alt="QR de cobro"
-            style={{
-              width: 260,
-              height: 260,
-              borderRadius: 12,
-              background: '#fff',
-              padding: 10,
-              boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-            }}
+            className="w-52 h-52 rounded-xl bg-white p-2.5 shadow-md mx-auto"
           />
-          <div style={{ marginTop: 14, fontSize: 28, fontWeight: 600 }}>
-            ${payment.amountMXN.toFixed(2)} MXN
-          </div>
-          <div style={{ marginTop: 4, fontSize: 13, color: '#334155' }}>
-            Estado: <strong>{statusLabel}</strong> ·{' '}
-            {expired ? 'Expirado' : `expira en ${formatMs(remaining)}`}
-          </div>
-          <div style={{ marginTop: 4, fontSize: 11, color: '#94a3b8', wordBreak: 'break-all' }}>
-            paymentId: {payment.paymentId}
-          </div>
-        </div>
-
-        <div className="cta-zone" style={{ padding: 16 }}>
-          <button className="btn-secondary" onClick={reset}>
+          <p className="text-2xl font-semibold">${payment.amountMXN.toFixed(2)} MXN</p>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium ${expired ? 'bg-red-500/15 text-red-400' : 'bg-slate-500/15 text-slate-400'}`}>
+            <span className={`w-2 h-2 rounded-full ${expired ? 'bg-red-400' : 'bg-slate-400'}`} />
+            {expired ? 'Expirado' : `${statusLabel} · expira en ${formatMs(remaining)}`}
+          </span>
+          <p className="text-xs text-slate-500 break-all px-2">{payment.paymentId}</p>
+          <button className="btn-secondary w-full mt-2" onClick={reset}>
             Generar otro cobro
           </button>
         </div>
