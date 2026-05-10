@@ -13,10 +13,9 @@ import { requireCaller } from '../middleware/identity.js';
 import {
   PXO_TOKEN_ADDRESSES,
   PXO_RECEIVER_ADDRESSES,
+  PXO_SELL_SUPPORTED_CHAIN_IDS,
   type SupportedChainId,
 } from '../config/chains.js';
-
-const SUPPORTED_CHAINS: SupportedChainId[] = [137, 80002];
 const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy } as const;
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const PRICE_TOLERANCE_PERCENT = 2;
@@ -45,6 +44,36 @@ function parseTransferLog(log: RpcLog, pxoContractAddress: string) {
 }
 
 export const sellPxoRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
+  app.get<{ Querystring: { chainId?: string } }>(
+    '/sell-readiness',
+    { preHandler: requireCaller },
+    async (req, reply) => {
+      const raw = req.query.chainId;
+      const resolved =
+        raw !== undefined && raw !== ''
+          ? Number.parseInt(String(raw), 10)
+          : (137 as SupportedChainId);
+      if (
+        !Number.isFinite(resolved) ||
+        !PXO_SELL_SUPPORTED_CHAIN_IDS.includes(resolved as SupportedChainId)
+      ) {
+        return reply.code(400).send({
+          ready: false,
+          chainId: resolved,
+          error: `Unsupported chain ID: ${resolved}`,
+        });
+      }
+      const chainKey = resolved as SupportedChainId;
+      const pxoContractAddress = PXO_TOKEN_ADDRESSES[chainKey];
+      const receiverAddress = PXO_RECEIVER_ADDRESSES[chainKey];
+      const ready = Boolean(pxoContractAddress && receiverAddress);
+      return reply.send({
+        ready,
+        chainId: chainKey,
+      });
+    },
+  );
+
   app.post<{ Body: SellPxoBody }>(
     '/sell-pxo',
     { preHandler: requireCaller },
@@ -76,7 +105,7 @@ export const sellPxoRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
       }
 
       const resolvedChainId = (chainId ?? 137) as SupportedChainId;
-      if (!SUPPORTED_CHAINS.includes(resolvedChainId)) {
+      if (!PXO_SELL_SUPPORTED_CHAIN_IDS.includes(resolvedChainId)) {
         return reply.code(400).send({ error: `Unsupported chain ID: ${resolvedChainId}` });
       }
 

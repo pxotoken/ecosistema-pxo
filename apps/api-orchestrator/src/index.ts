@@ -153,6 +153,16 @@ async function bootstrap() {
     replyOptions: injectIdentity,
   });
 
+  // /api/exchange/sell-readiness -> api-exchange
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/sell-readiness',
+    rewritePrefix: '/api/exchange/sell-readiness',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
   // /api/exchange/gas-subsidy -> api-exchange
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_EXCHANGE,
