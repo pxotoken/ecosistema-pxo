@@ -7,6 +7,11 @@ export const BSC_ID = 56 as const;
 export type SupportedChainId = typeof POLYGON_MAINNET_ID | typeof POLYGON_AMOY_ID;
 export type GasSubsidyChainId = SupportedChainId | typeof BSC_ID;
 
+export const PXO_SELL_SUPPORTED_CHAIN_IDS: readonly SupportedChainId[] = [
+  POLYGON_MAINNET_ID,
+  POLYGON_AMOY_ID,
+];
+
 export const PXO_TOKEN_ADDRESSES: Record<SupportedChainId, string> = {
   [POLYGON_MAINNET_ID]: env.PXO_TOKEN_ADDRESS_MAINNET,
   [POLYGON_AMOY_ID]: env.PXO_TOKEN_ADDRESS_TESTNET,

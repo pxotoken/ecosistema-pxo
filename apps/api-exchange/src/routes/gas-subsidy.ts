@@ -14,8 +14,11 @@ import { requireCaller } from '../middleware/identity.js';
 import {
   STABLECOIN_CONTRACTS,
   PXO_RECEIVER_ADDRESSES,
+  PXO_TOKEN_ADDRESSES,
+  PXO_SELL_SUPPORTED_CHAIN_IDS,
   DEFAULT_TOKEN_TYPE,
   type GasSubsidyChainId,
+  type SupportedChainId,
 } from '../config/chains.js';
 
 const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy, 56: bsc } as const;
@@ -31,6 +34,7 @@ interface GasSubsidyBody {
   tokenContractAddress?: string;
   receiverAddress?: string;
   tokenDecimals?: number;
+  forPxoSell?: boolean;
 }
 
 export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
@@ -52,6 +56,7 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
         tokenContractAddress: directTokenAddress,
         receiverAddress: directReceiverAddress,
         tokenDecimals: directDecimals,
+        forPxoSell,
       } = req.body ?? {};
 
       if (!userAddress || !chainId) {
@@ -82,6 +87,32 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
             error:
               'Missing required fields for transfer: tokenContractAddress, receiverAddress',
           });
+        }
+        if (forPxoSell) {
+          if (!PXO_SELL_SUPPORTED_CHAIN_IDS.includes(chainId as SupportedChainId)) {
+            return reply.code(400).send({
+              error: 'PXO sell is only supported on Polygon (137) or Amoy (80002).',
+            });
+          }
+          const sellChain = chainId as SupportedChainId;
+          const expectedToken = PXO_TOKEN_ADDRESSES[sellChain];
+          const expectedReceiver = PXO_RECEIVER_ADDRESSES[chainKey];
+          if (!expectedToken || !expectedReceiver) {
+            return reply.code(500).send({
+              error: 'PXO or receiver address not configured for this chain',
+            });
+          }
+          const norm = (a: string) => a.trim().toLowerCase();
+          if (norm(directTokenAddress) !== norm(expectedToken)) {
+            return reply.code(400).send({
+              error: 'Token contract does not match the configured PXO address for this chain.',
+            });
+          }
+          if (norm(directReceiverAddress) !== norm(expectedReceiver)) {
+            return reply.code(400).send({
+              error: 'Receiver address does not match the exchange deposit address for this chain.',
+            });
+          }
         }
         resolvedTokenAddress = directTokenAddress;
         resolvedReceiverAddress = directReceiverAddress;
