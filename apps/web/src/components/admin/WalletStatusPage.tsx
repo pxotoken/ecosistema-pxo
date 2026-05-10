@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useAuth from '../../hooks/useAuth';
 import { Wallet, Shield, Loader2, AlertTriangle, RefreshCw, CheckCircle2, XCircle, Lock, Unlock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import api, { getApiError } from '../../lib/api';
 
 interface BalanceInfo {
   value: string;
@@ -59,17 +60,10 @@ export const WalletStatusPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/wallet/admin/status`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch wallet status');
-      }
-
-      const result = await response.json();
+      const { data: result } = await api.get('/api/wallet/admin/status');
       setData(result);
-    } catch (err: any) {
-      setError(err.message || 'Error fetching wallet status');
+    } catch (err) {
+      setError(getApiError(err, 'Error fetching wallet status'));
       console.error('Error fetching wallet status:', err);
     } finally {
       setLoading(false);
