@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useActiveAccount } from 'thirdweb/react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
 import { getBalance } from 'thirdweb/extensions/erc20';
 
 import { getThirdwebClient } from '../lib/thirdweb-client';
-import { getPaymentsChain, getPxoTokenAddress, PAYMENTS_CHAIN_ID } from '../config/env';
+import {
+  getChainForId,
+  getPaymentsChain,
+  getPxoTokenAddress,
+  PAYMENTS_CHAIN_ID,
+} from '../config/env';
 
 export function formatPxoBalanceHome(displayBalance: string): {
   whole: string;
@@ -33,9 +38,23 @@ interface Options {
 export function usePXOTokenBalance(options: Options = {}) {
   const { enabled = true, pollingInterval = 5000 } = options;
   const account = useActiveAccount();
+  const activeWalletChain = useActiveWalletChain();
   const client = getThirdwebClient();
-  const chain = getPaymentsChain();
-  const tokenAddress = getPxoTokenAddress(PAYMENTS_CHAIN_ID);
+
+  const { chain, tokenAddress } = useMemo(() => {
+    const walletId = activeWalletChain?.id;
+    if (walletId !== undefined) {
+      const token = getPxoTokenAddress(walletId);
+      const ch = getChainForId(walletId);
+      if (token && ch) {
+        return { chain: ch, tokenAddress: token };
+      }
+    }
+    return {
+      chain: getPaymentsChain(),
+      tokenAddress: getPxoTokenAddress(PAYMENTS_CHAIN_ID),
+    };
+  }, [activeWalletChain?.id]);
 
   const [displayBalance, setDisplayBalance] = useState('0');
   const [loading, setLoading] = useState(true);

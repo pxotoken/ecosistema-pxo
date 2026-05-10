@@ -38,9 +38,13 @@ export function getPxoTokenAddress(chainId: number = PAYMENTS_CHAIN_ID): string 
   return PXO_TOKEN_ADDRESSES[chainId] ?? '';
 }
 
+export function getChainForId(chainId: number): Chain | null {
+  if (chainId === 137) return polygon;
+  if (chainId === 80002) return polygonAmoy;
+  if (chainId === 56) return bsc;
+  return null;
+}
+
 export function getPaymentsChain(): Chain {
-  const id = PAYMENTS_CHAIN_ID;
-  if (id === 137) return polygon;
-  if (id === 56) return bsc;
-  return polygonAmoy;
+  return getChainForId(PAYMENTS_CHAIN_ID) ?? polygonAmoy;
 }
