@@ -11,20 +11,28 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getChainForId, getPxoTokenAddress, PXO_DECIMALS } from '../config/env';
 import { getThirdwebClient } from '../lib/thirdweb-client';
-import { getPaymentStatus, type PaymentStatusResponse } from '../lib/api';
-import { SignatureTimeoutError, sendTransactionWithSignatureDeadline } from '../lib/signatureTransaction';
-import { toChecksumAddress } from '../lib/evmAddress';
+import { getPaymentStatus, reportPaymentTx, type PaymentStatusResponse } from '../lib/api';
+import {
+  SignatureTimeoutError,
+  sendTransactionWithSignatureDeadline,
+} from '../lib/signatureTransaction';
 import { isEmbeddedThirdwebWallet } from '../lib/walletSigning';
+import { toChecksumAddress } from '../lib/evmAddress';
 
 interface Props {
   paymentId: string | null;
   onBack: () => void;
   onConfirm: (title: string, subtitle: string, amount: string) => void;
   onCancel: () => void;
+  onGoHome: () => void;
 }
 
 function shortAddr(addr: string): string {
   return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
+}
+
+function shortHash(hash: string): string {
+  return hash.length > 14 ? `${hash.slice(0, 8)}…${hash.slice(-6)}` : hash;
 }
 
 function formatMs(ms: number): string {
@@ -53,7 +61,7 @@ async function resolveGasPrice(
   }
 }
 
-export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) {
+export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome }: Props) {
   const { wallet, account } = useAuthContext();
   const switchChain = useSwitchActiveWalletChain();
 
@@ -63,6 +71,8 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
   const [now, setNow] = useState(() => Date.now());
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [sentTxHash, setSentTxHash] = useState<string | null>(null);
+  const [pollError, setPollError] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -73,7 +83,10 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
       setLoading(true);
       try {
         const status = await getPaymentStatus(paymentId);
-        if (!cancelled) setPayment(status);
+        if (!cancelled) {
+          setPayment(status);
+          setPollError(false);
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Error');
       } finally {
@@ -85,7 +98,16 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
 
     pollRef.current = setInterval(() => {
       setNow(Date.now());
-      void load();
+      getPaymentStatus(paymentId)
+        .then((s) => {
+          if (!cancelled) {
+            setPayment(s);
+            setPollError(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setPollError(true);
+        });
     }, 3_000);
 
     return () => {
@@ -104,8 +126,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
 
   const handlePay = useCallback(async () => {
     if (!payment || payment.status !== 'PENDING') return;
-    const expired =
-      payment.status === 'EXPIRED' || new Date(payment.expiresAt).getTime() <= Date.now();
+    const expired = new Date(payment.expiresAt).getTime() <= Date.now();
     if (expired) return;
 
     setPayError(null);
@@ -153,11 +174,17 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
 
       const sendOnce = () => sendTransaction({ transaction: tx, account });
 
+      let receipt: Awaited<ReturnType<typeof sendOnce>>;
       if (isEmbeddedThirdwebWallet(wallet)) {
-        await sendOnce();
+        receipt = await sendOnce();
       } else {
-        await sendTransactionWithSignatureDeadline({ send: sendOnce });
+        receipt = await sendTransactionWithSignatureDeadline({ send: sendOnce });
       }
+
+      const txHash = receipt.transactionHash;
+      setSentTxHash(txHash);
+
+      reportPaymentTx(payment.paymentId, txHash, account.address).catch(() => {});
     } catch (e) {
       if (e instanceof SignatureTimeoutError) {
         setPayError('Tiempo de firma agotado. Reintentá o revisá el explorador.');
@@ -212,6 +239,77 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
   }
 
   if (!payment) return null;
+
+  if (sentTxHash && payment.status === 'PENDING') {
+    return (
+      <>
+        <ScreenHeader title="Pago en proceso" onBack={() => {}} />
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '32px 24px 24px',
+            gap: 16,
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: '#e0f2fe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 28,
+            }}
+          >
+            ⏳
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
+            Tu transacción está en proceso
+          </div>
+          <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
+            Enviaste <strong>${payment.amountMXN.toFixed(2)} MXN</strong> al comercio.
+            La red está procesando la transferencia de PXO.
+          </div>
+          <div
+            style={{
+              padding: '10px 16px',
+              borderRadius: 8,
+              background: '#f1f5f9',
+              fontSize: 12,
+              color: '#64748b',
+              fontFamily: 'monospace',
+              wordBreak: 'break-all',
+            }}
+          >
+            Tx: {shortHash(sentTxHash)}
+          </div>
+          {pollError && (
+            <div style={{ fontSize: 12, color: '#b45309' }}>
+              Sin conexión con el servidor de pagos — reintentando…
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+            El comercio recibirá confirmación automática cuando la tx se mine.
+          </div>
+          <button
+            className="btn-primary"
+            style={{ marginTop: 8, width: '100%' }}
+            onClick={onGoHome}
+          >
+            Ir al inicio
+          </button>
+          <button className="btn-secondary" style={{ width: '100%' }} onClick={onCancel}>
+            Ver estado del pago
+          </button>
+        </div>
+      </>
+    );
+  }
 
   const remaining = new Date(payment.expiresAt).getTime() - now;
   const expired = payment.status === 'EXPIRED' || remaining <= 0;
