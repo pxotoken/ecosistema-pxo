@@ -7,8 +7,10 @@ import {
   PlusIcon,
   QrIcon,
 } from '../components/icons';
-import { balance, recentMovements } from '../data/mockData';
+import { balance as mockBalance, recentMovements } from '../data/mockData';
 import { useAuthContext } from '../contexts/AuthContext';
+import { USE_MOCK_DATA } from '../config/env';
+import { formatPxoBalanceHome, usePXOTokenBalance } from '../hooks/usePXOTokenBalance';
 import type { MovementType, ScreenId } from '../types';
 
 interface Props {
@@ -28,9 +30,13 @@ function shortAddr(addr: string): string {
 
 export function Home({ onNavigate }: Props) {
   const { user, account } = useAuthContext();
+  const pxoChain = usePXOTokenBalance({ enabled: !USE_MOCK_DATA });
+  const balance = USE_MOCK_DATA ? mockBalance : formatPxoBalanceHome(pxoChain.displayBalance);
   const greetingName =
     user?.mail || (account?.address ? shortAddr(account.address) : 'invitado');
-  const hasBalance = balance.whole !== '0' || balance.cents !== '.00';
+  const hasBalance = USE_MOCK_DATA
+    ? mockBalance.whole !== '0' || mockBalance.cents !== '.00'
+    : Number.parseFloat(pxoChain.displayBalance) > 0;
 
   return (
     <>
