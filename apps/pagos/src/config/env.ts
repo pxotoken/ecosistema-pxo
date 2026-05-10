@@ -1,3 +1,8 @@
+import { bsc, polygon, polygonAmoy } from 'thirdweb/chains';
+import type { Chain } from 'thirdweb';
+
+import { toChecksumAddress } from '../lib/evmAddress';
+
 export const USE_MOCK_DATA = import.meta.env.VITE_MOCK_DATA === 'true';
 
 // API base for the payments backend.
@@ -22,11 +27,40 @@ export const PAYMENTS_CHAIN_ID =
   Number(import.meta.env.VITE_PAYMENTS_CHAIN_ID) || 80002;
 
 export const PXO_TOKEN_ADDRESSES: Record<number, string> = {
-  137: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET as string | undefined) || '',
-  80002: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET as string | undefined) || '',
+  137:
+    (import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET as string | undefined) ||
+    '0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7',
+  80002:
+    (import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET as string | undefined) ||
+    '0xeda62cd0d29e077b98e0b61d905c4af906d8946c',
   56: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_BSC as string | undefined) || '',
 };
 
+/** Base units per 1 PXO — aligned with apps/api-pagos `pxoDecimals` (6). */
+export const PXO_DECIMALS = 6;
+
+function checksumTokenAddress(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  try {
+    return toChecksumAddress(t);
+  } catch {
+    return '';
+  }
+}
+
 export function getPxoTokenAddress(chainId: number = PAYMENTS_CHAIN_ID): string {
-  return PXO_TOKEN_ADDRESSES[chainId] ?? '';
+  const raw = PXO_TOKEN_ADDRESSES[chainId] ?? '';
+  return checksumTokenAddress(raw);
+}
+
+export function getChainForId(chainId: number): Chain | null {
+  if (chainId === 137) return polygon;
+  if (chainId === 80002) return polygonAmoy;
+  if (chainId === 56) return bsc;
+  return null;
+}
+
+export function getPaymentsChain(): Chain {
+  return getChainForId(PAYMENTS_CHAIN_ID) ?? polygonAmoy;
 }

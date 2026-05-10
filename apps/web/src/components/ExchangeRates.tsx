@@ -289,6 +289,11 @@ export const ExchangeRates: React.FC = () => {
     return m.includes("liquidity") || m.includes("pxo liquidity") || m.includes("usdc liquidity");
   };
 
+  const withSupportContact = (message: string) => {
+    if (message.toLowerCase().includes("support")) return message;
+    return `${message} If you need support, please contact support@pxo.com.`;
+  };
+
   const confirmExchange = async () => {
     const isSell = pendingConfirmMode === "sell";
     setShowConfirmation(false);
@@ -336,7 +341,7 @@ export const ExchangeRates: React.FC = () => {
           setShowTransactionProgress(false);
           setTransactionSteps([]);
           setCurrentStep(0);
-          addToast({ type: "error", title: "Liquidity limit", description: msg });
+          addToast({ type: "error", title: "Liquidity limit", description: withSupportContact(msg) });
           return;
         }
         throw new Error(msg);
@@ -350,7 +355,7 @@ export const ExchangeRates: React.FC = () => {
         setShowTransactionProgress(false);
         setTransactionSteps([]);
         setCurrentStep(0);
-        addToast({ type: "error", title: "Liquidity limit", description: errorMessage });
+        addToast({ type: "error", title: "Liquidity limit", description: withSupportContact(errorMessage) });
         return;
       }
       setTransactionSteps((prev) =>
@@ -398,7 +403,7 @@ export const ExchangeRates: React.FC = () => {
           setShowTransactionProgress(false);
           setTransactionSteps([]);
           setCurrentStep(0);
-          addToast({ type: "error", title: "Liquidity limit", description: msg });
+          addToast({ type: "error", title: "Liquidity limit", description: withSupportContact(msg) });
           return;
         }
         throw new Error(msg);
@@ -412,7 +417,7 @@ export const ExchangeRates: React.FC = () => {
         setShowTransactionProgress(false);
         setTransactionSteps([]);
         setCurrentStep(0);
-        addToast({ type: "error", title: "Liquidity limit", description: errorMessage });
+        addToast({ type: "error", title: "Liquidity limit", description: withSupportContact(errorMessage) });
         return;
       }
       setTransactionSteps((prev) =>

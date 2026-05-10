@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 import { PATHS } from '../routes/paths';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
@@ -101,36 +101,39 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
 
   const handleBuyPXO = async (callbacks?: ExchangeSignatureCallbacks) => {
     if (!account || !wallet) {
-      setError('Please connect your wallet first');
-      return;
+      const msg = 'Please connect your wallet first';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
-      setError('You must complete and validate your KYC to buy PXO. Redirecting to Settings...');
+      const msg = 'You must complete and validate your KYC to buy PXO. Redirecting to Settings...';
+      setError(msg);
       navigate(PATHS.dashboard.settings);
-      return;
+      return { success: false, error: msg };
     }
 
     if (amount <= 0) {
-      setError('Please enter a valid amount');
-      return;
+      const msg = 'Please enter a valid amount';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     // Client-side liquidity guard: cap purchase by server PXO balance
     if (liquidity?.pxo?.balance != null && pxoAmount > liquidity.pxo.balance) {
-      setError(
-        `Not enough PXO liquidity to complete this purchase. Max available now is ${liquidity.pxo.balance.toFixed(
-          4,
-        )} PXO.`,
-      );
-      return;
+      const msg = `Not enough PXO liquidity to complete this purchase. Max available now is ${liquidity.pxo.balance.toFixed(
+        4,
+      )} PXO.`;
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     // Check if Thirdweb client ID is configured
     const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID;
     if (!clientId) {
-      setError('Thirdweb client ID not configured. Please check your environment variables.');
-      return;
+      const msg = 'Thirdweb client ID not configured. Please check your environment variables.';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     setLoading(true);
@@ -289,10 +292,11 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
         setError(msg);
         return { success: false, error: msg };
       }
-      setError(err instanceof Error ? err.message : 'Failed to buy PXO');
+      const msg = getApiError(err, 'Failed to buy PXO');
+      setError(msg);
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to buy PXO',
+        error: msg,
       };
     } finally {
       setLoading(false);
