@@ -1,6 +1,8 @@
 import { bsc, polygon, polygonAmoy } from 'thirdweb/chains';
 import type { Chain } from 'thirdweb';
 
+import { toChecksumAddress } from '../lib/evmAddress';
+
 export const USE_MOCK_DATA = import.meta.env.VITE_MOCK_DATA === 'true';
 
 // API base for the payments backend.
@@ -37,8 +39,19 @@ export const PXO_TOKEN_ADDRESSES: Record<number, string> = {
 /** Base units per 1 PXO — aligned with apps/api-pagos `pxoDecimals` (6). */
 export const PXO_DECIMALS = 6;
 
+function checksumTokenAddress(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  try {
+    return toChecksumAddress(t);
+  } catch {
+    return '';
+  }
+}
+
 export function getPxoTokenAddress(chainId: number = PAYMENTS_CHAIN_ID): string {
-  return PXO_TOKEN_ADDRESSES[chainId] ?? '';
+  const raw = PXO_TOKEN_ADDRESSES[chainId] ?? '';
+  return checksumTokenAddress(raw);
 }
 
 export function getChainForId(chainId: number): Chain | null {
