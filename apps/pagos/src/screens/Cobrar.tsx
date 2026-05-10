@@ -123,9 +123,9 @@ export function Cobrar({ onBack, onConfirmed }: Props) {
       dotColor = 'bg-red-400';
       statusText = 'Expirado';
     } else if (hasTx) {
-      statusBadgeColor = 'bg-blue-500/15 text-blue-400';
-      dotColor = 'bg-blue-400 animate-pulse';
-      statusText = 'Tx detectada — minando…';
+      statusBadgeColor = 'bg-green-500/15 text-green-500';
+      dotColor = 'bg-green-500';
+      statusText = 'Pago completado';
     } else {
       statusText = `Esperando pago · expira en ${formatMs(remaining)}`;
     }
@@ -194,9 +194,11 @@ export function Cobrar({ onBack, onConfirmed }: Props) {
             </div>
           )}
 
-          <button className="btn-secondary w-full mt-2" onClick={reset}>
-            {expired ? 'Nuevo cobro' : 'Cancelar y generar otro'}
-          </button>
+          {!hasTx && (
+            <button className="btn-secondary w-full mt-2" onClick={reset}>
+              {expired ? 'Nuevo cobro' : 'Cancelar y generar otro'}
+            </button>
+          )}
         </div>
       </>
     );
