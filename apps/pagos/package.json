@@ -17,7 +17,8 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "thirdweb": "5.100.0"
+    "thirdweb": "5.100.0",
+    "viem": "^2.33.2"
   },
   "devDependencies": {
     "@pxo/config": "workspace:*",

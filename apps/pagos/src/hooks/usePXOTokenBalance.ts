@@ -8,6 +8,7 @@ import {
   getPaymentsChain,
   getPxoTokenAddress,
   PAYMENTS_CHAIN_ID,
+  USE_MOCK_DATA,
 } from '../config/env';
 
 export function formatPxoBalanceHome(displayBalance: string): {
@@ -41,20 +42,33 @@ export function usePXOTokenBalance(options: Options = {}) {
   const activeWalletChain = useActiveWalletChain();
   const client = getThirdwebClient();
 
-  const { chain, tokenAddress } = useMemo(() => {
+  const { chain, tokenAddress, balanceSource } = useMemo(() => {
     const walletId = activeWalletChain?.id;
     if (walletId !== undefined) {
       const token = getPxoTokenAddress(walletId);
       const ch = getChainForId(walletId);
       if (token && ch) {
-        return { chain: ch, tokenAddress: token };
+        return { chain: ch, tokenAddress: token, balanceSource: 'wallet' as const };
       }
     }
     return {
       chain: getPaymentsChain(),
       tokenAddress: getPxoTokenAddress(PAYMENTS_CHAIN_ID),
+      balanceSource: 'env-fallback' as const,
     };
   }, [activeWalletChain?.id]);
+
+  useEffect(() => {
+    console.log('[pagos] PXO balance chains', {
+      viteMockData: USE_MOCK_DATA,
+      balanceFetchEnabled: enabled,
+      walletChainId: activeWalletChain?.id,
+      balanceChainId: chain.id,
+      fallbackPaymentsChainId: PAYMENTS_CHAIN_ID,
+      balanceSource,
+      thirdwebClientConfigured: !!getThirdwebClient(),
+    });
+  }, [enabled, activeWalletChain?.id, chain.id, balanceSource]);
 
   const [displayBalance, setDisplayBalance] = useState('0');
   const [loading, setLoading] = useState(true);
