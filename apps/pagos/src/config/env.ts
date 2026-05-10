@@ -34,6 +34,9 @@ export const PXO_TOKEN_ADDRESSES: Record<number, string> = {
   56: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_BSC as string | undefined) || '',
 };
 
+/** Base units per 1 PXO — aligned with apps/api-pagos `pxoDecimals` (6). */
+export const PXO_DECIMALS = 6;
+
 export function getPxoTokenAddress(chainId: number = PAYMENTS_CHAIN_ID): string {
   return PXO_TOKEN_ADDRESSES[chainId] ?? '';
 }

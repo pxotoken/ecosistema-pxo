@@ -1,6 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSwitchActiveWalletChain } from 'thirdweb/react';
+import { getGasPrice } from 'thirdweb';
+import { getContract } from 'thirdweb/contract';
+import { transfer } from 'thirdweb/extensions/erc20';
+import { sendTransaction } from 'thirdweb/transaction';
+import { formatUnits } from 'viem';
+import type { Chain } from 'thirdweb';
+
 import { ScreenHeader } from '../components/ScreenHeader';
+import { useAuthContext } from '../contexts/AuthContext';
+import { getChainForId, getPxoTokenAddress, PXO_DECIMALS } from '../config/env';
+import { getThirdwebClient } from '../lib/thirdweb-client';
 import { getPaymentStatus, type PaymentStatusResponse } from '../lib/api';
+import { SignatureTimeoutError, sendTransactionWithSignatureDeadline } from '../lib/signatureTransaction';
+import { isEmbeddedThirdwebWallet } from '../lib/walletSigning';
 
 interface Props {
   paymentId: string | null;
@@ -20,11 +33,35 @@ function formatMs(ms: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+const MIN_GAS_PRICE = BigInt(25000000000);
+const FALLBACK_GAS_TESTNET = BigInt(30000000000);
+const FALLBACK_GAS_MAINNET = BigInt(20000000000);
+
+async function resolveGasPrice(
+  client: NonNullable<ReturnType<typeof getThirdwebClient>>,
+  chain: Chain,
+): Promise<bigint> {
+  try {
+    const price = await getGasPrice({ client, chain });
+    if (price < MIN_GAS_PRICE) {
+      return chain.id === 80002 ? FALLBACK_GAS_TESTNET : FALLBACK_GAS_MAINNET;
+    }
+    return price;
+  } catch {
+    return chain.id === 80002 ? FALLBACK_GAS_TESTNET : FALLBACK_GAS_MAINNET;
+  }
+}
+
 export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) {
+  const { wallet, account } = useAuthContext();
+  const switchChain = useSwitchActiveWalletChain();
+
   const [payment, setPayment] = useState<PaymentStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -63,6 +100,78 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
       onConfirm('¡Pago confirmado!', `Tx: ${shortAddr(payment.txHash ?? '')}`, amt);
     }
   }, [payment?.status, onConfirm, payment]);
+
+  const handlePay = useCallback(async () => {
+    if (!payment || payment.status !== 'PENDING') return;
+    const expired =
+      payment.status === 'EXPIRED' || new Date(payment.expiresAt).getTime() <= Date.now();
+    if (expired) return;
+
+    setPayError(null);
+    const client = getThirdwebClient();
+    if (!client || !account || !wallet) {
+      setPayError('Conectá tu wallet para pagar.');
+      return;
+    }
+
+    const targetChain = getChainForId(payment.chainId);
+    if (!targetChain) {
+      setPayError('Red no soportada para este pago.');
+      return;
+    }
+
+    const tokenAddress = getPxoTokenAddress(payment.chainId);
+    if (!tokenAddress) {
+      setPayError('Token PXO no configurado para esta red.');
+      return;
+    }
+
+    setPaying(true);
+    try {
+      await switchChain(targetChain);
+      const gasPrice = await resolveGasPrice(client, targetChain);
+      const humanAmount = Number.parseFloat(
+        formatUnits(BigInt(payment.amountPXO), PXO_DECIMALS),
+      );
+      if (!Number.isFinite(humanAmount) || humanAmount <= 0) {
+        throw new Error('Monto inválido');
+      }
+
+      const contract = getContract({
+        address: tokenAddress as `0x${string}`,
+        client,
+        chain: targetChain,
+      });
+
+      const tx = transfer({
+        amount: humanAmount,
+        contract,
+        to: payment.merchantWallet as `0x${string}`,
+        overrides: { gasPrice },
+      });
+
+      const sendOnce = () => sendTransaction({ transaction: tx, account });
+
+      if (isEmbeddedThirdwebWallet(wallet)) {
+        await sendOnce();
+      } else {
+        await sendTransactionWithSignatureDeadline({ send: sendOnce });
+      }
+    } catch (e) {
+      if (e instanceof SignatureTimeoutError) {
+        setPayError('Tiempo de firma agotado. Reintentá o revisá el explorador.');
+      } else {
+        const msg = e instanceof Error ? e.message : 'No se pudo enviar el pago';
+        if (/user rejected|denied|closed/i.test(msg)) {
+          setPayError('Transacción cancelada.');
+        } else {
+          setPayError(msg);
+        }
+      }
+    } finally {
+      setPaying(false);
+    }
+  }, [payment, account, wallet, switchChain]);
 
   if (!paymentId) {
     return (
@@ -105,6 +214,9 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
 
   const remaining = new Date(payment.expiresAt).getTime() - now;
   const expired = payment.status === 'EXPIRED' || remaining <= 0;
+  const canPay =
+    !expired && payment.status === 'PENDING' && !paying && !!account && !!wallet;
+  const inAppWallet = isEmbeddedThirdwebWallet(wallet);
 
   return (
     <>
@@ -156,17 +268,42 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
               style={{
                 padding: 12,
                 borderRadius: 8,
-                background: '#f5f7ff',
-                color: '#334155',
-                fontSize: 13,
+                background: inAppWallet ? '#eef2ff' : '#f5f7ff',
+                color: inAppWallet ? '#0f172a' : '#334155',
+                fontSize: inAppWallet ? 14 : 13,
                 lineHeight: 1.4,
               }}
             >
-              Firmá la transferencia desde tu wallet EVM (Thirdweb In-App, MetaMask,
-              Trust Wallet) con el URI del QR. Cuando la tx se mine en chain{' '}
-              {payment.chainId}, este panel se actualiza a{' '}
-              <strong>CONFIRMED</strong> automáticamente.
+              {inAppWallet ? (
+                <>
+                  Monto <strong>${payment.amountMXN.toFixed(2)} MXN</strong> al comercio. Tocá
+                  confirmar para enviar PXO en la red {payment.chainId}.
+                </>
+              ) : (
+                <>
+                  Firmá la transferencia desde tu wallet EVM (Thirdweb In-App, MetaMask, Trust
+                  Wallet) con el URI del QR. Cuando la tx se mine en chain {payment.chainId}, este
+                  panel se actualiza a <strong>CONFIRMED</strong> automáticamente.
+                </>
+              )}
             </div>
+            <button
+              className="btn-primary"
+              style={{ marginTop: 12 }}
+              disabled={!canPay}
+              onClick={() => void handlePay()}
+            >
+              {paying
+                ? inAppWallet
+                  ? 'Enviando…'
+                  : 'Esperando firma…'
+                : inAppWallet
+                  ? 'Confirmar'
+                  : 'Pagar con mi wallet'}
+            </button>
+            {payError && (
+              <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 10 }}>{payError}</div>
+            )}
             <button className="btn-secondary" onClick={onCancel} style={{ marginTop: 8 }}>
               Cancelar
             </button>
