@@ -13,6 +13,7 @@ import { getChainForId, getPxoTokenAddress, PXO_DECIMALS } from '../config/env';
 import { getThirdwebClient } from '../lib/thirdweb-client';
 import { getPaymentStatus, type PaymentStatusResponse } from '../lib/api';
 import { SignatureTimeoutError, sendTransactionWithSignatureDeadline } from '../lib/signatureTransaction';
+import { toChecksumAddress } from '../lib/evmAddress';
 import { isEmbeddedThirdwebWallet } from '../lib/walletSigning';
 
 interface Props {
@@ -138,7 +139,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
       }
 
       const contract = getContract({
-        address: tokenAddress as `0x${string}`,
+        address: toChecksumAddress(tokenAddress),
         client,
         chain: targetChain,
       });
@@ -146,7 +147,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel }: Props) 
       const tx = transfer({
         amount: humanAmount,
         contract,
-        to: payment.merchantWallet as `0x${string}`,
+        to: toChecksumAddress(payment.merchantWallet),
         overrides: { gasPrice },
       });
 
