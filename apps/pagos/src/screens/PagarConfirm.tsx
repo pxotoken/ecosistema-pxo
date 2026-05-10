@@ -338,7 +338,14 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
             {isConfirmed ? 'Volver al inicio' : 'Ir al inicio'}
           </button>
           {!isConfirmed && (
-            <button className="btn-secondary" style={{ width: '100%' }} onClick={onCancel}>
+            <button
+              className="btn-secondary"
+              style={{ width: '100%' }}
+              onClick={() => {
+                sentRef.current = false;
+                setSentTxHash(null);
+              }}
+            >
               Ver estado del pago
             </button>
           )}
