@@ -55,6 +55,12 @@ export function reportTxRoute(services: AppServices): FastifyPluginAsync {
           clientWallet,
         );
 
+        if (result.recorded) {
+          services.reconciliation.reconcilePendingPayments().catch((err) => {
+            req.log.warn({ err }, 'eager reconciliation after reportTx failed');
+          });
+        }
+
         return reply.send({
           recorded: result.recorded,
           alreadyHasTx: result.alreadyHasTx,

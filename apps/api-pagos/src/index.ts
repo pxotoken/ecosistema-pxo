@@ -19,7 +19,7 @@ async function bootstrap() {
         ? true
         : env.ALLOWED_ORIGINS,
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
   });
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
