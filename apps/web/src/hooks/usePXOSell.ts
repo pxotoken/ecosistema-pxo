@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 import { PATHS } from '../routes/paths';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
@@ -89,36 +89,39 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
 
   const handleSellPXO = async (callbacks?: ExchangeSignatureCallbacks) => {
     if (!account || !wallet) {
-      setError('Please connect your wallet first');
-      return;
+      const msg = 'Please connect your wallet first';
+      setError(msg);
+      return { success: false, error: msg };
     }
     if (user?.KYC_status !== KYCStatus.VALIDATED) {
-      setError('You must complete and validate your KYC to sell PXO.');
+      const msg = 'You must complete and validate your KYC to sell PXO.';
+      setError(msg);
       navigate(PATHS.dashboard.settings);
-      return;
+      return { success: false, error: msg };
     }
     if (pxoAmount <= 0) {
-      setError('Enter a valid PXO amount');
-      return;
+      const msg = 'Enter a valid PXO amount';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     // Client-side liquidity guard: cap PXO to sell by server USDC balance
     if (liquidity?.stable?.balance != null && sellPrice) {
       const maxPxoByLiquidity = liquidity.stable.balance / sellPrice;
       if (pxoAmount > maxPxoByLiquidity) {
-        setError(
-          `Liquidity not enough to buy this amount of PXO. You can sell up to ${maxPxoByLiquidity.toFixed(
-            4,
-          )} PXO right now.`,
-        );
-        return;
+        const msg = `Liquidity not enough to buy this amount of PXO. You can sell up to ${maxPxoByLiquidity.toFixed(
+          4,
+        )} PXO right now.`;
+        setError(msg);
+        return { success: false, error: msg };
       }
     }
 
     const clientId = import.meta.env.VITE_THIRDWEB_CLIENT_ID;
     if (!clientId) {
-      setError('Thirdweb client ID not configured.');
-      return;
+      const msg = 'Thirdweb client ID not configured.';
+      setError(msg);
+      return { success: false, error: msg };
     }
 
     setLoading(true);
@@ -221,7 +224,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         setError(msg);
         return { success: false, error: msg };
       }
-      const msg = err instanceof Error ? err.message : 'Failed to sell PXO';
+      const msg = getApiError(err, 'Failed to sell PXO');
       setError(msg);
       return { success: false, error: msg };
     } finally {
