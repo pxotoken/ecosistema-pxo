@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 import { PATHS } from '../routes/paths';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getThirdwebClient } from '../lib/client';
@@ -71,6 +71,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         paymentAmount: params.pxoAmount,
         chainId: params.chainId,
         source: 'transfer',
+        forPxoSell: true,
         tokenContractAddress: getPXOContractAddress(params.chainId),
         receiverAddress: getPXOReceiverAddress(params.chainId),
         tokenDecimals: params.chainId === 137 ? 6 : 18,
@@ -140,6 +141,21 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       const chainId = activeChain?.id ?? (FORCE_POLYGON_MAINNET ? 137 : 80002);
       const pxoAddress = getPXOContractAddress(chainId);
       if (!pxoAddress) throw new Error('PXO token not configured for this chain.');
+
+      try {
+        const { data: readiness } = await api.get<{
+          ready: boolean;
+          error?: string;
+        }>('/api/exchange/sell-readiness', { params: { chainId } });
+        if (!readiness.ready) {
+          throw new Error(
+            readiness.error ??
+              'PXO sell is not available on this network (server not configured).',
+          );
+        }
+      } catch (readinessErr) {
+        throw new Error(getApiError(readinessErr, 'Unable to verify PXO sell availability'));
+      }
 
       const pxoContract = getContract({
         address: pxoAddress,
