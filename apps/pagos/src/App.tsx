@@ -159,7 +159,8 @@ export default function App() {
                   paymentId={scannedPaymentId}
                   onBack={() => navigate('pagar')}
                   onConfirm={finishWithSuccess}
-                  onCancel={() => navigate('pagar')}
+                  onCancel={() => navigate('pagar-confirm')}
+                  onGoHome={() => navigate('home')}
                 />
               </div>
               <div className={classFor('cargar')}>

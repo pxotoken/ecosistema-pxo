@@ -114,3 +114,19 @@ export async function getPaymentStatus(
   if (!res.ok) throw await parseError(res);
   return (await res.json()) as PaymentStatusResponse;
 }
+
+export async function reportPaymentTx(
+  paymentId: string,
+  txHash: string,
+  clientWallet: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/v1/payments/${paymentId}/tx`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ txHash, clientWallet }),
+  });
+  if (!res.ok) {
+    const err = await parseError(res);
+    if (err.status !== 409) throw err;
+  }
+}

@@ -145,6 +145,20 @@ export class PaymentService {
     return confirmed;
   }
 
+  async recordClientTxHash(
+    paymentId: string,
+    txHash: string,
+    clientWallet: string,
+  ): Promise<{ recorded: boolean; alreadyHasTx: boolean }> {
+    const payment = await this.payments.findById(paymentId);
+    if (!payment) return { recorded: false, alreadyHasTx: false };
+    if (payment.status !== 'PENDING') return { recorded: false, alreadyHasTx: !!payment.txHash };
+    if (payment.txHash) return { recorded: false, alreadyHasTx: true };
+
+    const updated = await this.payments.recordClientTxHash(paymentId, txHash, clientWallet);
+    return { recorded: !!updated, alreadyHasTx: false };
+  }
+
   async expirePending(): Promise<number> {
     return this.payments.expirePending();
   }

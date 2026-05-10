@@ -166,4 +166,22 @@ export class PaymentRepository {
     if (error) throw new Error(`Failed to list reconcilable payments: ${error.message}`);
     return ((data ?? []) as PaymentRow[]).map(rowToPayment);
   }
+
+  async recordClientTxHash(
+    paymentId: string,
+    txHash: string,
+    clientWallet: string,
+  ): Promise<Payment | null> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .update({ tx_hash: txHash, client_wallet: clientWallet })
+      .eq('id', paymentId)
+      .eq('status', 'PENDING')
+      .is('tx_hash', null)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(`Failed to record client tx hash: ${error.message}`);
+    return data ? rowToPayment(data as PaymentRow) : null;
+  }
 }
