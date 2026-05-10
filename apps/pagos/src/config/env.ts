@@ -1,3 +1,6 @@
+import { bsc, polygon, polygonAmoy } from 'thirdweb/chains';
+import type { Chain } from 'thirdweb';
+
 export const USE_MOCK_DATA = import.meta.env.VITE_MOCK_DATA === 'true';
 
 // API base for the payments backend.
@@ -22,11 +25,22 @@ export const PAYMENTS_CHAIN_ID =
   Number(import.meta.env.VITE_PAYMENTS_CHAIN_ID) || 80002;
 
 export const PXO_TOKEN_ADDRESSES: Record<number, string> = {
-  137: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET as string | undefined) || '',
-  80002: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET as string | undefined) || '',
+  137:
+    (import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET as string | undefined) ||
+    '0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7',
+  80002:
+    (import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET as string | undefined) ||
+    '0xeda62cd0d29e077b98e0b61d905c4af906d8946c',
   56: (import.meta.env.VITE_PXO_TOKEN_ADDRESS_BSC as string | undefined) || '',
 };
 
 export function getPxoTokenAddress(chainId: number = PAYMENTS_CHAIN_ID): string {
   return PXO_TOKEN_ADDRESSES[chainId] ?? '';
+}
+
+export function getPaymentsChain(): Chain {
+  const id = PAYMENTS_CHAIN_ID;
+  if (id === 137) return polygon;
+  if (id === 56) return bsc;
+  return polygonAmoy;
 }
