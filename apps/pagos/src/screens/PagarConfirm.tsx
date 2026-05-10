@@ -73,6 +73,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
   const [payError, setPayError] = useState<string | null>(null);
   const [sentTxHash, setSentTxHash] = useState<string | null>(null);
   const [txConfirmed, setTxConfirmed] = useState(false);
+  const [showTxDetail, setShowTxDetail] = useState(false);
   const [pollError, setPollError] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sentRef = useRef(false);
@@ -262,6 +263,67 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
       }
     };
 
+    if (showTxDetail) {
+      const remaining = new Date(payment.expiresAt).getTime() - now;
+      return (
+        <>
+          <ScreenHeader title="Estado del pago" onBack={() => setShowTxDetail(false)} />
+          <div className="detail-list">
+            <div className="detail-row">
+              <div className="detail-key">Estado</div>
+              <div className="detail-val">{payment.status}</div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-key">Monto</div>
+              <div className="detail-val">${payment.amountMXN.toFixed(2)} MXN</div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-key">PXO</div>
+              <div className="detail-val">{payment.amountPXO}</div>
+            </div>
+            {payment.reference && (
+              <div className="detail-row">
+                <div className="detail-key">Referencia</div>
+                <div className="detail-val">{payment.reference}</div>
+              </div>
+            )}
+            <div className="detail-row">
+              <div className="detail-key">Destino</div>
+              <div className="detail-val">{shortAddr(payment.merchantWallet)}</div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-key">Tx hash</div>
+              <div className="detail-val" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                {shortHash(payment.txHash ?? sentTxHash)}
+              </div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-key">Red</div>
+              <div className="detail-val">chain {payment.chainId}</div>
+            </div>
+            {!isConfirmed && (
+              <div className="detail-row">
+                <div className="detail-key">Vence en</div>
+                <div className="detail-val">{formatMs(remaining)}</div>
+              </div>
+            )}
+          </div>
+          <div className="cta-zone">
+            <button className="btn-primary" style={{ width: '100%' }} onClick={handleGoHome}>
+              {isConfirmed ? 'Volver al inicio' : 'Ir al inicio'}
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ marginTop: 8, width: '100%' }}
+              onClick={() => setShowTxDetail(false)}
+            >
+              Volver
+            </button>
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         <ScreenHeader title={isConfirmed ? '¡Pago confirmado!' : 'Pago en proceso'} onBack={() => {}} />
@@ -341,10 +403,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
             <button
               className="btn-secondary"
               style={{ width: '100%' }}
-              onClick={() => {
-                sentRef.current = false;
-                setSentTxHash(null);
-              }}
+              onClick={() => setShowTxDetail(true)}
             >
               Ver estado del pago
             </button>
