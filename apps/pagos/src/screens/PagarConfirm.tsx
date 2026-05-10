@@ -72,8 +72,10 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [sentTxHash, setSentTxHash] = useState<string | null>(null);
+  const [txConfirmed, setTxConfirmed] = useState(false);
   const [pollError, setPollError] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sentRef = useRef(false);
 
   useEffect(() => {
     if (!paymentId) return;
@@ -119,8 +121,12 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
   useEffect(() => {
     if (payment?.status === 'CONFIRMED') {
       if (pollRef.current) clearInterval(pollRef.current);
-      const amt = payment.amountMXN.toFixed(2);
-      onConfirm('¡Pago confirmado!', `Tx: ${shortAddr(payment.txHash ?? '')}`, amt);
+      if (sentRef.current) {
+        setTxConfirmed(true);
+      } else {
+        const amt = payment.amountMXN.toFixed(2);
+        onConfirm('¡Pago confirmado!', `Tx: ${shortAddr(payment.txHash ?? '')}`, amt);
+      }
     }
   }, [payment?.status, onConfirm, payment]);
 
@@ -182,6 +188,7 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
       }
 
       const txHash = receipt.transactionHash;
+      sentRef.current = true;
       setSentTxHash(txHash);
 
       reportPaymentTx(payment.paymentId, txHash, account.address).catch(() => {});
@@ -240,10 +247,24 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
 
   if (!payment) return null;
 
-  if (sentTxHash && payment.status === 'PENDING') {
+  if (sentTxHash) {
+    const isConfirmed = txConfirmed || payment.status === 'CONFIRMED';
+
+    const handleGoHome = () => {
+      if (isConfirmed) {
+        onConfirm(
+          '¡Pago confirmado!',
+          `Tx: ${shortAddr(payment.txHash ?? sentTxHash)}`,
+          payment.amountMXN.toFixed(2),
+        );
+      } else {
+        onGoHome();
+      }
+    };
+
     return (
       <>
-        <ScreenHeader title="Pago en proceso" onBack={() => {}} />
+        <ScreenHeader title={isConfirmed ? '¡Pago confirmado!' : 'Pago en proceso'} onBack={() => {}} />
         <div
           style={{
             display: 'flex',
@@ -259,21 +280,32 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
               width: 64,
               height: 64,
               borderRadius: '50%',
-              background: '#e0f2fe',
+              background: isConfirmed ? '#dcfce7' : '#e0f2fe',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 28,
             }}
           >
-            ⏳
+            {isConfirmed ? '✓' : '⏳'}
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>
-            Tu transacción está en proceso
+            {isConfirmed
+              ? 'Tu pago fue confirmado'
+              : 'Tu transacción está en proceso'}
           </div>
           <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
-            Enviaste <strong>${payment.amountMXN.toFixed(2)} MXN</strong> al comercio.
-            La red está procesando la transferencia de PXO.
+            {isConfirmed ? (
+              <>
+                Se enviaron <strong>${payment.amountMXN.toFixed(2)} MXN</strong> en PXO al
+                comercio. La transferencia está confirmada en cadena.
+              </>
+            ) : (
+              <>
+                Enviaste <strong>${payment.amountMXN.toFixed(2)} MXN</strong> al comercio.
+                La red está procesando la transferencia de PXO.
+              </>
+            )}
           </div>
           <div
             style={{
@@ -286,26 +318,30 @@ export function PagarConfirm({ paymentId, onBack, onConfirm, onCancel, onGoHome 
               wordBreak: 'break-all',
             }}
           >
-            Tx: {shortHash(sentTxHash)}
+            Tx: {shortHash(payment.txHash ?? sentTxHash)}
           </div>
-          {pollError && (
+          {!isConfirmed && pollError && (
             <div style={{ fontSize: 12, color: '#b45309' }}>
               Sin conexión con el servidor de pagos — reintentando…
             </div>
           )}
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-            El comercio recibirá confirmación automática cuando la tx se mine.
-          </div>
+          {!isConfirmed && (
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+              El comercio recibirá confirmación automática cuando la tx se mine.
+            </div>
+          )}
           <button
             className="btn-primary"
             style={{ marginTop: 8, width: '100%' }}
-            onClick={onGoHome}
+            onClick={handleGoHome}
           >
-            Ir al inicio
+            {isConfirmed ? 'Volver al inicio' : 'Ir al inicio'}
           </button>
-          <button className="btn-secondary" style={{ width: '100%' }} onClick={onCancel}>
-            Ver estado del pago
-          </button>
+          {!isConfirmed && (
+            <button className="btn-secondary" style={{ width: '100%' }} onClick={onCancel}>
+              Ver estado del pago
+            </button>
+          )}
         </div>
       </>
     );
