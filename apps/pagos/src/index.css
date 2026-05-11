@@ -1813,3 +1813,30 @@ html.dark .card-preview {
   background: linear-gradient(135deg, #101e38, #0f172a);
   border-color: rgba(99, 152, 230, 0.2);
 }
+
+/* ===== Mobile real: app a pantalla completa, sin marco mock ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0;
+    background: var(--bg);
+    align-items: stretch;
+    justify-content: stretch;
+  }
+  .shell-label {
+    display: none;
+  }
+  .device {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+  .device::before,
+  .device::after,
+  .island,
+  .home-ind {
+    display: none;
+  }
+}
