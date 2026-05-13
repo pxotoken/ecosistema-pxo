@@ -66,20 +66,7 @@ export function Home({ onNavigate }: Props) {
               <button
                 onClick={handleNetworkToggle}
                 title={isOnMainnet ? 'Cambiar a Testnet' : 'Cambiar a Mainnet'}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  border: `1px solid ${isOnTestnet ? 'var(--gold)' : 'var(--line2)'}`,
-                  background: isOnTestnet ? 'rgba(180,83,9,0.10)' : 'var(--accent2)',
-                  color: isOnTestnet ? 'var(--gold)' : 'var(--accent)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontFamily: 'var(--sans)',
-                }}
+                className={`network-chip${isOnTestnet ? ' testnet' : ''}`}
               >
                 <span style={{
                   width: 6, height: 6, borderRadius: '50%',
