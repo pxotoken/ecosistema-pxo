@@ -33,6 +33,13 @@ export interface LiquidityResponse {
 }
 
 export async function getServerLiquidity(chainIdInput?: number): Promise<LiquidityResponse> {
+  console.log('[liquidity] env debug', {
+    FORCE_POLYGON_MAINNET: env.FORCE_POLYGON_MAINNET,
+    RAW_FORCE_POLYGON_MAINNET: process.env.FORCE_POLYGON_MAINNET,
+    PXO_TOKEN_ADDRESS_MAINNET: env.PXO_TOKEN_ADDRESS_MAINNET,
+    chainIdInput,
+  });
+
   const targetChainId: SupportedChainId =
     chainIdInput && (chainIdInput === 137 || chainIdInput === 80002)
       ? chainIdInput
@@ -41,6 +48,7 @@ export async function getServerLiquidity(chainIdInput?: number): Promise<Liquidi
         : 80002;
 
   const chain = CHAIN_MAP[targetChainId] ?? polygon;
+  console.log('[liquidity] targetChainId', targetChainId, 'pxoAddress', PXO_TOKEN_ADDRESSES[targetChainId]);
 
   const client = getServerThirdwebClient();
   if (!client) {
