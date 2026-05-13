@@ -21,9 +21,7 @@ const POS_ITEM: (typeof BASE_ITEMS)[number] = {
 };
 
 export function BottomNav({ active, onNavigate }: Props) {
-  const items = POS_MODE_ENABLED
-    ? [BASE_ITEMS[0], BASE_ITEMS[1], BASE_ITEMS[2], POS_ITEM, BASE_ITEMS[3]]
-    : BASE_ITEMS;
+  const items = BASE_ITEMS;
 
   return (
     <div className="bnav">

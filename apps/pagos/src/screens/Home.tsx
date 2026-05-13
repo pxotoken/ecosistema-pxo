@@ -104,7 +104,7 @@ export function Home({ onNavigate }: Props) {
             <div className="qa-ic">
               <PlusIcon />
             </div>
-            <div className="qa-lb">Cargar</div>
+            <div className="qa-lb">Fondear</div>
           </div>
         </div>
       </div>

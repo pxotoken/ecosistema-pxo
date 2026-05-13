@@ -93,7 +93,7 @@ export function Cargar({ onBack, onNavigate }: Props) {
 
   return (
     <>
-      <ScreenHeader title="Cargar wallet" onBack={onBack} />
+      <ScreenHeader title="Fondear wallet" onBack={onBack} />
 
       <div className="tab-switch">
         <div className={`tab-opt${tab === 'qr' ? ' on' : ''}`} onClick={() => setTab('qr')}>
