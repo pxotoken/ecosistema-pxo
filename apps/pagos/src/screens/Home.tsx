@@ -1,7 +1,6 @@
 import {
   ArrowDownLeftIcon,
   ArrowUpRightIcon,
-  BellIcon,
   CardIcon,
   InfoIcon,
   PlusIcon,
@@ -9,12 +8,12 @@ import {
 } from '../components/icons';
 import { balance as mockBalance, recentMovements } from '../data/mockData';
 import { useAuthContext } from '../contexts/AuthContext';
-import { USE_MOCK_DATA, PAYMENTS_CHAIN_ID } from '../config/env';
+import { USE_MOCK_DATA } from '../config/env';
 import { formatPxoBalanceHome, usePXOTokenBalance } from '../hooks/usePXOTokenBalance';
 import type { MovementType, ScreenId } from '../types';
 import { useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react';
 import { useEffect } from 'react';
-import { polygon } from 'thirdweb/chains';
+import { polygon, polygonAmoy } from 'thirdweb/chains';
 
 interface Props {
   onNavigate: (id: ScreenId) => void;
@@ -37,16 +36,22 @@ export function Home({ onNavigate }: Props) {
   const balance = USE_MOCK_DATA ? mockBalance : formatPxoBalanceHome(pxoChain.displayBalance);
   const activeChain = useActiveWalletChain();
   const switchChain = useSwitchActiveWalletChain();
-  const isWrongNetwork = activeChain !== undefined && activeChain.id !== PAYMENTS_CHAIN_ID;
+  const isOnMainnet = activeChain?.id === 137;
+  const isOnTestnet = activeChain?.id === 80002;
 
+  // Auto-switch a mainnet si la red no es ni mainnet ni testnet
   useEffect(() => {
-    if (isWrongNetwork) switchChain(polygon);
-  }, [isWrongNetwork]);
+    if (activeChain && !isOnMainnet && !isOnTestnet) switchChain(polygon);
+  }, [activeChain?.id]);
+
+  const handleNetworkToggle = () => {
+    if (isOnMainnet) switchChain(polygonAmoy);
+    else switchChain(polygon);
+  };
+
   const greetingName =
     user?.mail || (account?.address ? shortAddr(account.address) : 'invitado');
-  const hasBalance = USE_MOCK_DATA
-    ? mockBalance.whole !== '0' || mockBalance.cents !== '.00'
-    : Number.parseFloat(pxoChain.displayBalance) > 0;
+  const networkLabel = isOnMainnet ? 'Polygon' : isOnTestnet ? 'Amoy' : '—';
 
   return (
     <>
@@ -57,10 +62,33 @@ export function Home({ onNavigate }: Props) {
             {greetingName}
           </div>
           <div className="greet-actions">
-            <div className="icon-btn">
-              <BellIcon />
-              {hasBalance && <div className="dot" />}
-            </div>
+            {activeChain !== undefined && (
+              <button
+                onClick={handleNetworkToggle}
+                title={isOnMainnet ? 'Cambiar a Testnet' : 'Cambiar a Mainnet'}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  border: `1px solid ${isOnTestnet ? 'var(--gold)' : 'rgba(255,255,255,0.2)'}`,
+                  background: isOnTestnet ? 'rgba(180,83,9,0.15)' : 'rgba(255,255,255,0.07)',
+                  color: isOnTestnet ? 'var(--gold)' : 'rgba(255,255,255,0.7)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--sans)',
+                }}
+              >
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: isOnMainnet ? 'var(--green)' : 'var(--gold)',
+                  flexShrink: 0,
+                }} />
+                {networkLabel}
+              </button>
+            )}
             <div className="icon-btn">
               <InfoIcon />
             </div>
@@ -80,35 +108,6 @@ export function Home({ onNavigate }: Props) {
           </span>
         </div>
       </div>
-
-      {activeChain !== undefined && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 16px 10px' }}>
-          <button
-            onClick={() => switchChain(polygon)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '4px 10px',
-              borderRadius: 999,
-              border: `1px solid ${isWrongNetwork ? 'var(--gold)' : 'var(--line2)'}`,
-              background: isWrongNetwork ? 'rgba(180,83,9,0.08)' : 'var(--glass-tint)',
-              color: isWrongNetwork ? 'var(--gold)' : 'var(--t3)',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: isWrongNetwork ? 'pointer' : 'default',
-              fontFamily: 'var(--sans)',
-            }}
-          >
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: isWrongNetwork ? 'var(--gold)' : 'var(--green)',
-              flexShrink: 0,
-            }} />
-            {isWrongNetwork ? 'Red incorrecta — cambiar' : activeChain.name ?? 'Polygon'}
-          </button>
-        </div>
-      )}
 
       <div className="tagline">
         <div className="tagline-text">
