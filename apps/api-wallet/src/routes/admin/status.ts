@@ -105,6 +105,13 @@ export const adminStatusRoutes: FastifyPluginAsync = async (app: FastifyInstance
       return reply.code(500).send({ error: 'Thirdweb client not available' });
     }
 
+    req.log.info({
+      FORCE_POLYGON_MAINNET: env.FORCE_POLYGON_MAINNET,
+      PXO_TOKEN_ADDRESS_MAINNET: env.PXO_TOKEN_ADDRESS_MAINNET,
+      PXO_TOKEN_ADDRESS_TESTNET: env.PXO_TOKEN_ADDRESS_TESTNET,
+      RAW_FORCE_POLYGON_MAINNET: process.env.FORCE_POLYGON_MAINNET,
+    }, 'debug env vars');
+
     const primaryChain = env.FORCE_POLYGON_MAINNET ? polygon : polygonAmoy;
     const chainsToCheck = [polygon, polygonAmoy];
 
