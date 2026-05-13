@@ -9,9 +9,11 @@ import {
 } from '../components/icons';
 import { balance as mockBalance, recentMovements } from '../data/mockData';
 import { useAuthContext } from '../contexts/AuthContext';
-import { USE_MOCK_DATA } from '../config/env';
+import { USE_MOCK_DATA, PAYMENTS_CHAIN_ID } from '../config/env';
 import { formatPxoBalanceHome, usePXOTokenBalance } from '../hooks/usePXOTokenBalance';
 import type { MovementType, ScreenId } from '../types';
+import { useActiveWalletChain, useSwitchActiveWalletChain } from 'thirdweb/react';
+import { polygon } from 'thirdweb/chains';
 
 interface Props {
   onNavigate: (id: ScreenId) => void;
@@ -32,6 +34,9 @@ export function Home({ onNavigate }: Props) {
   const { user, account } = useAuthContext();
   const pxoChain = usePXOTokenBalance({ enabled: !USE_MOCK_DATA });
   const balance = USE_MOCK_DATA ? mockBalance : formatPxoBalanceHome(pxoChain.displayBalance);
+  const activeChain = useActiveWalletChain();
+  const switchChain = useSwitchActiveWalletChain();
+  const isWrongNetwork = activeChain !== undefined && activeChain.id !== PAYMENTS_CHAIN_ID;
   const greetingName =
     user?.mail || (account?.address ? shortAddr(account.address) : 'invitado');
   const hasBalance = USE_MOCK_DATA
@@ -70,6 +75,42 @@ export function Home({ onNavigate }: Props) {
           </span>
         </div>
       </div>
+
+      {activeChain !== undefined && (
+        <div style={{
+          margin: '0 16px 12px',
+          padding: '10px 14px',
+          background: isWrongNetwork ? '#fef3c7' : '#f0fdf4',
+          border: `1px solid ${isWrongNetwork ? '#f59e0b' : '#22c55e'}`,
+          borderRadius: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}>
+          <span style={{ fontSize: 13, color: isWrongNetwork ? '#92400e' : '#15803d' }}>
+            {isWrongNetwork ? 'Red incorrecta — cambiá a Polygon' : `Red: ${activeChain.name ?? 'Polygon'}`}
+          </span>
+          {isWrongNetwork && (
+            <button
+              onClick={() => switchChain(polygon)}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#fff',
+                background: '#f59e0b',
+                border: 'none',
+                borderRadius: 6,
+                padding: '4px 10px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Cambiar a Polygon
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="tagline">
         <div className="tagline-text">
