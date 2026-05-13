@@ -26,6 +26,12 @@ export const POS_POS_ID = (import.meta.env.VITE_POS_POS_ID as string | undefined
 export const PAYMENTS_CHAIN_ID =
   Number(import.meta.env.VITE_PAYMENTS_CHAIN_ID) || 80002;
 
+console.log('[pagos env]', {
+  VITE_PAYMENTS_CHAIN_ID: import.meta.env.VITE_PAYMENTS_CHAIN_ID,
+  PAYMENTS_CHAIN_ID,
+  PXO_TOKEN_ADDRESS_MAINNET: import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET,
+});
+
 export const PXO_TOKEN_ADDRESSES: Record<number, string> = {
   137:
     (import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET as string | undefined) ||
