@@ -16,17 +16,43 @@ export interface GeneratePaymentResponse {
   chainId: number;
 }
 
+export type PaymentDirection = 'PUSH' | 'PULL';
+
 export interface PaymentStatusResponse {
   paymentId: string;
   status: 'PENDING' | 'CONFIRMED' | 'EXPIRED' | 'FAILED';
+  direction: PaymentDirection;
   txHash?: string;
   confirmedAt?: string;
   amountMXN: number;
   amountPXO: string;
   merchantWallet: string;
+  clientWallet?: string;
   reference?: string;
   chainId: number;
   expiresAt: string;
+}
+
+export interface CreateChargeIntentResponse {
+  chargeId: string;
+  amountPXO: string;
+  amountMXN: number;
+  expiresAt: string;
+  chainId: number;
+  merchantWallet: string;
+  clientWallet: string;
+}
+
+export interface PendingChargeResponse {
+  chargeId: string;
+  merchantId: string;
+  merchantName?: string;
+  merchantWallet: string;
+  amountMXN: number;
+  amountPXO: string;
+  reference?: string;
+  expiresAt: string;
+  chainId: number;
 }
 
 export class ApiError extends Error {
@@ -129,4 +155,50 @@ export async function reportPaymentTx(
     const err = await parseError(res);
     if (err.status !== 409) throw err;
   }
+}
+
+// POS escanea QR pxo:// del cliente, captura monto, postea intent.
+export async function createChargeIntent(params: {
+  clientWalletAddress: string;
+  amount: number;
+  reference?: string;
+}): Promise<CreateChargeIntentResponse> {
+  if (!POS_API_KEY || !POS_MERCHANT_ID || !POS_POS_ID) {
+    throw new ApiError(
+      400,
+      'POS_NOT_CONFIGURED',
+      'POS credentials missing in .env (VITE_POS_API_KEY / VITE_POS_MERCHANT_ID / VITE_POS_POS_ID).',
+    );
+  }
+
+  const res = await fetch(`${API_BASE_URL}/v1/charges/intent`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      Authorization: `Bearer ${POS_API_KEY}`,
+      'X-POS-ID': POS_POS_ID,
+    },
+    body: JSON.stringify({
+      clientWalletAddress: params.clientWalletAddress,
+      amount: params.amount,
+      merchantId: POS_MERCHANT_ID,
+      posId: POS_POS_ID,
+      reference: params.reference,
+    }),
+  });
+
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as CreateChargeIntentResponse;
+}
+
+// Polling público: la app del cliente lo consume mientras está en pantalla "Pagar".
+export async function getPendingCharge(
+  wallet: string,
+): Promise<PendingChargeResponse | null> {
+  const res = await fetch(
+    `${API_BASE_URL}/v1/charges/pending?wallet=${encodeURIComponent(wallet)}`,
+  );
+  if (!res.ok) throw await parseError(res);
+  const body = (await res.json()) as { pending: PendingChargeResponse | null };
+  return body.pending;
 }

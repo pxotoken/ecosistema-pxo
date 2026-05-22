@@ -1,10 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Payment, PaymentStatus } from '../types/payment.js';
+import type { Payment, PaymentDirection, PaymentStatus } from '../types/payment.js';
 
 interface PaymentRow {
   id: string;
   merchant_id: string;
   pos_id: string;
+  direction: PaymentDirection;
   status: PaymentStatus;
   amount_mxn: number | string;
   amount_pxo: string;
@@ -23,6 +24,7 @@ function rowToPayment(row: PaymentRow): Payment {
     id: row.id,
     merchantId: row.merchant_id,
     posId: row.pos_id,
+    direction: row.direction,
     status: row.status,
     amountMXN: typeof row.amount_mxn === 'string' ? Number(row.amount_mxn) : row.amount_mxn,
     amountPXO: row.amount_pxo,
@@ -41,9 +43,11 @@ export interface CreatePaymentInput {
   id: string;
   merchantId: string;
   posId: string;
+  direction?: PaymentDirection;
   amountMXN: number;
   amountPXO: string;
   merchantWallet: string;
+  clientWallet?: string;
   reference?: string;
   chainId: number;
   expiresAt: Date;
@@ -59,10 +63,12 @@ export class PaymentRepository {
         id: input.id,
         merchant_id: input.merchantId,
         pos_id: input.posId,
+        direction: input.direction ?? 'PUSH',
         status: 'PENDING',
         amount_mxn: input.amountMXN,
         amount_pxo: input.amountPXO,
         merchant_wallet: input.merchantWallet,
+        client_wallet: input.clientWallet ?? null,
         reference: input.reference ?? null,
         chain_id: input.chainId,
         expires_at: input.expiresAt.toISOString(),
@@ -98,11 +104,74 @@ export class PaymentRepository {
       .eq('amount_pxo', amountPXO)
       .eq('chain_id', chainId)
       .eq('status', 'PENDING')
+      .eq('direction', 'PUSH')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) throw new Error(`Failed to search payment by wallet+amount: ${error.message}`);
+    return data ? rowToPayment(data as PaymentRow) : null;
+  }
+
+  async findPendingByFromToAndAmount(
+    clientWallet: string,
+    merchantWallet: string,
+    amountPXO: string,
+    chainId: number,
+  ): Promise<Payment | null> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .eq('client_wallet', clientWallet)
+      .eq('merchant_wallet', merchantWallet)
+      .eq('amount_pxo', amountPXO)
+      .eq('chain_id', chainId)
+      .eq('status', 'PENDING')
+      .eq('direction', 'PULL')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to search PULL payment by from+to+amount: ${error.message}`);
+    }
+    return data ? rowToPayment(data as PaymentRow) : null;
+  }
+
+  // Idempotencia: rechazar nuevos PULL intents si ya hay uno vivo para esa wallet.
+  // "Vivo" = PENDING + tx_hash NULL + expires_at en el futuro.
+  async findLivePullIntentByClient(clientWallet: string): Promise<Payment | null> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .eq('client_wallet', clientWallet)
+      .eq('status', 'PENDING')
+      .eq('direction', 'PULL')
+      .is('tx_hash', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(`Failed to search live PULL intent: ${error.message}`);
+    return data ? rowToPayment(data as PaymentRow) : null;
+  }
+
+  // Lo que el cliente consume cuando hace polling desde la pantalla Pagar.
+  async findPendingPullForClient(clientWallet: string): Promise<Payment | null> {
+    const { data, error } = await this.supabase
+      .from('payments')
+      .select('*')
+      .eq('client_wallet', clientWallet)
+      .eq('status', 'PENDING')
+      .eq('direction', 'PULL')
+      .is('tx_hash', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(`Failed to fetch pending PULL for client: ${error.message}`);
     return data ? rowToPayment(data as PaymentRow) : null;
   }
 

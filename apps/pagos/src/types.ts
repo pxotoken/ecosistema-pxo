@@ -3,6 +3,7 @@ export type ScreenId =
   | 'enviar'
   | 'recibir'
   | 'pagar'
+  | 'escanear'
   | 'pagar-manual'
   | 'pagar-confirm'
   | 'cargar'

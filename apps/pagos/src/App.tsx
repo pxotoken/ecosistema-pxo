@@ -7,6 +7,7 @@ import { Home } from './screens/Home';
 import { Enviar } from './screens/Enviar';
 import { Recibir } from './screens/Recibir';
 import { Pagar } from './screens/Pagar';
+import { Escanear } from './screens/Escanear';
 import { PagarManual } from './screens/PagarManual';
 import { PagarConfirm } from './screens/PagarConfirm';
 import { Cargar } from './screens/Cargar';
@@ -143,13 +144,20 @@ export default function App() {
               <div className={classFor('pagar')}>
                 <Pagar
                   onBack={() => navigate('home')}
+                  onConfirmed={finishWithSuccess}
+                  onNavigate={navigate}
+                />
+              </div>
+              <div className={classFor('escanear')}>
+                <Escanear
+                  onBack={() => navigate('pagar')}
                   onNavigate={navigate}
                   onScanned={handleScannedPayment}
                 />
               </div>
               <div className={classFor('pagar-manual')}>
                 <PagarManual
-                  onBack={() => navigate('pagar')}
+                  onBack={() => navigate('escanear')}
                   onNavigate={navigate}
                   onSuccess={finishWithSuccess}
                 />
@@ -157,7 +165,7 @@ export default function App() {
               <div className={classFor('pagar-confirm')}>
                 <PagarConfirm
                   paymentId={scannedPaymentId}
-                  onBack={() => navigate('pagar')}
+                  onBack={() => navigate('escanear')}
                   onConfirm={finishWithSuccess}
                   onCancel={() => navigate('pagar-confirm')}
                   onGoHome={() => navigate('home')}
