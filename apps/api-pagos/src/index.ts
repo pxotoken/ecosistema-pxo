@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { getActiveChain } from './config/chains.js';
 import { createServices } from './services/index.js';
 import { paymentRoutes } from './routes/payments/index.js';
+import { chargeRoutes } from './routes/charges/index.js';
 import { webhookRoutes } from './routes/webhooks/index.js';
 import { startExpirationWorker } from './jobs/expirationWorker.js';
 import { startReconciliationWorker } from './jobs/reconciliation.js';
@@ -33,6 +34,7 @@ async function bootstrap() {
   }));
 
   await app.register(paymentRoutes(services), { prefix: '/v1/payments' });
+  await app.register(chargeRoutes(services), { prefix: '/v1/charges' });
   await app.register(webhookRoutes(services), { prefix: '/v1/webhooks' });
 
   const workerLogger = {

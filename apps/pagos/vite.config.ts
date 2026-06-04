@@ -19,10 +19,13 @@ export default defineConfig({
     // browsers then block fetches from https:// pages to http:// backends as
     // "mixed content".
     proxy: {
+      // Pagos (PUSH + PULL) — api-pagos directo.
       '/v1': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Resto de microservicios (auth, users, kyc, wallet) — orchestrator.
+      // Si no está corriendo, login/KYC fallan; el flujo de pagos no lo necesita.
       '/api': {
         target: 'http://localhost:3003',
         changeOrigin: true,

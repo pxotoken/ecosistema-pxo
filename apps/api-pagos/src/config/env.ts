@@ -32,6 +32,10 @@ export const env = {
   // Payment TTL (minutes) — DF says 5; configurable for tests.
   PAYMENT_TTL_MINUTES: Number(process.env.PAYMENT_TTL_MINUTES) || 5,
 
+  // PULL charge intent TTL (seconds). El comercio espera presencialmente la
+  // firma del cliente, así que la ventana es corta.
+  CHARGE_INTENT_TTL_SECONDS: Number(process.env.CHARGE_INTENT_TTL_SECONDS) || 90,
+
   // HMAC secrets.
   // - Inbound webhook (QuickNode / Alchemy) → X-QN-Signature
   WEBHOOK_INBOUND_SECRET: process.env.WEBHOOK_INBOUND_SECRET || '',
