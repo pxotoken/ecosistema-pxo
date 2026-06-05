@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, ArrowUpRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
 import { getBalance } from 'thirdweb/extensions/erc20';
 import type { Chain } from 'thirdweb';
 import { getThirdwebClient } from '../lib/client';
 import useWalletStore from '../store/useWalletStore';
+import { PATHS } from '../routes/paths';
 
 const client = getThirdwebClient();
 const POLL_INTERVAL_MS = 5_000;
 
 export function PxoBalanceCard() {
+  const navigate = useNavigate();
   const [balance, setBalance] = useState<string>('0');
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -98,6 +101,27 @@ export function PxoBalanceCard() {
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="relative z-10 mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate(PATHS.dashboard.fiatBuy)}
+            className="flex items-center justify-center gap-2 bg-lime-accent text-light-base dark:text-dark-base px-5 py-3 rounded-xl font-semibold text-base shadow-md hover:shadow-glow transition-all"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+            <span>Buy with MXN</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate(PATHS.dashboard.fiatRedeem)}
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold text-base shadow-md hover:bg-blue-700 transition-all"
+          >
+            <ArrowUpRight className="h-5 w-5" strokeWidth={2.5} />
+            <span>Redeem PXO</span>
+          </motion.button>
         </div>
       </motion.div>
     </div>
