@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users } from 'lucide-react';
+import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, Banknote, ArrowUpRight } from 'lucide-react';
 import { KYCStatus } from '@pxo/shared/types';
 import { PATHS } from '../routes/paths';
 import '../styles/customScrollbar.css';
@@ -15,6 +15,8 @@ interface SidebarProps {
 
 const navigation = [
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: PATHS.dashboard.wallet },
+  { id: 'fiat-buy', label: 'Buy with MXN', icon: Banknote, path: PATHS.dashboard.fiatBuy },
+  { id: 'fiat-redeem', label: 'Redeem PXO', icon: ArrowUpRight, path: PATHS.dashboard.fiatRedeem },
   { id: 'exchange', label: 'Exchange', icon: TrendingUp, path: PATHS.dashboard.exchange },
   { id: 'products', label: 'Products', icon: Package, path: PATHS.dashboard.products },
   { id: 'transfers', label: 'Transfers', icon: Send, path: null },
