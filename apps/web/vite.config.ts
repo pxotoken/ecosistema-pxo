@@ -11,7 +11,14 @@ export default defineConfig({
     'process.env': {},
   },
   server: {
+    host: true,
     port: 5173,
+    allowedHosts: ['caliphal-penni-connivent.ngrok-free.dev'],
+    hmr: {
+      host: 'caliphal-penni-connivent.ngrok-free.dev',
+      clientPort: 443,
+      protocol: 'wss',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3003',

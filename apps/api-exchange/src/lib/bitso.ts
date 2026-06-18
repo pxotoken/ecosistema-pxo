@@ -40,6 +40,24 @@ async function bitsoRequest<T>(opts: BitsoRequestOptions): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+/**
+ * Bitso withdrawal/funding status sets. Shared between the webhook handler
+ * and the polling fallback in /sell-pxo-mxn/:id so both code paths agree
+ * on what "done" looks like.
+ */
+export const BITSO_COMPLETE_STATUSES: ReadonlySet<string> = new Set([
+  'complete',
+  'completed',
+  'COMPLETE',
+]);
+export const BITSO_FAILED_STATUSES: ReadonlySet<string> = new Set([
+  'failed',
+  'cancelled',
+  'rejected',
+  'FAILED',
+  'CANCELLED',
+]);
+
 export interface BitsoFunding {
   fid: string;
   status: 'pending' | 'in_progress' | 'complete' | 'cancelled' | 'failed';
@@ -47,6 +65,16 @@ export interface BitsoFunding {
   currency: string;
   method: string;
   amount: string; // decimal string
+  details?: Record<string, unknown>;
+}
+
+export interface BitsoWithdrawal {
+  wid: string;
+  status: string;
+  created_at?: string;
+  currency?: string;
+  method?: string;
+  amount?: string;
   details?: Record<string, unknown>;
 }
 
@@ -117,6 +145,25 @@ export async function bitsoCreateSpeiWithdrawal(
     throw new Error('Bitso withdrawal response missing wid');
   }
   return { wid: data.payload.wid, status: data.payload.status };
+}
+
+/**
+ * Look up a single withdrawal by its wid. Used by the polling fallback
+ * when Bitso webhooks aren't configured (stage demo path).
+ * The endpoint returns either an object or a single-element array
+ * depending on Bitso's response shape; we normalize to `BitsoWithdrawal`.
+ */
+export async function bitsoGetWithdrawalStatus(wid: string): Promise<BitsoWithdrawal | null> {
+  const data = await bitsoRequest<{
+    success: boolean;
+    payload: BitsoWithdrawal | BitsoWithdrawal[];
+  }>({
+    method: 'GET',
+    path: `/withdrawals/${encodeURIComponent(wid)}/`,
+  });
+  const payload = data.payload;
+  if (Array.isArray(payload)) return payload[0] ?? null;
+  return payload ?? null;
 }
 
 /**

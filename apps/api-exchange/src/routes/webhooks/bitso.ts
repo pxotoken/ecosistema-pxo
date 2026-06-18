@@ -3,10 +3,9 @@ import { getServerSupabase } from '../../lib/supabase.js';
 import {
   parseBitsoWithdrawalEvent,
   verifyBitsoWebhookSignature,
+  BITSO_COMPLETE_STATUSES,
+  BITSO_FAILED_STATUSES,
 } from '../../lib/bitso.js';
-
-const COMPLETE_STATUSES = new Set(['complete', 'completed', 'COMPLETE']);
-const FAILED_STATUSES = new Set(['failed', 'cancelled', 'rejected', 'FAILED', 'CANCELLED']);
 
 export const bitsoWebhookRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.post('/webhooks/bitso', async (req, reply) => {
@@ -46,7 +45,7 @@ export const bitsoWebhookRoutes: FastifyPluginAsync = async (app: FastifyInstanc
       return reply.send({ received: true, terminal: true, status: intent.status });
     }
 
-    if (COMPLETE_STATUSES.has(event.status)) {
+    if (BITSO_COMPLETE_STATUSES.has(event.status)) {
       const completedAt = new Date().toISOString();
       await supabase
         .from('redemption_intents')
@@ -61,7 +60,7 @@ export const bitsoWebhookRoutes: FastifyPluginAsync = async (app: FastifyInstanc
       return reply.send({ received: true, processed: true, status: 'COMPLETED' });
     }
 
-    if (FAILED_STATUSES.has(event.status)) {
+    if (BITSO_FAILED_STATUSES.has(event.status)) {
       await supabase
         .from('redemption_intents')
         .update({

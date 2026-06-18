@@ -12,7 +12,12 @@ import {
   PXO_SELL_SUPPORTED_CHAIN_IDS,
   type SupportedChainId,
 } from '../config/chains.js';
-import { bitsoCreateSpeiWithdrawal } from '../lib/bitso.js';
+import {
+  bitsoCreateSpeiWithdrawal,
+  bitsoGetWithdrawalStatus,
+  BITSO_COMPLETE_STATUSES,
+  BITSO_FAILED_STATUSES,
+} from '../lib/bitso.js';
 
 const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy } as const;
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
@@ -348,7 +353,14 @@ export const sellPxoMxnRoutes: FastifyPluginAsync = async (app: FastifyInstance)
     },
   );
 
-  // Polling endpoint for the frontend
+  // Polling endpoint for the frontend.
+  //
+  // Includes a Bitso polling fallback: when the intent is in SPEI_SENT,
+  // we call Bitso directly to check the withdrawal status. This makes
+  // the demo work without a configured Bitso webhook (which on stage is
+  // not self-serve in the dashboard). Once a real webhook is wired up
+  // for production, the conditional UPDATE below loses any race against
+  // the webhook handler gracefully.
   app.get<{ Params: { id: string } }>(
     '/sell-pxo-mxn/:id',
     { preHandler: requireCaller },
@@ -358,16 +370,83 @@ export const sellPxoMxnRoutes: FastifyPluginAsync = async (app: FastifyInstance)
       const user = await getUserByWallet(caller.walletAddress);
       if (!user) return reply.code(401).send({ error: 'Authentication required' });
 
-      const { data: intent, error } = await supabase
+      const intentSelect =
+        'id, status, pxo_amount, mxn_amount, clabe, beneficiary_name, bitso_withdrawal_id, trading_order_id, failure_reason, created_at, updated_at';
+
+      const { data: initialIntent, error } = await supabase
         .from('redemption_intents')
-        .select(
-          'id, status, pxo_amount, mxn_amount, clabe, beneficiary_name, bitso_withdrawal_id, trading_order_id, failure_reason, created_at, updated_at',
-        )
+        .select(intentSelect)
         .eq('id', req.params.id)
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) return reply.code(500).send({ error: 'Lookup failed' });
-      if (!intent) return reply.code(404).send({ error: 'Intent not found' });
+      if (!initialIntent) return reply.code(404).send({ error: 'Intent not found' });
+
+      let intent = initialIntent;
+
+      if (intent.status === 'SPEI_SENT' && intent.bitso_withdrawal_id) {
+        try {
+          const w = await bitsoGetWithdrawalStatus(intent.bitso_withdrawal_id);
+          if (w) {
+            if (BITSO_COMPLETE_STATUSES.has(w.status)) {
+              const { data: updated } = await supabase
+                .from('redemption_intents')
+                .update({ status: 'COMPLETED' })
+                .eq('id', intent.id)
+                .eq('status', 'SPEI_SENT')
+                .select(intentSelect)
+                .maybeSingle();
+              if (updated) {
+                if (intent.trading_order_id) {
+                  await supabase
+                    .from('trading_orders')
+                    .update({
+                      status: 'COMPLETED',
+                      completed_at: new Date().toISOString(),
+                    })
+                    .eq('id', intent.trading_order_id);
+                }
+                intent = updated;
+              }
+            } else if (BITSO_FAILED_STATUSES.has(w.status)) {
+              const { data: updated } = await supabase
+                .from('redemption_intents')
+                .update({
+                  status: 'FAILED',
+                  failure_reason: `Bitso withdrawal status: ${w.status}`,
+                })
+                .eq('id', intent.id)
+                .eq('status', 'SPEI_SENT')
+                .select(intentSelect)
+                .maybeSingle();
+              if (updated) {
+                if (intent.trading_order_id) {
+                  await supabase
+                    .from('trading_orders')
+                    .update({ status: 'FAILED' })
+                    .eq('id', intent.trading_order_id);
+                }
+                req.log.error(
+                  {
+                    intentId: intent.id,
+                    wid: intent.bitso_withdrawal_id,
+                    mxnAmount: intent.mxn_amount,
+                  },
+                  'sell-pxo-mxn poll: SPEI failed — PXO sits in treasury, manual ops refund required',
+                );
+                intent = updated;
+              }
+            }
+          }
+        } catch (err) {
+          // Soft-fail: log and return the current state. The frontend will
+          // poll again in a few seconds.
+          req.log.warn(
+            { err, intentId: intent.id },
+            'sell-pxo-mxn poll: Bitso status check failed',
+          );
+        }
+      }
 
       return reply.send(intent);
     },
