@@ -4,6 +4,8 @@ export const PATHS = {
     root: '/dashboard',
     wallet: '/dashboard/wallet',
     exchange: '/dashboard/exchange',
+    fiatBuy: '/dashboard/fiat/buy',
+    fiatRedeem: '/dashboard/fiat/redeem',
     products: '/dashboard/products',
     insights: '/dashboard/insights',
     settings: '/dashboard/settings',

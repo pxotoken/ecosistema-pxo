@@ -13,6 +13,7 @@ import { User } from '@pxo/shared/types';
 import { getThirdwebClient } from "../lib/client";
 import useKYCRealtime from './useKYCRealtime';
 import useWalletStore from "../store/useWalletStore";
+import { hasAcceptedTerms } from "../lib/termsAcceptance";
 
 const client = getThirdwebClient();
 
@@ -41,7 +42,18 @@ const useAuth = (onLogin?: () => void) => {
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const { data: autoConnected, isLoading: isLoadingAutoConnect } = useAutoConnect({ client });
-  
+
+  // Guard: if Thirdweb auto-reconnects a wallet but the user hasn't accepted
+  // the Terms & Conditions in this browser, force a disconnect. This makes the
+  // T&C gate enforceable even when a prior session persists in storage.
+  useEffect(() => {
+    if (isLoadingAutoConnect) return;
+    if (!autoConnected) return;
+    if (!wallet) return;
+    if (hasAcceptedTerms()) return;
+    disconnect(wallet as any);
+  }, [autoConnected, isLoadingAutoConnect, wallet, disconnect]);
+
   const { currentChains } = useWalletStore();
   
   const [user, setUser] = useState<User | null>(null);

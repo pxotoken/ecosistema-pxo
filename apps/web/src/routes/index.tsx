@@ -6,6 +6,8 @@ import { ExchangeRates } from '../components/ExchangeRates';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { ProductSection } from '../components/ProductSection';
 import { KYCSettings } from '../components/settings/KYCSettings';
+import { BuyPxoPage } from '../components/fiat/BuyPxoPage';
+import { RedeemPxoPage } from '../components/fiat/RedeemPxoPage';
 import { KycAdminPage } from '../components/kyc/KycAdminPage';
 import { UserAdminPage } from '../components/admin/UserAdminPage';
 import { WalletStatusPage } from '../components/admin/WalletStatusPage';
@@ -25,6 +27,17 @@ const DASHBOARD_ROUTES = [
       </KYCGuard>
     ),
   },
+  { path: PATHS.dashboard.fiatBuy, element: (
+    <KYCGuard>
+      <BuyPxoPage />
+    </KYCGuard>
+  ) },
+  { path: PATHS.dashboard.fiatRedeem, element: (
+    <KYCGuard>
+      <RedeemPxoPage />
+    </KYCGuard>
+  ) },
+  { path: '/dashboard/fiat', element: <Navigate to={PATHS.dashboard.fiatBuy} replace /> },
   { path: PATHS.dashboard.products, element: <ProductSection /> },
   { path: PATHS.dashboard.insights, element: <TransactionHistory /> },
   { path: PATHS.dashboard.settings, element: <KYCSettings /> },
