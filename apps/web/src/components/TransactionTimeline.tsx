@@ -140,20 +140,6 @@ export const TransactionTimeline: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h2 className="text-3xl font-bold text-light-text dark:text-dark-text font-editorial">
-          Recent Activity
-        </h2>
-        <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
-          Your latest transactions across all currencies
-        </p>
-      </motion.div>
-
       {/* Transaction List */}
       <div className="bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-2xl p-6 shadow-glass transition-colors duration-300">
         {isLoading ? (

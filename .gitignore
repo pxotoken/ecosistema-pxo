@@ -6,6 +6,8 @@ dist
 .env.local
 .env.*.local
 *.log
+docs/env_dump.txt
+docs/.presentacion-pandoc.md
 _bmad
 _bmad-output
 .claude

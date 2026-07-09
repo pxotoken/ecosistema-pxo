@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, Banknote, ArrowUpRight } from 'lucide-react';
+import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut } from 'lucide-react';
 import { KYCStatus } from '@pxo/shared/types';
+import { useAuthContext } from '../contexts/AuthContext';
 import { PATHS } from '../routes/paths';
 import '../styles/customScrollbar.css';
 
@@ -15,8 +16,6 @@ interface SidebarProps {
 
 const navigation = [
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: PATHS.dashboard.wallet },
-  { id: 'fiat-buy', label: 'Buy with MXN', icon: Banknote, path: PATHS.dashboard.fiatBuy },
-  { id: 'fiat-redeem', label: 'Redeem PXO', icon: ArrowUpRight, path: PATHS.dashboard.fiatRedeem },
   { id: 'exchange', label: 'Exchange', icon: TrendingUp, path: PATHS.dashboard.exchange },
   { id: 'products', label: 'Products', icon: Package, path: PATHS.dashboard.products },
   { id: 'transfers', label: 'Transfers', icon: Send, path: null },
@@ -40,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuthContext();
 
   const isAdmin = user?.user_type?.includes('989e3702-b515-4d6e-8627-fa0142a1a88f') ||
     user?.mail === 'admin@pxo.com';
@@ -228,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-light-border dark:border-dark-border">
+        <div className="p-4 border-t border-light-border dark:border-dark-border space-y-3">
           <div className="flex items-center space-x-3 p-3 bg-light-glass dark:bg-dark-glass rounded-xl">
             <div className="w-8 h-8 bg-pxo-primary rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">
@@ -257,6 +257,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </motion.div>
             )}
           </div>
+
+          <motion.button
+            onClick={() => {
+              logout();
+              onCloseMobileMenu?.();
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full flex items-center space-x-4 p-4 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            {!isCollapsed && (
+              <span className="font-medium font-editorial text-sm">Log Out</span>
+            )}
+          </motion.button>
         </div>
       </motion.div>
     </>
