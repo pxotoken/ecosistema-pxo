@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Loader2, Plus, ArrowUpRight, Send, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
 import { getBalance } from 'thirdweb/extensions/erc20';
 import type { Chain } from 'thirdweb';
 import { getThirdwebClient } from '../lib/client';
 import useWalletStore from '../store/useWalletStore';
+import { useAuthContext } from '../contexts/AuthContext';
+import { useToast } from './ui/Toast';
+import { SendFundsModal, ReceiveFundsModal } from './crypto';
 import { PATHS } from '../routes/paths';
 
 const client = getThirdwebClient();
@@ -32,7 +35,11 @@ export function BalanceCard() {
   const account = useActiveAccount();
   const activeChain = useActiveWalletChain();
   const { tokens } = useWalletStore();
+  const { user } = useAuthContext();
+  const { addToast } = useToast();
   const [balances, setBalances] = useState<BalanceState>(initialState);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
 
   const availableTokens = activeChain && activeChain.id in tokens ? tokens[activeChain.id] : [];
 
@@ -83,6 +90,24 @@ export function BalanceCard() {
     };
   }, [account?.address, activeChain?.id, availableTokens.length]);
 
+  // Send requires KYC; mirrors the guard in DashboardLayout's transfers handler.
+  const handleSendClick = useCallback(() => {
+    if (user?.KYC_status !== 'VALIDATED') {
+      addToast({
+        type: 'info',
+        title: 'KYC Verification Required',
+        description: 'Complete your KYC verification in Settings to send funds.',
+        duration: 6000,
+      });
+      navigate(PATHS.dashboard.settings);
+      return;
+    }
+    setShowSendModal(true);
+  }, [user, addToast, navigate]);
+
+  const actionButtonClass =
+    'flex flex-col items-center justify-center gap-1 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-pxo-primary dark:text-dark-text rounded-lg py-2.5 text-xs font-medium hover:border-pxo-primary hover:bg-pxo-primary/5 transition-colors';
+
   return (
     <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl shadow-glass overflow-hidden">
       <div className="border-b border-light-border dark:border-dark-border px-4 py-3 flex items-center gap-2">
@@ -119,20 +144,27 @@ export function BalanceCard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 p-3 bg-light-glass/40 dark:bg-dark-glass/40">
-        <button
-          onClick={() => navigate(PATHS.dashboard.fiatBuy)}
-          className="flex items-center justify-center gap-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-pxo-primary dark:text-dark-text rounded-lg py-2.5 text-sm font-medium hover:border-pxo-primary hover:bg-pxo-primary/5 transition-colors"
-        >
-          Acquire
+      <div className="grid grid-cols-4 gap-2 p-3 bg-light-glass/40 dark:bg-dark-glass/40">
+        <button onClick={() => navigate(PATHS.dashboard.fiatBuy)} className={actionButtonClass}>
+          <Plus className="w-4 h-4" />
+          <span>Buy</span>
         </button>
-        <button
-          onClick={() => navigate(PATHS.dashboard.fiatRedeem)}
-          className="flex items-center justify-center gap-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-pxo-primary dark:text-dark-text rounded-lg py-2.5 text-sm font-medium hover:border-pxo-primary hover:bg-pxo-primary/5 transition-colors"
-        >
-          Redeem
+        <button onClick={() => navigate(PATHS.dashboard.fiatRedeem)} className={actionButtonClass}>
+          <ArrowUpRight className="w-4 h-4" />
+          <span>Sell</span>
+        </button>
+        <button onClick={handleSendClick} className={actionButtonClass}>
+          <Send className="w-4 h-4" />
+          <span>Send</span>
+        </button>
+        <button onClick={() => setShowReceiveModal(true)} className={actionButtonClass}>
+          <Download className="w-4 h-4" />
+          <span>Receive</span>
         </button>
       </div>
+
+      <SendFundsModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
+      <ReceiveFundsModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} />
     </div>
   );
 }
