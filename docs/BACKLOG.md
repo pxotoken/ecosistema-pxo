@@ -253,6 +253,81 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 **Why:** The app gates fiat flows on `KYC_status === 'VALIDATED'`. KYC submission/review flow exists but hasn't been stress-tested. Pre-launch, walk through it as a real user.
 **Done when:** Documented happy path, edge cases logged, missing pieces filed as separate tasks.
 
+### OL-010 · Confirm Bitso funding `details` sender-CLABE field name
+**Type:** 🔍 Discovery + 🔐 Ops
+**Effort:** 30 minutes (once first live SPEI arrives)
+**Why:** Iter 2 introduced the SPEI matching worker (`apps/api-exchange/src/workers/deposit-matching-worker.ts`). The worker extracts the source CLABE from a Bitso funding via `extractSenderClabe` in `apps/api-exchange/src/lib/bitso.ts`, which probes several plausible keys (`sender_clabe`, `origin_clabe`, `sender_account`, `source_clabe`, `clabe`) because Bitso doesn't publish a stable schema for `details`. First real funding will confirm the actual key.
+**Steps:**
+1. On the first live SPEI test, tail api-exchange logs for the funding event; log the full `details` blob at info level (temporary added logging is fine)
+2. Identify which key holds the sender's 18-digit CLABE
+3. Simplify `extractSenderClabe` to that one key (or leave the probe list if multiple funding methods land)
+4. Remove the temporary logging
+**Done when:** Matching worker verifies against a single confirmed key; comment in `bitso.ts` cites the observed field name.
+**Blocking:** Not needed for demo mode (worker won't run without a real Bitso funding). Blocks confidence in production SPEI flow.
+
+### OL-011 · Delete retired Conekta files
+**Type:** 🔧 Code
+**Effort:** 1-2 hours
+**Why:** Iter 2 unregistered the Conekta webhook route in `apps/api-exchange/src/index.ts` and rewrote `buy-pxo-mxn.ts` to be SPEI-based. Runtime is clean but files remain: `apps/api-exchange/src/lib/conekta.ts`, `apps/api-exchange/src/routes/webhooks/conekta.ts`, `CONEKTA_*` env vars in `env.ts`, and any Conekta-typed exports in `packages/shared`. Left in place for one-cycle grep recoverability; safe to delete now that the SPEI flow is verified.
+**Steps:**
+1. Delete the two files above
+2. Delete `CONEKTA_*` block from `env.ts`
+3. Remove `CONEKTA_*` entries from Railway api-exchange env
+4. Update `ENV_MATRIX.md` to remove the Conekta rows
+5. Search `packages/shared` for Conekta types; delete if unused
+6. Verify build is green
+**Done when:** `grep -r conekta apps/api-exchange` returns zero non-comment results.
+
+### OL-012 · Add "pending deposits" pane to admin Wallet Status
+**Type:** 🔧 Code
+**Effort:** 3-4 hours
+**Why:** The matching worker runs silently. Today, if it's stuck or misconfigured (see OL-010), admin has no visibility beyond scraping logs. A pane in `WalletStatusPage.tsx` showing rows from `deposit_intents` with `status IN ('PENDING', 'MATCHED', 'FAILED')` from the last 24-48h gives an at-a-glance health check.
+**Bundles well with:** SL-005 (USDT visibility) and OL-001 (Bitso balance) — same admin page.
+**Fields to surface per row:** created_at, user (email or wallet slice), source_clabe (masked), destination_clabe (masked), mxn_amount, status, TTL remaining, bitso_funding_id, pxo_tx_hash. Click-through to Bitso funding on their dashboard when possible.
+**Done when:** Admin can distinguish a healthy worker (PENDING → COMPLETED regularly, low FAILED count) from a broken one (many PENDING → EXPIRED, or FAILED spike).
+
+### OL-013 · CLABE verification via micro-SPEI
+**Type:** 🔧 Code + 📋 Docs
+**Effort:** 1-2 days
+**Why:** Currently anyone can register any 18-digit CLABE with only the unique-across-users constraint. There's no proof the CLABE actually belongs to the user. A small verification deposit (configurable, e.g. `CLABE_VERIFICATION_MIN_MXN=10`) sent from the CLABE to our Bitso account proves ownership. Users can only use *verified* CLABEs for regular deposits.
+**Scope:**
+1. Add `users.CLABE_verified_at TIMESTAMPTZ` column
+2. New endpoint `POST /verify-clabe` in api-exchange creates a verification intent (marked as `verification` type on `deposit_intents`, no PXO issued on match)
+3. Worker recognizes verification intents; on match, sets `users.CLABE_verified_at = now()` and refunds the micro-deposit (or keeps it as small onboarding cost — decision)
+4. Frontend Settings: "Verify CLABE" step after registration; buy-with-SPEI blocks unverified CLABEs
+**Also bundles:** amount-match guard on the matching worker — reject a funding if `funding.amount != intent.mxn_amount ± epsilon` (currently the worker FIFO-matches without checking amount).
+**Done when:** Buy-with-SPEI refuses unverified CLABEs; a verification path exists in Settings; the amount-match guard is in the worker.
+**Decision needed:** Refund the verification deposit or keep it? Refunding is user-friendly; keeping it as a small "onboarding fee" is simpler operationally.
+
+### OL-014 · Single active deposit intent per user + true Cancel
+**Type:** 🔧 Code
+**Effort:** 4-6 hours (well-scoped, plan drafted 2026-07-14)
+**Status:** Proposed 2026-07-14 by Adrian, decision pending — needs more thought before greenlight.
+**Why (two coupled problems):**
+1. **Multi-intent edge case.** Backend today lets a user hold multiple `PENDING` deposit intents simultaneously. Matching worker resolves ambiguity via FIFO on `(user_id, source_clabe)`. Simplifying to single-active-intent eliminates the ambiguity entirely and shrinks the mental model.
+2. **Cancel button is UI-only (real bug).** `handleReset()` in `BuyPxoWithMxn.tsx` clears local state but does not touch the backend intent. The intent stays PENDING server-side until the worker matches or expires it (24h TTL by default). Combined with the single-active-intent rule, a user who "cancels" and immediately retries would be blocked by their own ghost intent.
+**Scope:**
+- **Backend** — `apps/api-exchange/src/routes/buy-pxo-mxn.ts`:
+  - Add `CANCELLED` to the state machine (user-initiated terminal state)
+  - `POST /buy-pxo-mxn`: pre-check for existing active intent (`PENDING` or `MATCHED`); return 409 `ACTIVE_INTENT_EXISTS` with the existing intent's ID so the frontend can hydrate it
+  - `GET /buy-pxo-mxn/active`: new endpoint, returns the user's active intent or 404
+  - `POST /buy-pxo-mxn/:id/cancel`: atomic `PENDING → CANCELLED`; cascades to `trading_orders.status = 'CANCELLED'`; rejects with 409 `CANNOT_CANCEL` if intent is already `MATCHED` (mid-fulfillment, uncancellable)
+- **Frontend** — `apps/web/src/components/fiat/BuyPxoWithMxn.tsx`:
+  - On mount, `GET /active`; hydrate `intent` state if present, skip the empty form
+  - Add `cancelled` to `UiStatus`, treat `CANCELLED` as terminal in the polling loop
+  - Cancel button calls the backend `POST /:id/cancel` (was local-only reset)
+  - Confirm dialog on Cancel: *"¿Ya enviaste el SPEI? Si sí, no canceles y contacta a soporte."* — prevents the footgun of cancelling after sending real money
+  - Handle 409 from POST create by hydrating existing intent (edge case: user opens two tabs)
+**Decisions already made (2026-07-14) — flag if Adrian changes his mind:**
+- Cancel only allowed in `PENDING`. Once `MATCHED`, worker has claimed the funding and PXO issuance is in-flight; cancelling mid-flight would leave the treasury short.
+- No admin override for cancelling stuck intents in this scope; that belongs in OL-012 (pending deposits admin pane).
+- Worker code needs no changes. Its FIFO ordering becomes redundant but stays as defensive belt-and-suspenders.
+- CLABE lock in api-users (`hasActiveDepositIntent`) already considers `PENDING`+`MATCHED`; `CANCELLED` correctly unlocks CLABE editing.
+**Done when:** Users can only ever have one active intent at a time; Cancel button actually cancels server-side; refreshing the page while an intent is pending re-shows it instead of a blank form.
+**Open for Adrian's consideration:**
+- Is the 24h TTL fallback still useful with single-active-intent + real Cancel, or is TTL redundant?
+- Should re-opening the page mid-flow always resume the pending intent, or is there a case where the user wants to see the empty form (perhaps a "Start over" affordance next to the resumed intent)?
+
 ---
 
 ## 🟩 Tier 3 — Post-launch
@@ -322,6 +397,9 @@ Not backlog items, but things we don't have answers to. Each becomes a task as i
 9. Does the deployed PXO contract have admin functions (owner, pauser, minter, upgrade proxy)? → SL-009
 10. Who holds the admin/owner keys for the PXO contract today? → SL-009
 11. Was the contract formally audited by a third party, or only self-reviewed? → SL-009 / OL-009
+12. Which field in Bitso's SPEI funding `details` blob contains the sender's CLABE? → OL-010
+13. Should CLABE-verification micro-deposits be refunded or kept as an onboarding cost? → OL-013 decision needed
+14. Single-active-intent rule vs multi-intent FIFO — worth the constraint? → OL-014, pending Adrian's decision
 
 ---
 

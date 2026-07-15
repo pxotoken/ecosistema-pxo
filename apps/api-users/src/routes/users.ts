@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { updateProfileSchema } from '@pxo/shared/schemas/users';
-import { UserRepository, type UpdateProfileInput } from '../lib/user-repository.js';
+import {
+  UserRepository,
+  ClabeConflictError,
+  ClabeLockedError,
+  type UpdateProfileInput,
+} from '../lib/user-repository.js';
 import { requireCaller } from '../middleware/identity.js';
 
 export function usersRoutes(users: UserRepository): FastifyPluginAsync {
@@ -25,8 +30,42 @@ export function usersRoutes(users: UserRepository): FastifyPluginAsync {
       const caller = await users.getByWalletAddress(req.caller!.walletAddress);
       if (!caller) return reply.code(404).send({ error: 'User not found' });
 
-      const updated = await users.updateProfile(caller.id, value as UpdateProfileInput);
-      return reply.send({ user: updated });
+      // Lock CLABE edits when an active deposit intent exists. Prevents a
+      // user from redirecting an in-flight SPEI matcher mid-flow.
+      const patch = value as UpdateProfileInput;
+      const currentClabe = (caller as { CLABE?: string | null }).CLABE ?? null;
+      const wantsClabeChange =
+        patch.CLABE !== undefined && patch.CLABE !== currentClabe;
+      if (wantsClabeChange) {
+        try {
+          if (await users.hasActiveDepositIntent(caller.id)) {
+            throw new ClabeLockedError();
+          }
+        } catch (err) {
+          if (err instanceof ClabeLockedError) {
+            return reply.code(409).send({
+              error: 'CLABE_LOCKED',
+              message:
+                'You have an open deposit intent. Wait for it to complete or expire before changing your CLABE.',
+            });
+          }
+          throw err;
+        }
+      }
+
+      try {
+        const updated = await users.updateProfile(caller.id, patch);
+        return reply.send({ user: updated });
+      } catch (err) {
+        if (err instanceof ClabeConflictError) {
+          return reply.code(409).send({
+            error: 'CLABE_CONFLICT',
+            message:
+              'This CLABE cannot be registered. Please contact support if you believe this is an error.',
+          });
+        }
+        throw err;
+      }
     });
 
     // Admin read by id — admin authorization will be enforced at the orchestrator
