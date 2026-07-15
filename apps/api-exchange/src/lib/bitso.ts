@@ -68,6 +68,30 @@ export interface BitsoFunding {
   details?: Record<string, unknown>;
 }
 
+/**
+ * Best-effort extraction of the sender CLABE from a Bitso funding's `details`
+ * blob. Bitso doesn't publish a stable schema for the details field across
+ * funding methods, so we probe the field names we've observed on SPEI (praxis)
+ * fundings. Returns null if we can't find a CLABE-shaped value.
+ */
+export function extractSenderClabe(funding: BitsoFunding): string | null {
+  const d = funding.details ?? {};
+  const candidateKeys = [
+    'sender_clabe',
+    'origin_clabe',
+    'sender_account',
+    'source_clabe',
+    'clabe',
+  ] as const;
+  for (const key of candidateKeys) {
+    const value = (d as Record<string, unknown>)[key];
+    if (typeof value === 'string' && /^\d{18}$/.test(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
 export interface BitsoWithdrawal {
   wid: string;
   status: string;

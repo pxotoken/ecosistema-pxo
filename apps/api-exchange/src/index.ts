@@ -12,8 +12,11 @@ import { ordersRoutes } from './routes/orders.js';
 import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
 import { buyPxoMxnRoutes } from './routes/buy-pxo-mxn.js';
 import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
-import { conektaWebhookRoutes } from './routes/webhooks/conekta.js';
+// Conekta is dismissed (chargeback risk). Route file kept in repo for grep
+// recoverability but no longer registered here. To be deleted in a cleanup task.
+// import { conektaWebhookRoutes } from './routes/webhooks/conekta.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
+import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';
 
 const app = Fastify({ logger: true });
 
@@ -38,12 +41,16 @@ async function bootstrap() {
   await app.register(pricesRoutes, { prefix: '/api' });
   await app.register(pricingRulesRoutes, { prefix: '/api/admin' });
 
-  // Fiat (MXN) on-ramp + off-ramp via Conekta + Bitso. Webhooks bypass
-  // requireCaller and use HMAC signature verification instead.
+  // Fiat (MXN) on-ramp (SPEI via Bitso) + off-ramp (SPEI withdrawal via
+  // Bitso). Conekta was removed 2026-07-12 due to chargeback risk on
+  // irreversible stablecoin issuance.
   await app.register(buyPxoMxnRoutes, { prefix: '/api/exchange' });
   await app.register(sellPxoMxnRoutes, { prefix: '/api/exchange' });
-  await app.register(conektaWebhookRoutes, { prefix: '/api/exchange' });
   await app.register(bitsoWebhookRoutes, { prefix: '/api/exchange' });
+
+  // Background reconciliation of inbound SPEI fundings against open deposit
+  // intents. Fires immediately and then on a fixed interval.
+  startDepositMatchingWorker(app.log);
 
   await app.listen({ port: env.PORT, host: env.HOST });
 }

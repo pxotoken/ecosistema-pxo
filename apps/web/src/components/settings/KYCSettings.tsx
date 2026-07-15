@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Save,
   Loader2,
+  Landmark,
 } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { KYCStatusBadge } from './KYCStatusBadge';
@@ -15,6 +16,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { KYCStatus } from '@pxo/shared/types';
 import { Toast } from '../common/Toast';
 import { useToast } from '../../hooks/useToast';
+import api, { getApiError } from '../../lib/api';
 
 const COUNTRY_OPTIONS: Array<{ code: string; label: string }> = [
   { code: 'MX', label: 'Mexico' },
@@ -161,6 +163,14 @@ export const KYCSettings: React.FC = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formErrors, setFormErrors] = useState<KYCFormErrors>({});
 
+  // CLABE registration — independent from the KYC form; PATCHes api-users/me.
+  const [clabeInput, setClabeInput] = useState('');
+  const [clabeError, setClabeError] = useState<string | null>(null);
+  const [clabeSaving, setClabeSaving] = useState(false);
+  const savedClabe = user?.CLABE ?? null;
+  const clabeChanged = clabeInput !== '' && clabeInput !== (savedClabe ?? '');
+  const clabeInputValid = /^\d{18}$/.test(clabeInput);
+
   const toDateInputValue = (raw: string | undefined): string => {
     if (!raw) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
@@ -235,6 +245,43 @@ export const KYCSettings: React.FC = () => {
       }));
     }
   }, [user]);
+
+  useEffect(() => {
+    // Seed the CLABE input with whatever's currently registered so the field
+    // shows the existing value without immediately looking "dirty".
+    if (user?.CLABE) setClabeInput(user.CLABE);
+  }, [user?.CLABE]);
+
+  const handleSaveClabe = async () => {
+    if (!clabeInputValid) {
+      setClabeError('CLABE must be exactly 18 digits');
+      return;
+    }
+    setClabeError(null);
+    setClabeSaving(true);
+    try {
+      const { data } = await api.patch('/api/users/me', { CLABE: clabeInput });
+      if (updateUser && data?.user) {
+        updateUser({ ...user!, CLABE: data.user.CLABE });
+      }
+      showToast('CLABE saved successfully', 'success');
+    } catch (err) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        (err as { response?: { status?: number } }).response?.status === 409
+      ) {
+        setClabeError(
+          'This CLABE cannot be registered. Please contact support if you believe this is an error.',
+        );
+      } else {
+        setClabeError(getApiError(err, 'Failed to save CLABE'));
+      }
+    } finally {
+      setClabeSaving(false);
+    }
+  };
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePhone = (phone: string) => /^\+?[1-9]\d{1,14}$/.test(phone.replace(/\s/g, ''));
@@ -638,6 +685,79 @@ export const KYCSettings: React.FC = () => {
             </motion.div>
           )}
         </form>
+      </motion.div>
+
+      {/* Bank Account — independent from the KYC form; PATCHes api-users/me. */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-light-surface dark:bg-dark-surface rounded-xl p-6 border border-light-border dark:border-dark-border"
+      >
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+            <Landmark className="w-5 h-5" />
+            Bank Account (SPEI)
+          </h3>
+          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+            Register your CLABE (18-digit bank account) to enable MXN deposits via SPEI. All
+            SPEI deposits used to buy PXO must originate from this account.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
+              CLABE *
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={clabeInput}
+              onChange={(e) => {
+                setClabeInput(e.target.value.replace(/\D/g, '').slice(0, 18));
+                if (clabeError) setClabeError(null);
+              }}
+              maxLength={18}
+              placeholder="18 digits, no spaces"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-pxo-primary focus:border-transparent transition-colors font-mono tracking-wider ${
+                clabeError
+                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                  : 'border-light-border dark:border-dark-border bg-light-base dark:bg-dark-base'
+              }`}
+            />
+            {savedClabe && !clabeChanged && (
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                Currently registered: ****{savedClabe.slice(-4)}
+              </p>
+            )}
+            {clabeError && (
+              <p className="text-sm text-red-500 mt-1">{clabeError}</p>
+            )}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={handleSaveClabe}
+            disabled={!clabeInputValid || !clabeChanged || clabeSaving}
+            whileHover={{ scale: clabeInputValid && clabeChanged && !clabeSaving ? 1.02 : 1 }}
+            whileTap={{ scale: clabeInputValid && clabeChanged && !clabeSaving ? 0.98 : 1 }}
+            className={`py-2.5 px-6 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+              clabeInputValid && clabeChanged && !clabeSaving
+                ? 'bg-pxo-primary text-white hover:bg-pxo-primary/90'
+                : 'bg-light-text-secondary/20 dark:bg-dark-text-secondary/20 text-light-text-secondary dark:text-dark-text-secondary cursor-not-allowed'
+            }`}
+          >
+            {clabeSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>{savedClabe ? 'Update CLABE' : 'Save CLABE'}</span>
+              </>
+            )}
+          </motion.button>
+        </div>
       </motion.div>
 
       <AnimatePresence>

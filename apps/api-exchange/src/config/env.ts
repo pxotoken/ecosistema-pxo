@@ -49,6 +49,20 @@ export const env = {
   BITSO_API_SECRET: process.env.BITSO_API_SECRET || '',
   BITSO_WEBHOOK_SECRET: process.env.BITSO_WEBHOOK_SECRET || '',
 
+  // SPEI deposit flow — destination CLABE and beneficiary shown to the user
+  // in the buy-with-MXN instructions. Must be the CLABE of the Bitso
+  // Business account we own; the matching worker reads inbound fundings there.
+  BITSO_BUSINESS_CLABE: process.env.BITSO_BUSINESS_CLABE || '',
+  BITSO_BUSINESS_BENEFICIARY_NAME:
+    process.env.BITSO_BUSINESS_BENEFICIARY_NAME || 'PXO Treasury MX',
+
+  // Deposit intent lifecycle. Configurable per environment.
+  DEPOSIT_INTENT_TTL_HOURS: Number(process.env.DEPOSIT_INTENT_TTL_HOURS) || 24,
+  DEPOSIT_MATCH_WORKER_INTERVAL_MS:
+    Number(process.env.DEPOSIT_MATCH_WORKER_INTERVAL_MS) || 30_000,
+  DEPOSIT_MATCH_WORKER_ENABLED:
+    process.env.DEPOSIT_MATCH_WORKER_ENABLED !== 'false', // default on
+
   FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK:
     process.env.FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK === 'true',
 } as const;

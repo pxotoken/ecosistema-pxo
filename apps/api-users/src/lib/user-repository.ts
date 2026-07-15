@@ -1,5 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+export class ClabeConflictError extends Error {
+  constructor() {
+    super('CLABE is already registered');
+    this.name = 'ClabeConflictError';
+  }
+}
+
+export class ClabeLockedError extends Error {
+  constructor() {
+    super('CLABE cannot be changed while a deposit intent is active');
+    this.name = 'ClabeLockedError';
+  }
+}
+
 export interface UserRow {
   id: string;
   provider_id?: string | null;
@@ -12,6 +26,7 @@ export interface UserRow {
   phone?: string | null;
   user_type?: string | null;
   KYC_status?: string | null;
+  CLABE?: string | null;
   verificated?: boolean | null;
   last_access?: string | null;
   created_at?: string | null;
@@ -19,7 +34,7 @@ export interface UserRow {
 }
 
 const PROFILE_COLUMNS =
-  'id, provider_id, mail, wallet_address, first_name, last_name, profile_picture, country, phone, user_type, KYC_status, verificated, last_access, created_at, updated_at';
+  'id, provider_id, mail, wallet_address, first_name, last_name, profile_picture, country, phone, user_type, KYC_status, "CLABE", verificated, last_access, created_at, updated_at';
 
 export interface UpdateProfileInput {
   first_name?: string;
@@ -27,6 +42,7 @@ export interface UpdateProfileInput {
   profile_picture?: string;
   country?: string;
   phone?: string;
+  CLABE?: string;
 }
 
 export class UserRepository {
@@ -65,8 +81,36 @@ export class UserRepository {
       .eq('id', id)
       .select(PROFILE_COLUMNS)
       .single();
-    if (error) throw new Error(`Failed to update profile: ${error.message}`);
+    if (error) {
+      // Postgres 23505 = unique_violation. Only the CLABE index can trigger
+      // this on a profile update (other unique columns aren't in the patch shape).
+      if (error.code === '23505' && /clabe/i.test(error.message)) {
+        throw new ClabeConflictError();
+      }
+      throw new Error(`Failed to update profile: ${error.message}`);
+    }
     return data as UserRow;
+  }
+
+  /**
+   * True if the user has any deposit_intent in a state that would be
+   * disrupted by changing the source CLABE. PENDING and MATCHED both count:
+   * a PENDING intent expects the funding to arrive from the CLABE snapshot
+   * on the intent, and MATCHED means the worker has claimed a funding but
+   * hasn't yet completed the PXO transfer.
+   */
+  async hasActiveDepositIntent(userId: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from('deposit_intents')
+      .select('id')
+      .eq('user_id', userId)
+      .in('status', ['PENDING', 'MATCHED'])
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Failed to check active deposit intents: ${error.message}`);
+    }
+    return Boolean(data);
   }
 
   async touchLastAccess(id: string): Promise<void> {
