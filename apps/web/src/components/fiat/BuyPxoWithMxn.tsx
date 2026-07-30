@@ -148,8 +148,8 @@ export function BuyPxoWithMxn() {
           setUiStatus('completed');
           addToast({
             type: 'success',
-            title: 'PXO acreditado',
-            description: `${data.pxoAmount.toFixed(2)} PXO en tu wallet`,
+            title: 'PXO credited',
+            description: `${data.pxoAmount.toFixed(2)} PXO in your wallet`,
           });
         } else if (data.status === 'MATCHED') {
           setUiStatus('matched');
@@ -159,8 +159,8 @@ export function BuyPxoWithMxn() {
           setUiStatus('failed');
           addToast({
             type: 'error',
-            title: 'Depósito fallido',
-            description: data.failureReason ?? 'Contacta a soporte',
+            title: 'Deposit failed',
+            description: data.failureReason ?? 'Contact support',
           });
         }
       } catch (err) {
@@ -189,15 +189,15 @@ export function BuyPxoWithMxn() {
     setError(null);
     const amount = Number(amountMxn);
     if (!amount || amount <= 0) {
-      setError('Ingresa un monto válido en MXN');
+      setError('Enter a valid MXN amount');
       return;
     }
     if (!account || !wallet) {
-      setError('Conecta tu wallet primero');
+      setError('Connect your wallet first');
       return;
     }
     if (!clabeRegistered) {
-      setError('Registra tu CLABE en Configuración antes de depositar');
+      setError('Register your CLABE in Settings before depositing');
       return;
     }
 
@@ -216,9 +216,9 @@ export function BuyPxoWithMxn() {
       const errBody = (err as { response?: { data?: { error?: string; message?: string } } })
         .response?.data;
       if (status === 400 && errBody?.error === 'CLABE_NOT_REGISTERED') {
-        setError(errBody.message ?? 'Registra tu CLABE en Configuración');
+        setError(errBody.message ?? 'Register your CLABE in Settings');
       } else {
-        setError(getApiError(err, 'No se pudo crear la orden de depósito'));
+        setError(getApiError(err, 'Could not create the deposit order'));
       }
       setUiStatus('idle');
     }
@@ -250,19 +250,19 @@ export function BuyPxoWithMxn() {
       <div className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-6 space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">
-            Comprar PXO con MXN (SPEI)
+            Buy PXO with MXN (SPEI)
           </h2>
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            Registra tu CLABE bancaria para poder depositar por SPEI.
+            Register your bank CLABE to deposit via SPEI.
           </p>
         </div>
         <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 p-4 rounded-r-lg">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-amber-800 dark:text-amber-200">
-            <p className="font-medium mb-1">CLABE bancaria requerida</p>
+            <p className="font-medium mb-1">Bank CLABE required</p>
             <p>
-              Para depositar MXN necesitas tener registrada tu CLABE en Configuración. Los depósitos
-              solo se aceptan desde esa cuenta.
+              To deposit MXN you need a registered CLABE in Settings. Deposits are only accepted
+              from that account.
             </p>
           </div>
         </div>
@@ -271,7 +271,7 @@ export function BuyPxoWithMxn() {
           onClick={() => navigate(PATHS.dashboard.settings)}
           className="w-full bg-pxo-primary text-white px-4 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
         >
-          Ir a Configuración
+          Go to Settings
         </button>
       </div>
     );
@@ -281,18 +281,18 @@ export function BuyPxoWithMxn() {
     <div className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-6 space-y-4">
       <div>
         <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">
-          Comprar PXO con MXN (SPEI)
+          Buy PXO with MXN (SPEI)
         </h2>
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          Envía SPEI desde tu CLABE registrada. Los PXO se acreditan automáticamente al recibir el
-          depósito (1:1 con MXN).
+          Send a SPEI transfer from your registered CLABE. PXO is credited automatically once the
+          deposit arrives (1:1 with MXN).
         </p>
       </div>
 
       {uiStatus === 'idle' && (
         <>
           <label className="block text-sm font-medium text-light-text dark:text-dark-text">
-            Monto en MXN
+            Amount in MXN
             <input
               type="number"
               min="1"
@@ -305,11 +305,11 @@ export function BuyPxoWithMxn() {
           </label>
           {amountMxn && Number(amountMxn) > 0 && (
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              Recibirás{' '}
+              You'll receive{' '}
               <span className="font-semibold text-light-text dark:text-dark-text">
                 {Number(amountMxn).toFixed(2)} PXO
               </span>{' '}
-              (1:1 con MXN)
+              (1:1 with MXN)
             </p>
           )}
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -318,7 +318,7 @@ export function BuyPxoWithMxn() {
             onClick={handleSubmit}
             className="w-full bg-pxo-primary text-white px-4 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
-            Crear instrucciones de pago
+            Create payment instructions
           </button>
         </>
       )}
@@ -326,7 +326,7 @@ export function BuyPxoWithMxn() {
       {uiStatus === 'creating' && (
         <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary py-4">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Creando orden…</span>
+          <span>Creating order…</span>
         </div>
       )}
 
@@ -343,8 +343,8 @@ export function BuyPxoWithMxn() {
               />
               <span className="text-light-text dark:text-dark-text">
                 {uiStatus === 'matched'
-                  ? 'Depósito detectado, acreditando PXO…'
-                  : 'Esperando tu SPEI…'}
+                  ? 'Deposit detected, crediting PXO…'
+                  : 'Waiting for your SPEI…'}
               </span>
             </div>
             {uiStatus === 'awaiting_spei' && (
@@ -357,16 +357,16 @@ export function BuyPxoWithMxn() {
           <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 p-3 rounded-r-lg text-xs text-amber-800 dark:text-amber-200">
             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>
-              Debes enviar desde tu CLABE registrada (****{intent.sourceClabe.slice(-4)}). SPEI
-              desde otra cuenta no será acreditado y quedará pendiente de revisión manual.
+              You must send from your registered CLABE (****{intent.sourceClabe.slice(-4)}). SPEI
+              from any other account will not be credited and will require manual review.
             </span>
           </div>
 
           <div className="space-y-3">
-            <CopyableField label="CLABE destino" value={intent.destinationClabe} />
-            <CopyableField label="Beneficiario" value={intent.beneficiaryName} mono={false} />
-            <CopyableField label="Monto (MXN)" value={intent.amountMxn.toFixed(2)} />
-            <CopyableField label="Referencia numérica" value={intent.numericReference} />
+            <CopyableField label="Destination CLABE" value={intent.destinationClabe} />
+            <CopyableField label="Beneficiary" value={intent.beneficiaryName} mono={false} />
+            <CopyableField label="Amount (MXN)" value={intent.amountMxn.toFixed(2)} />
+            <CopyableField label="Reference number" value={intent.numericReference} />
           </div>
 
           <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary space-y-1 pt-2 border-t border-light-border/40 dark:border-dark-border/40">
@@ -374,7 +374,7 @@ export function BuyPxoWithMxn() {
               Intent: <code>{intent.intentId.slice(0, 8)}…</code>
             </div>
             <div>
-              Estado backend: <code>{poll?.status ?? 'PENDING'}</code>
+              Backend status: <code>{poll?.status ?? 'PENDING'}</code>
             </div>
           </div>
 
@@ -383,7 +383,7 @@ export function BuyPxoWithMxn() {
             onClick={handleReset}
             className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:underline"
           >
-            Cancelar
+            Cancel
           </button>
         </div>
       )}
@@ -392,18 +392,18 @@ export function BuyPxoWithMxn() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="font-medium">PXO acreditado</span>
+            <span className="font-medium">PXO credited</span>
           </div>
           <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary space-y-1">
             <div>
               <span className="font-semibold text-light-text dark:text-dark-text">
                 {intent.pxoAmount.toFixed(2)} PXO
               </span>{' '}
-              recibidos en tu wallet
+              received in your wallet
             </div>
             {poll.pxoTransactionHash && (
               <div>
-                Tx on-chain:{' '}
+                On-chain tx:{' '}
                 <code className="text-xs">
                   {poll.pxoTransactionHash.slice(0, 10)}…{poll.pxoTransactionHash.slice(-8)}
                 </code>
@@ -415,7 +415,7 @@ export function BuyPxoWithMxn() {
             onClick={handleReset}
             className="text-sm text-pxo-primary hover:underline"
           >
-            Nueva compra
+            New purchase
           </button>
         </div>
       )}
@@ -423,15 +423,15 @@ export function BuyPxoWithMxn() {
       {uiStatus === 'expired' && (
         <div className="space-y-2">
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            La orden expiró sin recibir el depósito. Si ya enviaste el SPEI y no se acreditó,
-            contacta a soporte.
+            The order expired before the deposit was received. If you already sent the SPEI and it
+            wasn't credited, please contact support.
           </p>
           <button
             type="button"
             onClick={handleReset}
             className="text-sm text-pxo-primary hover:underline"
           >
-            Crear nueva orden
+            Create new order
           </button>
         </div>
       )}
@@ -439,14 +439,14 @@ export function BuyPxoWithMxn() {
       {uiStatus === 'failed' && (
         <div className="space-y-2">
           <p className="text-sm text-red-500">
-            La compra falló: {poll?.failureReason ?? 'error desconocido'}.
+            The purchase failed: {poll?.failureReason ?? 'unknown error'}.
           </p>
           <button
             type="button"
             onClick={handleReset}
             className="text-sm text-pxo-primary hover:underline"
           >
-            Intentar de nuevo
+            Try again
           </button>
         </div>
       )}

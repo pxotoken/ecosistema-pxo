@@ -75,12 +75,12 @@ export function RedeemPxoToMxn() {
           setStatus('completed');
           addToast({
             type: 'success',
-            title: 'SPEI completado',
-            description: `$${intent.mxnAmount.toFixed(2)} MXN enviados a CLABE ****${clabe.slice(-4)}`,
+            title: 'SPEI completed',
+            description: `$${intent.mxnAmount.toFixed(2)} MXN sent to CLABE ****${clabe.slice(-4)}`,
           });
         } else if (data.status === 'FAILED') {
           setStatus('failed');
-          addToast({ type: 'error', title: 'SPEI fallido', description: data.failure_reason ?? '' });
+          addToast({ type: 'error', title: 'SPEI failed', description: data.failure_reason ?? '' });
         }
       } catch (err) {
         console.warn('sell-pxo-mxn poll error', err);
@@ -96,11 +96,11 @@ export function RedeemPxoToMxn() {
 
   const validateInputs = (): string | null => {
     const amount = Number(pxoAmount);
-    if (!amount || amount <= 0) return 'Ingresá un monto válido en PXO';
-    if (!/^\d{18}$/.test(clabe)) return 'La CLABE debe tener 18 dígitos';
-    if (!beneficiaryName.trim()) return 'Ingresá el nombre del beneficiario';
-    if (!account || !wallet) return 'Conectá tu wallet primero';
-    if (user?.KYC_status !== 'VALIDATED') return 'Necesitás KYC validado para redimir';
+    if (!amount || amount <= 0) return 'Enter a valid PXO amount';
+    if (!/^\d{18}$/.test(clabe)) return 'CLABE must be exactly 18 digits';
+    if (!beneficiaryName.trim()) return 'Enter the beneficiary name';
+    if (!account || !wallet) return 'Connect your wallet first';
+    if (user?.KYC_status !== 'VALIDATED') return 'You need a validated KYC to withdraw';
     return null;
   };
 
@@ -116,7 +116,7 @@ export function RedeemPxoToMxn() {
     const chain = await wallet!.getChain();
     const chainId = chain?.id ?? 80002;
     if (!(chainId in CHAIN_MAP)) {
-      setError('Cambiá tu wallet a Polygon o Polygon Amoy');
+      setError('Switch your wallet to Polygon or Polygon Amoy');
       return;
     }
 
@@ -144,7 +144,7 @@ export function RedeemPxoToMxn() {
       };
       setIntent(intentData);
     } catch (err) {
-      setError(getApiError(err, 'No se pudo crear la intención de redención'));
+      setError(getApiError(err, 'Could not create the withdrawal'));
       setStatus('idle');
       return;
     }
@@ -155,9 +155,9 @@ export function RedeemPxoToMxn() {
     let txHash: string;
     try {
       const client = getThirdwebClient();
-      if (!client) throw new Error('Thirdweb client no inicializado');
+      if (!client) throw new Error('Thirdweb client not initialized');
       const pxoAddress = PXO_TOKEN_ADDRESSES[chainId];
-      if (!pxoAddress) throw new Error('PXO token address no configurada');
+      if (!pxoAddress) throw new Error('PXO token address not configured');
       const selectedChain = CHAIN_MAP[chainId as keyof typeof CHAIN_MAP];
       const pxoContract = getContract({ address: pxoAddress, client, chain: selectedChain });
 
@@ -182,7 +182,7 @@ export function RedeemPxoToMxn() {
       const receipt = await sendTransaction({ transaction: tx, account: account! });
       txHash = receipt.transactionHash;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falló la firma on-chain');
+      setError(err instanceof Error ? err.message : 'On-chain signature failed');
       setStatus('failed');
       return;
     }
@@ -195,7 +195,7 @@ export function RedeemPxoToMxn() {
       });
       setStatus('spei_pending');
     } catch (err) {
-      setError(getApiError(err, 'Falló la confirmación del backend'));
+      setError(getApiError(err, 'Backend confirmation failed'));
       setStatus('failed');
     }
   };
@@ -215,17 +215,17 @@ export function RedeemPxoToMxn() {
     <div className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-6 space-y-4">
       <div>
         <h2 className="text-xl font-semibold text-light-text dark:text-dark-text">
-          Redimir PXO a MXN
+          Withdraw PXO to MXN
         </h2>
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          Los PXO se transfieren a tesorería primero; el SPEI sale después.
+          PXO is transferred to treasury first; the SPEI payout goes out afterward.
         </p>
       </div>
 
       {status === 'idle' && (
         <>
           <label className="block text-sm font-medium text-light-text dark:text-dark-text">
-            Monto en PXO
+            Amount in PXO
             <input
               type="number"
               min="1"
@@ -237,7 +237,7 @@ export function RedeemPxoToMxn() {
             />
           </label>
           <label className="block text-sm font-medium text-light-text dark:text-dark-text">
-            CLABE (18 dígitos)
+            CLABE (18 digits)
             <input
               type="text"
               inputMode="numeric"
@@ -249,18 +249,18 @@ export function RedeemPxoToMxn() {
             />
           </label>
           <label className="block text-sm font-medium text-light-text dark:text-dark-text">
-            Nombre del beneficiario
+            Beneficiary name
             <input
               type="text"
               value={beneficiaryName}
               onChange={(e) => setBeneficiaryName(e.target.value)}
-              placeholder="Como aparece en la cuenta"
+              placeholder="As shown on the bank account"
               className="mt-1 w-full rounded-lg border border-light-border dark:border-dark-border bg-light-base dark:bg-dark-base px-3 py-2"
             />
           </label>
           {pxoAmount && Number(pxoAmount) > 0 && (
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              Recibirás <span className="font-semibold">${Number(pxoAmount).toFixed(2)} MXN</span> en tu cuenta bancaria
+              You'll receive <span className="font-semibold">${Number(pxoAmount).toFixed(2)} MXN</span> in your bank account
             </p>
           )}
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -269,14 +269,14 @@ export function RedeemPxoToMxn() {
             onClick={handleSubmit}
             className="w-full bg-lime-accent text-light-base dark:text-dark-base px-4 py-3 rounded-lg font-medium hover:shadow-glow transition-all"
           >
-            Firmar y redimir
+            Sign and withdraw
           </button>
         </>
       )}
 
       {status === 'creating_intent' && (
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          Creando intención de redención…
+          Creating withdrawal…
         </p>
       )}
 
@@ -284,11 +284,11 @@ export function RedeemPxoToMxn() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Aprobá la transferencia de PXO en tu wallet…</span>
+            <span>Approve the PXO transfer in your wallet…</span>
           </div>
           <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary space-y-1">
-            <div>Tesorería: <code>{intent.treasuryAddress.slice(0, 8)}…{intent.treasuryAddress.slice(-6)}</code></div>
-            <div>Monto: {intent.pxoAmount.toFixed(2)} PXO → ${intent.mxnAmount.toFixed(2)} MXN</div>
+            <div>Treasury: <code>{intent.treasuryAddress.slice(0, 8)}…{intent.treasuryAddress.slice(-6)}</code></div>
+            <div>Amount: {intent.pxoAmount.toFixed(2)} PXO → ${intent.mxnAmount.toFixed(2)} MXN</div>
           </div>
         </div>
       )}
@@ -296,7 +296,7 @@ export function RedeemPxoToMxn() {
       {status === 'on_chain_pending' && (
         <div className="flex items-center gap-2 text-sm">
           <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-          <span>Esperando confirmación on-chain…</span>
+          <span>Waiting for on-chain confirmation…</span>
         </div>
       )}
 
@@ -304,13 +304,13 @@ export function RedeemPxoToMxn() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm">
             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Esperando confirmación de Bitso SPEI…</span>
+            <span>Waiting for Bitso SPEI confirmation…</span>
           </div>
           <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary space-y-1">
             <div>Intent: <code>{intent.intentId}</code></div>
             <div>Bitso withdrawal: <code>{poll?.bitso_withdrawal_id ?? '—'}</code></div>
-            <div>Estado backend: <code>{poll?.status ?? 'SPEI_SENT'}</code></div>
-            <div>Beneficiario: {beneficiaryName} · CLABE ****{clabe.slice(-4)}</div>
+            <div>Backend status: <code>{poll?.status ?? 'SPEI_SENT'}</code></div>
+            <div>Beneficiary: {beneficiaryName} · CLABE ****{clabe.slice(-4)}</div>
           </div>
         </div>
       )}
@@ -319,10 +319,10 @@ export function RedeemPxoToMxn() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Pagado</span>
+            <span>Paid</span>
           </div>
           <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary space-y-1">
-            <div>${intent.mxnAmount.toFixed(2)} MXN enviados a CLABE ****{clabe.slice(-4)}</div>
+            <div>${intent.mxnAmount.toFixed(2)} MXN sent to CLABE ****{clabe.slice(-4)}</div>
             {poll?.bitso_withdrawal_id && <div>Bitso wid: <code>{poll.bitso_withdrawal_id}</code></div>}
           </div>
           <button
@@ -330,7 +330,7 @@ export function RedeemPxoToMxn() {
             onClick={handleReset}
             className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:underline"
           >
-            Nueva redención
+            New withdrawal
           </button>
         </div>
       )}
@@ -338,14 +338,14 @@ export function RedeemPxoToMxn() {
       {status === 'failed' && (
         <div className="space-y-2">
           <p className="text-sm text-red-500">
-            {error || poll?.failure_reason || 'La redención no se completó.'}
+            {error || poll?.failure_reason || 'The withdrawal did not complete.'}
           </p>
           <button
             type="button"
             onClick={handleReset}
             className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:underline"
           >
-            Intentar de nuevo
+            Try again
           </button>
         </div>
       )}

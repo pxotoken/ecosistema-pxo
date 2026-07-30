@@ -26,8 +26,12 @@ const FORCE_POLYGON_MAINNET = import.meta.env.VITE_FORCE_POLYGON_MAINNET === 'tr
 const ENABLE_ADMIN_TESTNET = import.meta.env.VITE_ENABLE_ADMIN_TESTNET === 'true';
 const SUPPORTED_CHAIN_IDS = new Set([137, 80002]);
 
-// Helper function to get default token type by chain
-const getDefaultTokenType = (chainId: number): string => {
+export type ExchangeToken = 'USDC' | 'USDT';
+
+// Default payment token per chain — the initial selection when the user
+// lands on the exchange. They can switch via the dropdown to any supported
+// token in TOKEN_CONTRACTS[chainId].
+const getDefaultTokenType = (chainId: number): ExchangeToken => {
   switch (chainId) {
     case 137:
       return 'USDC';
@@ -70,15 +74,16 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
   const [pxoAmount, setPxoAmount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  // User-selectable payment token. Prices, contract address, balance display,
+  // and the backend /buy-pxo call all react to this.
+  const [tokenSymbol, setTokenSymbol] = useState<ExchangeToken>('USDC');
+
   const account = useActiveAccount();
   const wallet = useActiveWallet();
   const navigate = useNavigate();
   const { loading: tokensLoading, getTokenBySymbol } = useTokens();
   const { user } = useAuthContext();
 
-  // Get token from database based on environment configuration
-  const tokenSymbol = 'USDC';
   const token = getTokenBySymbol(tokenSymbol);
   
   // Get prices from pricing service
@@ -167,8 +172,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
         throw new Error('Thirdweb client not initialized. Please check your environment variables.');
       }
 
-      const tokenType = getDefaultTokenType(resolvedChainId);
-      const tokenContractAddress = getTokenContractAddress(resolvedChainId, tokenType);
+      const tokenContractAddress = getTokenContractAddress(resolvedChainId, tokenSymbol);
 
       const paymentContract = getContract({
         address: tokenContractAddress,
@@ -182,7 +186,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
       });
 
       if (Number(userBalance.displayValue) < amount) {
-        throw new Error(`Insufficient ${tokenType} balance. You have ${userBalance.displayValue} and need ${amount}.`);
+        throw new Error(`Insufficient ${tokenSymbol} balance. You have ${userBalance.displayValue} and need ${amount}.`);
       }
       console.log('🔍 Validating gas for transaction...');
       const gasValidation = await validateAndSubsidizeGas({
@@ -261,7 +265,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
         transactionHash: receipt.transactionHash,
         amount,
         userAddress: account.address,
-        tokenSymbol: tokenType,
+        tokenSymbol,
         expectedPrice: exchangeRate,
         expectedPxoAmount: pxoAmount,
         chainId: resolvedChainId,
@@ -320,7 +324,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
         userAddress,
         paymentAmount,
         chainId: chain.id,
-        tokenType: getDefaultTokenType(chain.id),
+        tokenType: tokenSymbol,
       });
 
       return {
@@ -349,6 +353,9 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
     initialLoading,
     error: error || pricesError || liquidityError,
     handleBuyPXO,
+    // Payment token selection — component reads to render dropdown, writes on change.
+    tokenSymbol,
+    setTokenSymbol,
     // Exchange rate info (from pricing service, database, or fallback)
     exchangeRate,
     buyPrice,

@@ -12,8 +12,9 @@ import { usePXOExchange } from "../hooks/usePXOExchange";
 import { usePXOSell } from "../hooks/usePXOSell";
 import { useTokens } from "../hooks/useTokens";
 import { useTokenBalance } from "../hooks/useTokenBalance";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PATHS } from "../routes/paths";
+import { NetworkBadge } from "./NetworkBadge";
 import useWalletStore from "../store/useWalletStore";
 import { TransactionHistory } from "./TransactionHistory";
 import { useToast } from "./ui/Toast";
@@ -25,8 +26,24 @@ import { getExplorerTxUrl } from "../lib/explorer";
 
 type ExchangeMode = 'buy' | 'sell';
 
-export const ExchangeRates: React.FC = () => {
-  const [exchangeMode, setExchangeMode] = React.useState<ExchangeMode>('buy');
+interface ExchangeRatesProps {
+  /**
+   * When set, forces the exchange into a single mode: hides the Buy/Sell
+   * toggle and the "Quick Exchange" heading. Used by BuyPxoWithDigitalDollars
+   * and (future) SellPxoWithDigitalDollars wrappers so the flow shows only one
+   * side of the operation.
+   */
+  lockedMode?: ExchangeMode;
+  /** Optional H2 title override. Defaults to "PXO Exchange". */
+  title?: string;
+}
+
+export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title }) => {
+  // Precedence for initial mode: locked prop (from wrapper) > URL query > 'buy'.
+  const [searchParams] = useSearchParams();
+  const initialMode: ExchangeMode =
+    lockedMode ?? (searchParams.get('mode') === 'sell' ? 'sell' : 'buy');
+  const [exchangeMode, setExchangeMode] = React.useState<ExchangeMode>(initialMode);
   const [lastUpdate, setLastUpdate] = React.useState(new Date());
   const [showHistory, setShowHistory] = React.useState(false);
   const [refreshHistory, setRefreshHistory] = React.useState(0);
@@ -54,6 +71,8 @@ export const ExchangeRates: React.FC = () => {
     handleBuyPXO,
     exchangeRate,
     buyPrice,
+    tokenSymbol,
+    setTokenSymbol,
   } = usePXOExchange(() => {
     setRefreshHistory((prev) => prev + 1);
   });
@@ -81,7 +100,8 @@ export const ExchangeRates: React.FC = () => {
   const isNonCustodial = isNonCustodialWallet(wallet);
   const { tokens: walletTokens } = useWalletStore();
 
-  const tokenSymbol = "USDC";
+  // tokenSymbol comes from usePXOExchange (user-selectable). Balances,
+  // pricing, and the backend call all react to it.
   const token = tokens.find((t) => t.symbol === tokenSymbol);
   // Use pricing service price, fallback to token price or exchangeRate
   const currentRate = buyPrice || token?.pxo_buy_price || exchangeRate || 1.12;
@@ -460,17 +480,12 @@ export const ExchangeRates: React.FC = () => {
       >
         <div>
           <h2 className="text-3xl font-bold text-light-text dark:text-dark-text font-editorial">
-            PXO Exchange
+            {title ?? 'PXO Exchange'}
           </h2>
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
             Real-time exchange rates
           </p>
-          {activeChain && (
-            <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-              <span className={`h-1.5 w-1.5 rounded-full ${activeChain.id === 137 ? 'bg-green-500' : 'bg-amber-500'}`} />
-              {activeChain.id === 137 ? 'Polygon Mainnet' : activeChain.id === 80002 ? 'Polygon Amoy' : `Chain ${activeChain.id}`}
-            </span>
-          )}
+          <NetworkBadge className="mt-2" />
         </div>
         <div className="flex items-center space-x-3">
           <motion.button
@@ -607,35 +622,39 @@ export const ExchangeRates: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="bg-gradient-to-r from-light-surface/80 to-light-glass dark:from-dark-surface/80 dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-4 sm:p-6 lg:p-8 shadow-glass transition-colors duration-300"
       >
-        <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-light-text dark:text-dark-text font-editorial mb-4 sm:mb-6">
-          Quick Exchange
-        </h3>
+        {!lockedMode && (
+          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-light-text dark:text-dark-text font-editorial mb-4 sm:mb-6">
+            Quick Exchange
+          </h3>
+        )}
 
-        {/* Buy / Sell tabs */}
-        <div className="flex gap-2 mb-4 sm:mb-6">
-          <button
-            type="button"
-            onClick={() => setExchangeMode("buy")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
-              exchangeMode === "buy"
-                ? "bg-lime-accent text-white shadow-glow"
-                : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
-            }`}
-          >
-            Buy
-          </button>
-          <button
-            type="button"
-            onClick={() => setExchangeMode("sell")}
-            className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
-              exchangeMode === "sell"
-                ? "bg-lime-accent text-white shadow-glow"
-                : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
-            }`}
-          >
-            Sell
-          </button>
-        </div>
+        {/* Buy / Sell tabs — hidden when a wrapper locks the mode. */}
+        {!lockedMode && (
+          <div className="flex gap-2 mb-4 sm:mb-6">
+            <button
+              type="button"
+              onClick={() => setExchangeMode("buy")}
+              className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
+                exchangeMode === "buy"
+                  ? "bg-lime-accent text-white shadow-glow"
+                  : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
+              }`}
+            >
+              Buy
+            </button>
+            <button
+              type="button"
+              onClick={() => setExchangeMode("sell")}
+              className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
+                exchangeMode === "sell"
+                  ? "bg-lime-accent text-white shadow-glow"
+                  : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
+              }`}
+            >
+              Sell
+            </button>
+          </div>
+        )}
 
         {(exchangeMode === "buy" ? error : sellError) && (
           <motion.div
@@ -665,10 +684,20 @@ export const ExchangeRates: React.FC = () => {
               </div>
               <div className="flex w-full">
                 <select
-                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
-                  disabled
+                  value={tokenSymbol}
+                  onChange={(e) => {
+                    setTokenSymbol(e.target.value as 'USDC' | 'USDT');
+                    // Reset amount when switching token — the input reflects
+                    // "amount of X" and X just changed, so the number is stale.
+                    setAmount(0);
+                    setInputValue("");
+                    setBalanceError("");
+                  }}
+                  disabled={loading}
+                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <option>{tokenSymbol}</option>
+                  <option value="USDC">USDC</option>
+                  <option value="USDT">USDT</option>
                 </select>
                 <input
                   type="number"
