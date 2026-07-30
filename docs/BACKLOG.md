@@ -40,6 +40,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-008** — Define soft-launch communication: scope, known limitations, what testers can/can't do
 - [ ] **SL-009** — Verify PXO contract source against deployed bytecode + document admin roles
 - [ ] **SL-010** — *(conditional on SL-009)* Plan admin key rotation if previous team retains control
+- [ ] **SL-011** — Wallet-chain mismatch protection (block/redirect on wrong network)
 
 ---
 
@@ -156,6 +157,25 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 4. Execute, verify on-chain, update SL-009 artifact
 **Done when:** Either (a) all admin roles are held by current sanctioned wallets, or (b) the residual risk is explicitly accepted in writing.
 **Worst case:** If the contract has no rotation mechanism and a critical role is held by an unrecoverable wallet, the only remediation is a new contract deployment + token migration. This is a multi-month event with serious user-facing implications — flag it the moment it surfaces.
+
+### SL-011 · Wallet-chain mismatch protection
+**Type:** 🔧 Code + 📋 Docs
+**Effort:** 3-4 hours
+**Why (real fund-loss risk):** The buy/sell flows read `useActiveWalletChain()` and honor whatever chain the user's wallet is currently connected to. A tester who connects a MetaMask defaulting to Polygon **mainnet** — while the demo environment is running against **Amoy testnet** — will silently execute a mainnet transaction. If the treasury has no PXO on mainnet (currently the case), the user burns real USDC/USDT on-chain and gets nothing back. The 400/500 arrives only *after* the transfer is confirmed on-chain, so the funds are already gone.
+**Existing state:**
+- `WalletStatusPage` shows Amoy, but that's driven by api-wallet's own chain iteration — independent of the user's wallet chain
+- No UI network switcher exists on the buy/sell pages
+- `VITE_ENABLE_ADMIN_TESTNET=true` in web env but there's no default-chain hint for regular users
+- `usePXOExchange.ts:157` already validates the chain is in `SUPPORTED_CHAIN_IDS` (137, 80002) but does NOT enforce a specific one
+**Scope (pick approach in review):**
+1. **Add a `VITE_DEFAULT_CHAIN_ID`** env var (e.g., `80002` for F&F demo). Buy/Sell hooks refuse to submit if `activeChain.id !== VITE_DEFAULT_CHAIN_ID`, showing a "wrong network — switch to X" message with a one-click switch button using Thirdweb's `useNetworkSwitcherModal` (already imported elsewhere).
+2. **OR**: reuse the existing `FORCE_POLYGON_MAINNET` semantics but inverted — introduce `VITE_LOCK_CHAIN_ID` that pins the required chain and rejects everything else.
+3. Add a visible chain-mismatch banner at the top of the balance card / buy page when the wallet is on the wrong chain, before the user even clicks Buy.
+**Done when:** A wallet connected to the wrong chain cannot initiate a buy/sell transaction that reaches on-chain execution. User sees a clear "switch network" prompt instead.
+**Notes:**
+- Consider whether admin users should be exempt (they already have `VITE_ENABLE_ADMIN_TESTNET` semantics for chain flexibility)
+- SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
+- The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
 
 ---
 

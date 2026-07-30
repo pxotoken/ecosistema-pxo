@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Menu, ArrowLeftRight, ArrowDownToLine, User } from 'lucide-react';
+import { Menu, ArrowLeftRight, Plus, User } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthContext } from '../contexts/AuthContext';
+import { BuyOptionsModal } from './fiat/BuyOptionsModal';
+import { NetworkBadge } from './NetworkBadge';
 import { PATHS } from '../routes/paths';
 
 interface TopBarProps {
@@ -28,6 +30,7 @@ const navItemClass = ({ isActive }: { isActive: boolean }) =>
 export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu, showMobileMenuButton = false }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const [showBuyModal, setShowBuyModal] = useState(false);
 
   const profileLabel = truncateAddress(user?.wallet_address);
 
@@ -72,13 +75,18 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu, showMobileMe
             <ArrowLeftRight className="w-4 h-4" />
             <span>Transactions</span>
           </NavLink>
-          <NavLink to={PATHS.dashboard.fiatBuy} className={navItemClass}>
-            <ArrowDownToLine className="w-4 h-4" />
-            <span>Deposit</span>
-          </NavLink>
+          <button
+            type="button"
+            onClick={() => setShowBuyModal(true)}
+            className="flex items-center gap-2 px-1 py-2 text-sm transition-colors border-b-2 text-light-text dark:text-dark-text border-transparent hover:text-pxo-primary"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Buy</span>
+          </button>
         </nav>
 
         <div className="flex items-center gap-3">
+          <NetworkBadge className="hidden sm:inline-flex" />
           <ThemeToggle />
 
           <NavLink
@@ -97,6 +105,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu, showMobileMe
           </NavLink>
         </div>
       </div>
+
+      <BuyOptionsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} />
     </motion.div>
   );
 };

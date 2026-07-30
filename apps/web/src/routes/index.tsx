@@ -3,6 +3,8 @@ import { LandingPage } from '../components/LandingPage';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { WalletSection } from '../components/WalletSection';
 import { ExchangeRates } from '../components/ExchangeRates';
+import { BuyPxoWithDigitalDollars } from '../components/BuyPxoWithDigitalDollars';
+import { SellPxoWithDigitalDollars } from '../components/SellPxoWithDigitalDollars';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { ProductSection } from '../components/ProductSection';
 import { KYCSettings } from '../components/settings/KYCSettings';
@@ -24,6 +26,22 @@ const DASHBOARD_ROUTES = [
     element: (
       <KYCGuard>
         <ExchangeRates />
+      </KYCGuard>
+    ),
+  },
+  {
+    path: PATHS.dashboard.exchangeBuy,
+    element: (
+      <KYCGuard>
+        <BuyPxoWithDigitalDollars />
+      </KYCGuard>
+    ),
+  },
+  {
+    path: PATHS.dashboard.exchangeSell,
+    element: (
+      <KYCGuard>
+        <SellPxoWithDigitalDollars />
       </KYCGuard>
     ),
   },
