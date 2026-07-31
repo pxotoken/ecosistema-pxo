@@ -348,6 +348,26 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - Is the 24h TTL fallback still useful with single-active-intent + real Cancel, or is TTL redundant?
 - Should re-opening the page mid-flow always resume the pending intent, or is there a case where the user wants to see the empty form (perhaps a "Start over" affordance next to the resumed intent)?
 
+### OL-015 · Determine Bitso webhook verification model + implement
+**Type:** 🔍 Discovery + 🔧 Code + 📞 External
+**Effort:** 2-4 hours once Bitso confirms (discovery) + 1-2 hours implementation
+**Why (real security posture, not urgent for F&F but urgent for anyone paying real money):** Iter 2A registered a Bitso stage webhook successfully (2026-07-30) but Bitso's registration response returned **no signing secret** — just a plain success message. This is unusual. Three possible models are in play and we don't know which is real:
+1. **Separate webhook secret** returned at registration → the response is broken/incomplete or the secret is elsewhere (dashboard, headers, `GET /webhooks/` listing)
+2. **Reuse the API secret** → Bitso signs webhooks with `BITSO_API_SECRET`. In this case our current `BITSO_WEBHOOK_SECRET` env var is redundant; verification should read `BITSO_API_SECRET` directly.
+3. **No signing, IP allowlist** → Bitso relies on request origin. Would require IP-whitelisting on api-exchange.
+**Current code assumes:** `apps/api-exchange/src/routes/webhooks/bitso.ts` uses `BITSO_WEBHOOK_SECRET` for HMAC verification (Pattern #1). Which is set to empty per `.env`. Which means: **inbound Bitso webhooks currently fail signature verification** and either return 401 or are accepted-with-warning depending on the code path.
+**Discovery steps:**
+1. Test `GET https://stage.bitso.com/api/v3/webhooks` (authed) — does it return the registered webhook with a `secret`/`signing_secret` field?
+2. Log the response headers from the register call — some APIs return secrets in headers
+3. Wait for a real Bitso stage webhook to hit our endpoint; log full request (headers + body) and inspect what signature format arrives; test `HMAC-SHA256(rawBody, BITSO_API_SECRET)` against it
+4. If none of the above resolves it, ask Bitso Business support directly (one message): "For Bitso Business stage webhooks, how does the receiving endpoint verify authenticity? Is the signing secret returned at registration, do webhooks HMAC with the account's API secret, or is verification IP-based?"
+**Implementation once known:**
+- Pattern #1: keep current code path, populate `BITSO_WEBHOOK_SECRET` from wherever it lives
+- Pattern #2: change `bitso.ts` webhook handler to verify with `BITSO_API_SECRET` instead; deprecate `BITSO_WEBHOOK_SECRET` env var
+- Pattern #3: remove verification code; add IP allowlist middleware; document Bitso's webhook source IPs in `TREASURY.md`
+**Interim posture for F&F demo:** temporarily loosen verification in `apps/api-exchange/src/routes/webhooks/bitso.ts` to log-and-accept, with a clear TODO comment. Small transaction amounts + human monitoring is acceptable risk for demo. **DO NOT ship to prod without verification.**
+**Done when:** Webhook verification model is documented (which of #1/#2/#3), code implements it correctly, `BITSO_WEBHOOK_SECRET` is either populated or removed from env, verification succeeds against a real Bitso stage webhook.
+
 ---
 
 ## 🟩 Tier 3 — Post-launch
@@ -420,6 +440,7 @@ Not backlog items, but things we don't have answers to. Each becomes a task as i
 12. Which field in Bitso's SPEI funding `details` blob contains the sender's CLABE? → OL-010
 13. Should CLABE-verification micro-deposits be refunded or kept as an onboarding cost? → OL-013 decision needed
 14. Single-active-intent rule vs multi-intent FIFO — worth the constraint? → OL-014, pending Adrian's decision
+15. Does Bitso Business stage sign webhooks with a dedicated secret, reuse the API secret, or rely on IP allowlist? → OL-015
 
 ---
 
