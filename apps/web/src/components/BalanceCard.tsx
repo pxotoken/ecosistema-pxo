@@ -163,7 +163,7 @@ export function BalanceCard() {
         </button>
         <button onClick={() => setShowReceiveModal(true)} className={actionButtonClass}>
           <Download className="w-4 h-4" />
-          <span>Receive</span>
+          <span>Receivex</span>
         </button>
       </div>
 
