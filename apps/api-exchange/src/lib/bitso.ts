@@ -17,14 +17,20 @@ async function bitsoRequest<T>(opts: BitsoRequestOptions): Promise<T> {
     throw new Error('BITSO_API_KEY / BITSO_API_SECRET not configured');
   }
 
+  // Bitso's HMAC signs the full URL path (from the domain root), NOT the
+  // relative path passed to fetch. Deriving via URL keeps the signature
+  // aligned regardless of whether BITSO_API_BASE_URL includes /api/v3.
+  const url = new URL(`${env.BITSO_API_BASE_URL}${opts.path}`);
+  const signedPath = url.pathname + url.search;
+
   const nonce = Date.now().toString();
   const bodyStr = opts.body ? JSON.stringify(opts.body) : '';
-  const message = nonce + opts.method + opts.path + bodyStr;
+  const message = nonce + opts.method + signedPath + bodyStr;
   const signature = createHmac('sha256', env.BITSO_API_SECRET)
     .update(message, 'utf8')
     .digest('hex');
 
-  const res = await fetch(`${env.BITSO_API_BASE_URL}${opts.path}`, {
+  const res = await fetch(url, {
     method: opts.method,
     headers: {
       'Content-Type': 'application/json',
@@ -35,7 +41,7 @@ async function bitsoRequest<T>(opts: BitsoRequestOptions): Promise<T> {
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Bitso ${opts.method} ${opts.path} failed: ${res.status} ${text}`);
+    throw new Error(`Bitso ${opts.method} ${signedPath} failed: ${res.status} ${text}`);
   }
   return JSON.parse(text) as T;
 }
