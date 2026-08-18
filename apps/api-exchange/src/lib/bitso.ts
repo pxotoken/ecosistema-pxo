@@ -10,6 +10,12 @@ interface BitsoRequestOptions {
   method: 'GET' | 'POST';
   path: string; // beginning with /, e.g. "/fundings/"
   body?: unknown;
+  /**
+   * Override the base URL for endpoints that don't live under
+   * `BITSO_API_BASE_URL` — notably `/spei/test/deposits`, which sits at
+   * the domain root rather than under `/api/v3`.
+   */
+  baseUrl?: string;
 }
 
 async function bitsoRequest<T>(opts: BitsoRequestOptions): Promise<T> {
@@ -20,7 +26,8 @@ async function bitsoRequest<T>(opts: BitsoRequestOptions): Promise<T> {
   // Bitso's HMAC signs the full URL path (from the domain root), NOT the
   // relative path passed to fetch. Deriving via URL keeps the signature
   // aligned regardless of whether BITSO_API_BASE_URL includes /api/v3.
-  const url = new URL(`${env.BITSO_API_BASE_URL}${opts.path}`);
+  const base = opts.baseUrl ?? env.BITSO_API_BASE_URL;
+  const url = new URL(`${base}${opts.path}`);
   const signedPath = url.pathname + url.search;
 
   const nonce = Date.now().toString();
@@ -194,6 +201,57 @@ export async function bitsoGetWithdrawalStatus(wid: string): Promise<BitsoWithdr
   const payload = data.payload;
   if (Array.isArray(payload)) return payload[0] ?? null;
   return payload ?? null;
+}
+
+/**
+ * Simulate an SPEI MXN deposit into our Bitso Business CLABE. STAGE ONLY.
+ * Uses Bitso's `/spei/test/deposits` endpoint (docs:
+ * https://docs.bitso.com/bitso-payouts-funding/docs/mock-deposits-in-mxn).
+ *
+ * The endpoint lives at the DOMAIN ROOT — not under `/api/v3` — hence
+ * `baseUrl` override on the request. Callers should NEVER expose this in
+ * production; the route that wraps this is env-flag gated.
+ */
+export interface CreateMockDepositParams {
+  amountMxn: number;
+  receiverClabe: string; // our Bitso Business CLABE
+  receiverName: string;
+}
+
+export interface BitsoMockDepositResult {
+  amount: string;
+  tracking_code: string;
+  receiver_clabe: string;
+  receiver_name: string;
+  created_at: string;
+}
+
+export async function bitsoCreateMockSpeiDeposit(
+  params: CreateMockDepositParams,
+): Promise<BitsoMockDepositResult> {
+  // Derive the domain-root base from BITSO_API_BASE_URL by stripping any
+  // trailing `/api/vN` segment. Works whether the env is set to
+  // https://stage.bitso.com/api/v3 or https://stage.bitso.com.
+  const rootBase = env.BITSO_API_BASE_URL.replace(/\/api\/v\d+\/?$/, '');
+
+  const data = await bitsoRequest<{
+    success: boolean;
+    payload: BitsoMockDepositResult;
+  }>({
+    method: 'POST',
+    baseUrl: rootBase,
+    path: '/spei/test/deposits',
+    body: {
+      amount: params.amountMxn.toFixed(2),
+      receiver_clabe: params.receiverClabe,
+      receiver_name: params.receiverName,
+    },
+  });
+
+  if (!data.payload?.tracking_code) {
+    throw new Error('Bitso mock deposit response missing tracking_code');
+  }
+  return data.payload;
 }
 
 /**

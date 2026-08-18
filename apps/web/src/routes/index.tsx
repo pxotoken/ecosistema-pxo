@@ -14,10 +14,16 @@ import { KycAdminPage } from '../components/kyc/KycAdminPage';
 import { UserAdminPage } from '../components/admin/UserAdminPage';
 import { WalletStatusPage } from '../components/admin/WalletStatusPage';
 import { PricingRulesAdminPage } from '../components/admin/PricingRulesAdminPage';
+import { MockDepositPage } from '../components/qa/MockDepositPage';
 import { KYCGuard } from '../components/guards/KYCGuard';
 import { RequireAuth } from './RequireAuth';
 import { RequireGuest } from './RequireGuest';
 import { PATHS } from './paths';
+
+// QA-only routes gated by the env flag. When false, the routes are not
+// added to the router at all — direct URL navigation hits the 404 fallback.
+const MOCK_DEPOSITS_ENABLED =
+  import.meta.env.VITE_MOCK_DEPOSITS_ENABLED === 'true';
 
 const DASHBOARD_ROUTES = [
   { path: PATHS.dashboard.wallet, element: <WalletSection /> },
@@ -63,6 +69,9 @@ const DASHBOARD_ROUTES = [
   { path: PATHS.dashboard.adminUsers, element: <UserAdminPage /> },
   { path: PATHS.dashboard.adminWalletStatus, element: <WalletStatusPage /> },
   { path: PATHS.dashboard.adminPricingRules, element: <PricingRulesAdminPage /> },
+  ...(MOCK_DEPOSITS_ENABLED
+    ? [{ path: PATHS.dashboard.qaMockDeposit, element: <MockDepositPage /> }]
+    : []),
 ];
 
 export function AppRoutes() {

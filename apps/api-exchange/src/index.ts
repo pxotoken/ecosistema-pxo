@@ -16,6 +16,7 @@ import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
 // recoverability but no longer registered here. To be deleted in a cleanup task.
 // import { conektaWebhookRoutes } from './routes/webhooks/conekta.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
+import { qaMockDepositRoutes } from './routes/qa/mock-deposit.js';
 import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';
 
 const app = Fastify({ logger: true });
@@ -47,6 +48,15 @@ async function bootstrap() {
   await app.register(buyPxoMxnRoutes, { prefix: '/api/exchange' });
   await app.register(sellPxoMxnRoutes, { prefix: '/api/exchange' });
   await app.register(bitsoWebhookRoutes, { prefix: '/api/exchange' });
+
+  // QA-only mock deposit tool. Route is NOT registered when the env flag
+  // is off — the endpoint literally does not exist in production.
+  if (env.MOCK_DEPOSITS_ENABLED) {
+    await app.register(qaMockDepositRoutes, { prefix: '/api/exchange' });
+    app.log.warn(
+      'MOCK_DEPOSITS_ENABLED=true — /api/exchange/qa/mock-bitso-deposit is active. Ensure this is NOT production.',
+    );
+  }
 
   // Background reconciliation of inbound SPEI fundings against open deposit
   // intents. Fires immediately and then on a fixed interval.

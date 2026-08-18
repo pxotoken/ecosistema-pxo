@@ -65,4 +65,9 @@ export const env = {
 
   FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK:
     process.env.FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK === 'true',
+
+  // QA-only self-serve tool to simulate SPEI deposits via Bitso's stage
+  // `/spei/test/deposits` endpoint. NEVER enable in production. The
+  // /qa/mock-bitso-deposit route is registered only when this is true.
+  MOCK_DEPOSITS_ENABLED: process.env.MOCK_DEPOSITS_ENABLED === 'true',
 } as const;
