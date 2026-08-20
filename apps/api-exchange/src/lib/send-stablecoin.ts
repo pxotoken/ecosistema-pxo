@@ -6,6 +6,7 @@ import {
   USDC_TOKEN_ADDRESSES,
   USDT_TOKEN_ADDRESSES,
   STABLE_DECIMALS,
+  TOKEN_TRANSFER_GAS_LIMIT,
   type SupportedChainId,
 } from '../config/chains.js';
 import { getServerThirdwebClient } from './thirdweb-client.js';
@@ -68,7 +69,7 @@ export async function sendStablecoinToUser({
     contract,
     method: 'function transfer(address to, uint256 value)',
     params: [receiverAddress, rawAmount],
-    gas: BigInt(100_000),
+    gas: TOKEN_TRANSFER_GAS_LIMIT,
     gasPrice,
   });
 

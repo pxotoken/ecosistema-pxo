@@ -17,6 +17,7 @@ import {
   PXO_TOKEN_ADDRESSES,
   PXO_SELL_SUPPORTED_CHAIN_IDS,
   DEFAULT_TOKEN_TYPE,
+  TOKEN_TRANSFER_GAS_LIMIT,
   type GasSubsidyChainId,
   type SupportedChainId,
 } from '../config/chains.js';
@@ -175,8 +176,14 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
         gasPrice = chainId === 80002 ? BigInt(30_000_000_000) : BigInt(20_000_000_000);
       }
 
-      // 150% of estimated gas cost
-      const subsidyAmount = (estimatedGas * gasPrice * BigInt(15)) / BigInt(10);
+      // Size the subsidy off the gas limit the user's transfer will actually
+      // send (TOKEN_TRANSFER_GAS_LIMIT), not the RPC estimate — the estimate
+      // can undershoot the fixed 100k cap, leaving the wallet short. Guard with
+      // max() so a future token needing more than the cap is still covered.
+      const gasUnitsToFund =
+        estimatedGas > TOKEN_TRANSFER_GAS_LIMIT ? estimatedGas : TOKEN_TRANSFER_GAS_LIMIT;
+      // 150% of gas cost, to absorb gasPrice drift before the transfer is sent.
+      const subsidyAmount = (gasUnitsToFund * gasPrice * BigInt(15)) / BigInt(10);
 
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: recentSubsidies } = await supabase

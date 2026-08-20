@@ -3,7 +3,11 @@ import { getRpcClient, eth_getTransactionReceipt } from 'thirdweb/rpc';
 import { privateKeyToAccount } from 'thirdweb/wallets';
 import { polygon, polygonAmoy } from 'thirdweb/chains';
 import { env } from '../config/env.js';
-import { PXO_TOKEN_ADDRESSES, type SupportedChainId } from '../config/chains.js';
+import {
+  PXO_TOKEN_ADDRESSES,
+  TOKEN_TRANSFER_GAS_LIMIT,
+  type SupportedChainId,
+} from '../config/chains.js';
 import { getServerThirdwebClient } from './thirdweb-client.js';
 import { getDecryptedWalletKey } from './wallet-key.js';
 
@@ -69,7 +73,7 @@ export async function sendPXOToUser({
     contract,
     method: 'function transfer(address to, uint256 value)',
     params: [receiverAddress, quantity],
-    gas: BigInt(100_000),
+    gas: TOKEN_TRANSFER_GAS_LIMIT,
     gasPrice,
   });
 

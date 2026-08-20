@@ -13,6 +13,7 @@ import { usePXOPrices } from './usePXOPrices';
 import { useLiquidity } from './useLiquidity';
 import { useAuthContext } from '../contexts/AuthContext';
 import { KYCStatus } from '@pxo/shared/types';
+import { TOKEN_TRANSFER_GAS_LIMIT } from '@pxo/shared/consts';
 import { isExternalAuthProvider } from '../lib/walletUtils';
 import { sendTransactionWithSignatureDeadline, SignatureTimeoutError } from '../lib/signatureTransaction';
 import type { ExchangeSignatureCallbacks } from './usePXOExchange';
@@ -199,7 +200,10 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         amount: pxoAmount,
         contract: pxoContract,
         to: getPXOReceiverAddress(chainId),
-        overrides: { gasPrice },
+        // Explicit gas limit shared with the server sender and gas-subsidy
+        // sizing — thirdweb's auto-estimate can undershoot the PXO proxy on
+        // Amoy's flaky RPCs, causing "out of gas" reverts.
+        overrides: { gasPrice, gas: TOKEN_TRANSFER_GAS_LIMIT },
       });
 
       let receipt;

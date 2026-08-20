@@ -61,3 +61,7 @@ export const PXO_DECIMALS: Record<SupportedChainId, number> = {
 };
 
 export const STABLE_DECIMALS = 6;
+
+// Single source of truth lives in @pxo/shared so the web app's client sell can
+// share it too. Re-exported here for the local server call sites.
+export { TOKEN_TRANSFER_GAS_LIMIT } from '@pxo/shared/consts';
