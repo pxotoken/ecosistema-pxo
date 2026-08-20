@@ -7,6 +7,7 @@ import { getServerSupabase } from './lib/supabase.js';
 import { KycRepository, UserKycStatusRepository } from './lib/kyc-repository.js';
 import { KycStorage } from './lib/kyc-storage.js';
 import { kycRoutes } from './routes/kyc.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -34,6 +35,8 @@ async function bootstrap() {
   await app.register(kycRoutes(submissions, userStatus, storage), { prefix: '/api/kyc' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

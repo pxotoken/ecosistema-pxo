@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { transactionsRoutes } from './routes/transactions.js';
 import { adminStatusRoutes } from './routes/admin/status.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -20,6 +21,8 @@ async function bootstrap() {
   await app.register(adminStatusRoutes, { prefix: '/api/wallet/admin' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

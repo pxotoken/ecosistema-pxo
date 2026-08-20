@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import httpProxy from '@fastify/http-proxy';
 import { env } from './config/env.js';
 import { requireAuth } from './middleware/auth.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 const allowedOrigins = env.ALLOWED_ORIGINS;
@@ -233,6 +234,8 @@ async function bootstrap() {
   });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

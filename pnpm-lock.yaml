@@ -152,6 +152,9 @@ importers:
       '@fastify/http-proxy':
         specifier: ^10.0.0
         version: 10.0.2
+      '@pxo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2

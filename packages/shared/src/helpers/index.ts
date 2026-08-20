@@ -7,3 +7,8 @@ export {
   type PxoIntent,
   type BuildPxoIntentInput,
 } from './pxoIntentUri';
+export {
+  registerGracefulShutdown,
+  type ClosableServer,
+  type GracefulShutdownOptions,
+} from './gracefulShutdown';

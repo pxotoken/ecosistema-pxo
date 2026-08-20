@@ -18,6 +18,7 @@ import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
 import { qaMockDepositRoutes } from './routes/qa/mock-deposit.js';
 import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -60,9 +61,11 @@ async function bootstrap() {
 
   // Background reconciliation of inbound SPEI fundings against open deposit
   // intents. Fires immediately and then on a fixed interval.
-  startDepositMatchingWorker(app.log);
+  const depositWorker = startDepositMatchingWorker(app.log);
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app, { onShutdown: [() => depositWorker.stop()] });
 }
 
 bootstrap().catch((err) => {

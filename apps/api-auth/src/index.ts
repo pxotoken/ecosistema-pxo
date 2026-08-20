@@ -9,6 +9,7 @@ import { loginRoutes } from './routes/login.js';
 import { logoutRoutes } from './routes/logout.js';
 import { verifyRoutes } from './routes/verify.js';
 import { providerRoutes } from './routes/provider.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -31,6 +32,8 @@ async function bootstrap() {
   await app.register(providerRoutes(userService), { prefix: '/api/auth' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {
