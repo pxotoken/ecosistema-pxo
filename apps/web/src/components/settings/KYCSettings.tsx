@@ -392,7 +392,7 @@ export const KYCSettings: React.FC = () => {
       }
     } catch (err) {
       console.error('Error submitting KYC:', err);
-      showToast('Error submitting KYC. Please try again.', 'error');
+      showToast(getApiError(err, 'Error submitting KYC. Please try again.'), 'error');
     }
   };
 

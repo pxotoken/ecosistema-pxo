@@ -339,7 +339,7 @@ export const usePXOExchange = (onPurchaseSuccess?: () => void) => {
       console.error('Error validating gas:', err);
       return {
         success: false,
-        message: 'Error validating gas requirements',
+        message: getApiError(err, 'Error validating gas requirements'),
         needsSubsidy: false,
       };
     }

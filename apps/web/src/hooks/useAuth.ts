@@ -8,7 +8,7 @@ import {
 } from "thirdweb/react";
 
 import { generatePayload, signLoginPayload, JWT_EXPIRATION_SECONDS } from "../lib/authActions";
-import api from "../lib/api";
+import api, { getApiError } from "../lib/api";
 import { User } from '@pxo/shared/types';
 import { getThirdwebClient } from "../lib/client";
 import useKYCRealtime from './useKYCRealtime';
@@ -188,7 +188,7 @@ const useAuth = (onLogin?: () => void) => {
         
       } catch (error) {
         console.error("Error checking auth status:", error);
-        setError("Failed to check authentication status");
+        setError(getApiError(error, "Failed to check authentication status"));
         setIsAuthenticated(false);
         setUser(null);
       } finally {
@@ -265,7 +265,7 @@ const useAuth = (onLogin?: () => void) => {
       
     } catch (error) {
       console.error("❌ Login failed:", error);
-      setError(error instanceof Error ? error.message : "Login failed");
+      setError(getApiError(error, "Login failed"));
       setIsAuthenticated(false);
       setUser(null);
       storage.clear();
@@ -338,7 +338,7 @@ const useAuth = (onLogin?: () => void) => {
       
     } catch (error) {
       console.error("❌ Logout failed:", error);
-      setError("Logout failed");
+      setError(getApiError(error, "Logout failed"));
     } finally {
       setLoading(false);
     }

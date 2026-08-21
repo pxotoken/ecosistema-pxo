@@ -85,7 +85,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       };
     } catch (err) {
       console.error('Error validating gas:', err);
-      return { success: false, message: 'Error validating gas', needsSubsidy: false };
+      return { success: false, message: getApiError(err, 'Error validating gas'), needsSubsidy: false };
     }
   };
 

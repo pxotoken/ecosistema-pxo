@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ROUTES } from '../config/routes';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 import type { KycSubmission, KycSubmissionStatus } from '@pxo/shared/types';
 
 export function useKycRequests(
@@ -20,7 +20,7 @@ export function useKycRequests(
         );
         setSubmissions(data.submissions ?? []);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Error fetching KYC submissions'));
+        setError(new Error(getApiError(err, 'Error fetching KYC submissions')));
       } finally {
         setIsLoading(false);
       }
