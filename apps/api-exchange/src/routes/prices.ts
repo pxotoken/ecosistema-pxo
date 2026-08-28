@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { PricingService, BinancePriceProvider } from '../lib/pricing/index.js';
+import { PricingService, createPriceProvider } from '../lib/pricing/index.js';
 
 interface PricesQuery {
   pair?: string;
@@ -17,7 +17,7 @@ export const pricesRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     }
 
     try {
-      const pricingService = new PricingService(new BinancePriceProvider());
+      const pricingService = new PricingService(createPriceProvider());
       const { buy, sell } = await pricingService.getPrices(pair);
 
       return reply.send({

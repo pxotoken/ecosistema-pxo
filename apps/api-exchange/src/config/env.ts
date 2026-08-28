@@ -34,6 +34,17 @@ export const env = {
 
   BINANCE_API_BASE_URL: process.env.BINANCE_API_BASE_URL || 'https://api.binance.com/api/v3',
 
+  // Pair-pricing source: 'binance' (default) or 'bitso'. See createPriceProvider.
+  PRICE_PROVIDER: (process.env.PRICE_PROVIDER || 'binance').toLowerCase(),
+  // Bitso PUBLIC ticker API (no auth) — distinct from the authenticated
+  // Business API in BITSO_API_BASE_URL. Only used when PRICE_PROVIDER=bitso.
+  BITSO_TICKER_BASE_URL: process.env.BITSO_TICKER_BASE_URL || 'https://api.bitso.com/v3',
+  // Bitso has no USDC market, so USDC is priced off USDT. If true, correct that
+  // assumption with a live USDC/USDT rate from Binance (BINANCE_API_BASE_URL);
+  // if false, assume USDC == USDT exactly (1:1). Only applies when
+  // PRICE_PROVIDER=bitso.
+  BITSO_USDC_CORRECTION_ENABLED: process.env.BITSO_USDC_CORRECTION_ENABLED === 'true',
+
   MAX_GAS_SUBSIDIES_PER_DAY: Number(process.env.MAX_GAS_SUBSIDIES_PER_DAY) || 100,
   GAS_SUBSIDY_MIN_INTERVAL_MINUTES: Number(process.env.GAS_SUBSIDY_MIN_INTERVAL_MINUTES) || 1,
   MAX_GAS_SUBSIDY_DAILY_AMOUNT_WEI: process.env.MAX_GAS_SUBSIDY_DAILY_AMOUNT_WEI || '',
