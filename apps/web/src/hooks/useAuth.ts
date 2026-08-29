@@ -216,7 +216,9 @@ const useAuth = (onLogin?: () => void) => {
 
   // Handle login process
   const handleLogin = useCallback(async () => {
-    if (!isWalletConnected()) {
+    // `account` is checked explicitly (not just via isWalletConnected) so the
+    // non-null narrowing survives into the calls below.
+    if (!account || !isWalletConnected()) {
       setError("Please connect your wallet first");
       return;
     }

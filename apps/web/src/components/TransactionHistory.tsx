@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Download, TrendingUp, TrendingDown, Eye, Filter } from 'lucide-react';
 import { useActiveWalletChain } from "thirdweb/react";
@@ -53,7 +53,6 @@ export const TransactionHistory: React.FC = () => {
   const {
     transactions: normalTransactions,
     isLoading: isLoadingNormal,
-    updateFilters: updateNormalFilters
   } = useTransactionHistory();
 
   const dedupedBlockchain = deduplicateBlockchainTxs(normalTransactions || [], blockchainTransactions || []);

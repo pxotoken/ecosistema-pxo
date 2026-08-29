@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useMessages } from '../../i18n';
 
 interface TermsTextModalProps {
   open: boolean;
@@ -17,6 +18,7 @@ export const TermsTextModal: React.FC<TermsTextModalProps> = ({
   onDisagree,
   onAccept,
 }) => {
+  const messages = useMessages();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [reachedBottom, setReachedBottom] = useState(false);
 
@@ -55,7 +57,7 @@ export const TermsTextModal: React.FC<TermsTextModalProps> = ({
           <button
             type="button"
             onClick={onDisagree}
-            aria-label="Close"
+            aria-label={messages.legal.close}
             className="text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
@@ -76,7 +78,7 @@ export const TermsTextModal: React.FC<TermsTextModalProps> = ({
             onClick={onDisagree}
             className="px-5 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 transition"
           >
-            Disagree
+            {messages.legal.disagree}
           </button>
           <button
             type="button"
@@ -87,9 +89,9 @@ export const TermsTextModal: React.FC<TermsTextModalProps> = ({
                 ? 'bg-pxo-primary hover:opacity-90'
                 : 'bg-gray-300 cursor-not-allowed'
             }`}
-            title={reachedBottom ? '' : 'Scroll to the end of the document to enable'}
+            title={reachedBottom ? '' : messages.legal.scrollHint}
           >
-            Accept
+            {messages.legal.accept}
           </button>
         </div>
       </div>

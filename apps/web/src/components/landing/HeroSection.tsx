@@ -1,10 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AccedePXOButton } from '../crypto';
-import { useAuthContext } from '../../contexts/AuthContext';
 
 export const HeroSection: React.FC = () => {
-  const { handleLogin, handleLogout } = useAuthContext();
 
   return (
     <section 
@@ -39,7 +37,7 @@ export const HeroSection: React.FC = () => {
               anywhere in the world
             </p>
 
-            <AccedePXOButton onLogin={handleLogin} onLogout={handleLogout} />
+            <AccedePXOButton />
           </motion.div>
         </div>
 

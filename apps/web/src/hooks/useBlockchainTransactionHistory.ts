@@ -11,41 +11,6 @@ interface BlockchainTransactionFilters {
   chain?: number[];
 }
 
-interface Transaction {
-  chain_id: number;
-  block_number: string;
-  block_hash: string;
-  block_timestamp: string;
-  hash: string;
-  from_address: string;
-  to_address: string;
-  value: number;
-  gas_price: number;
-  gas: number;
-  gas_used: number;
-  effective_gas_price: number;
-  status: number;
-  tokenSymbol: string;
-  tokenAddress: string;
-  tokenDecimals: number;
-  contractAddress: string;
-  isReceived: boolean;
-}
-
-interface TransactionResponse {
-  data: Transaction[];
-  meta: {
-    chain_ids: number[];
-    address: string;
-    page: number;
-    limit_per_chain: number;
-    total_items: number;
-    total_pages: number;
-    tokenSymbol: string;
-    tokenAddress: string;
-  };
-}
-
 export function useBlockchainTransactionHistory(initialFilters?: BlockchainTransactionFilters) {
   const account = useActiveAccount();
   const activeChain = useActiveWalletChain();

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { TERMS_DOCUMENTS, type TermsDocument } from './termsContent';
+import { getTermsDocuments, type TermsDocument } from './termsContent';
+import { useLocale } from '../../i18n';
 import { TermsTextModal } from './TermsTextModal';
 
 interface TermsGateModalProps {
@@ -19,6 +20,8 @@ export const TermsGateModal: React.FC<TermsGateModalProps> = ({
   onCancel,
   onAllAccepted,
 }) => {
+  const { locale, messages } = useLocale();
+  const documents = useMemo(() => getTermsDocuments(locale), [locale]);
   const [accepted, setAccepted] = useState<AcceptedState>(initialState);
   const [activeDoc, setActiveDoc] = useState<TermsDocument | null>(null);
 
@@ -53,12 +56,12 @@ export const TermsGateModal: React.FC<TermsGateModalProps> = ({
       <div className="bg-white w-full max-w-xl max-h-[calc(100vh-3rem)] rounded-lg shadow-xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 id="terms-gate-title" className="text-lg font-semibold text-gray-900">
-            Before you continue
+            {messages.legal.gateTitle}
           </h2>
           <button
             type="button"
             onClick={onCancel}
-            aria-label="Cancel"
+            aria-label={messages.legal.close}
             className="text-gray-400 hover:text-gray-600"
           >
             <X className="w-5 h-5" />
@@ -66,7 +69,7 @@ export const TermsGateModal: React.FC<TermsGateModalProps> = ({
         </div>
 
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
-          {TERMS_DOCUMENTS.map((doc) => (
+          {documents.map((doc) => (
             <label
               key={doc.key}
               className="flex items-start gap-3 p-3 rounded-md border border-gray-200 hover:border-pxo-primary/50 transition cursor-pointer"
@@ -87,7 +90,7 @@ export const TermsGateModal: React.FC<TermsGateModalProps> = ({
                   }}
                   className="text-pxo-primary underline hover:opacity-80"
                 >
-                  Read {doc.shortLabel}
+                  {messages.legal.read(doc.shortLabel)}
                 </button>
               </span>
             </label>
@@ -105,7 +108,7 @@ export const TermsGateModal: React.FC<TermsGateModalProps> = ({
                 : 'bg-gray-300 cursor-not-allowed'
             }`}
           >
-            Submit
+            {messages.legal.gateSubmit}
           </button>
         </div>
       </div>

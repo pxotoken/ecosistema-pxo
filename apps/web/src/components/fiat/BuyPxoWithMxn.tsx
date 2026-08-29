@@ -49,7 +49,6 @@ interface PollResponse {
 }
 
 const POLL_INTERVAL_MS = 5_000;
-const TERMINAL_STATUSES = new Set(['COMPLETED', 'EXPIRED', 'FAILED']);
 
 function CopyableField({
   label,

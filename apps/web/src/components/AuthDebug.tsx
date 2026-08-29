@@ -31,10 +31,9 @@ export const AuthDebug: React.FC = () => {
       <h3 className="text-white mb-2">Auth Debug</h3>
       
       <div className="mb-2">
-        <div>loggedIn: {auth.loggedIn ? '✅' : '❌'}</div>
-        <div>loadingLogin: {auth.loadingLogin ? '⏳' : '✅'}</div>
+        <div>isAuthenticated: {auth.isAuthenticated ? '✅' : '❌'}</div>
+        <div>loading: {auth.loading ? '⏳' : '✅'}</div>
         <div>user: {auth.user ? '✅' : '❌'}</div>
-        <div>jwt: {auth.jwt ? '✅' : '❌'}</div>
         <div>error: {auth.error || 'none'}</div>
       </div>
 

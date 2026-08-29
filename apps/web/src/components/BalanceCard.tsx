@@ -138,14 +138,14 @@ export function BalanceCard() {
           );
         })}
         {/* MGUSD placeholder — token not on-chain in current scope. */}
-        <div className="flex items-center justify-between px-4 py-4">
+        {/* <div className="flex items-center justify-between px-4 py-4">
           <span className="text-sm font-semibold text-light-text dark:text-dark-text">
             MGUSD
           </span>
           <span className="text-base font-medium text-light-text dark:text-dark-text tabular-nums">
             $0.00
           </span>
-        </div>
+        </div> */}
       </div>
 
       <div className="grid grid-cols-4 gap-2 p-3 bg-light-glass/40 dark:bg-dark-glass/40">
@@ -163,7 +163,7 @@ export function BalanceCard() {
         </button>
         <button onClick={() => setShowReceiveModal(true)} className={actionButtonClass}>
           <Download className="w-4 h-4" />
-          <span>Receivex</span>
+          <span>Receive</span>
         </button>
       </div>
 

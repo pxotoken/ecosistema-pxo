@@ -28,20 +28,6 @@ const SUPPORTED_CHAIN_IDS = new Set([137, 80002]);
 
 export type ExchangeToken = 'USDC' | 'USDT';
 
-// Default payment token per chain — the initial selection when the user
-// lands on the exchange. They can switch via the dropdown to any supported
-// token in TOKEN_CONTRACTS[chainId].
-const getDefaultTokenType = (chainId: number): ExchangeToken => {
-  switch (chainId) {
-    case 137:
-      return 'USDC';
-    case 80002:
-      return 'USDC';
-    default:
-      return 'USDC';
-  }
-};
-
 const TOKEN_CONTRACTS: Record<number, { USDC: string; USDT: string }> = {
   137: {
     USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",

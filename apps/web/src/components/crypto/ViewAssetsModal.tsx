@@ -77,7 +77,12 @@ export const ViewAssetsModal: React.FC<ViewAssetsModalProps> = ({
         if (token.address !== "0x0000000000000000000000000000000000000000") {
           try {
             const balance = await getBalance({
-              contract: { client, address: token.address, chain: activeChain },
+              // Token addresses come from the chain config as plain strings.
+              contract: {
+                client,
+                address: token.address as `0x${string}`,
+                chain: activeChain,
+              },
               address: account.address,
             });
 

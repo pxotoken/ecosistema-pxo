@@ -69,7 +69,6 @@ export const CTAStrip: React.FC = () => {
 
           {/* QR Code placeholder */}
           <div className="w-12 h-12 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg flex items-center justify-center transition-colors duration-300">
-            <div className="w-8 h-8 bg-blue-600/20 rounded-sm flex items-center justify-center">
             <div className="w-8 h-8 bg-pxo-primary/20 rounded-sm flex items-center justify-center">
               <div className="w-4 h-4 bg-pxo-primary rounded-xs"></div>
             </div>

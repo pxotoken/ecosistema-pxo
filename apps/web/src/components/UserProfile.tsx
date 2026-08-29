@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { KYCStatus } from '@pxo/shared/types';
 
 export const UserProfile: React.FC = () => {
-  const { user, loadingLogin: loading, error, isAuthenticated, login, logout } = useAuth();
+  const { user, loading, error, isAuthenticated, login, logout } = useAuth();
 
   if (loading) {
     return (

@@ -1,3 +1,6 @@
+import { CATALOGUES } from '../../i18n/messages';
+import type { Locale } from '../../i18n/types';
+
 export interface TermsDocument {
   key: 'pxo' | 'finlatam';
   shortLabel: string;
@@ -6,7 +9,12 @@ export interface TermsDocument {
   body: string;
 }
 
-const placeholderBody = (party: string): string => `
+const PARTIES: Array<{ key: TermsDocument['key']; label: string }> = [
+  { key: 'pxo', label: 'PXO' },
+  { key: 'finlatam', label: 'FINLATAM' },
+];
+
+const placeholderBodyEn = (party: string): string => `
 PLACEHOLDER TERMS & CONDITIONS — ${party.toUpperCase()}
 
 This document is a placeholder. The final terms and conditions for ${party} will replace this text before production launch.
@@ -49,21 +57,65 @@ Questions about these terms may be directed to the contact channels published on
 The actual Terms & Conditions will be provided by legal counsel and inserted here prior to launch. The "Accept" button below will enable once you have scrolled to the end of the document.
 `.trim();
 
-export const TERMS_DOCUMENTS: TermsDocument[] = [
-  {
-    key: 'pxo',
-    shortLabel: 'PXO',
-    modalTitle: 'PXO Terms & Conditions',
-    consentLine:
-      'PXO — By checking this box I confirm I wish to create an account with PXO and that I have read the PXO terms of service and privacy policy and agree to them.',
-    body: placeholderBody('PXO'),
-  },
-  {
-    key: 'finlatam',
-    shortLabel: 'FINLATAM',
-    modalTitle: 'FINLATAM Terms & Conditions',
-    consentLine:
-      'FINLATAM — By checking this box I confirm I wish to create an account with FINLATAM and that I have read the FINLATAM terms of service and privacy policy and agree to them.',
-    body: placeholderBody('FINLATAM'),
-  },
-];
+const placeholderBodyEs = (party: string): string => `
+TÉRMINOS Y CONDICIONES DE MUESTRA — ${party.toUpperCase()}
+
+Este documento es un marcador de posición. Los términos y condiciones definitivos de ${party} reemplazarán este texto antes del lanzamiento en producción.
+
+1. Aceptación de los términos
+Al marcar la casilla correspondiente en la pantalla anterior y hacer clic en "Aceptar" al final de este documento, confirmás que leíste, entendiste y aceptás obligarte por estos términos en su totalidad.
+
+2. Elegibilidad
+Declarás y garantizás que tenés la edad legal en tu jurisdicción y que tu uso de los servicios de ${party} no infringe ninguna ley ni regulación aplicable.
+
+3. Servicios
+${party} presta servicios financieros digitales según se describe en la documentación de la plataforma. El alcance, la disponibilidad y las funcionalidades de los servicios pueden cambiar a criterio exclusivo de ${party}.
+
+4. Advertencia de riesgos
+El uso de activos digitales conlleva riesgos inherentes, entre ellos y sin limitación: volatilidad del mercado, cambios regulatorios, fallas técnicas y riesgo de contraparte. Reconocés que comprendés estos riesgos y los asumís en su totalidad.
+
+5. Cumplimiento y KYC
+Aceptás proporcionar identificación y documentación de respaldo veraces, según lo requiera la plataforma para cumplir con sus obligaciones de cumplimiento normativo. ${party} puede suspender o dar de baja el acceso mientras se completa la verificación.
+
+6. Uso prohibido
+Aceptás no utilizar los servicios con fines ilícitos, incluidos, entre otros, el lavado de dinero, la evasión de sanciones, el financiamiento del terrorismo o el fraude.
+
+7. Datos y privacidad
+${party} trata los datos personales conforme a su Política de Privacidad. Al aceptar estos términos también reconocés la Política de Privacidad.
+
+8. Modificación de los términos
+${party} se reserva el derecho de modificar estos términos. El uso continuado de los servicios luego de una modificación constituye la aceptación de los términos revisados.
+
+9. Limitación de responsabilidad
+En la máxima medida permitida por la ley aplicable, ${party} no será responsable por daños indirectos, incidentales, consecuentes, especiales o punitivos que surjan del uso de los servicios o se relacionen con él.
+
+10. Ley aplicable
+Estos términos se rigen e interpretan conforme a las leyes de la jurisdicción en la que ${party} está constituida.
+
+11. Contacto
+Las consultas sobre estos términos pueden dirigirse a los canales de contacto publicados en pxotoken.com.
+
+— FIN DEL DOCUMENTO DE MUESTRA —
+
+Los Términos y Condiciones definitivos serán provistos por asesoría legal e insertados aquí antes del lanzamiento. El botón "Aceptar" se habilitará una vez que hayas desplazado el documento hasta el final.
+`.trim();
+
+const BODIES: Record<Locale, (party: string) => string> = {
+  es: placeholderBodyEs,
+  en: placeholderBodyEn,
+};
+
+/**
+ * The legal documents in a given locale. Titles and consent lines come from the
+ * message catalogue; the bodies live here because they are long-form copy.
+ */
+export const getTermsDocuments = (locale: Locale): TermsDocument[] => {
+  const legal = CATALOGUES[locale].legal;
+  return PARTIES.map(({ key, label }) => ({
+    key,
+    shortLabel: label,
+    modalTitle: legal.docTitle(label),
+    consentLine: legal.consentLine(label),
+    body: BODIES[locale](label),
+  }));
+};
