@@ -369,6 +369,78 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 **Interim posture for F&F demo:** temporarily loosen verification in `apps/api-exchange/src/routes/webhooks/bitso.ts` to log-and-accept, with a clear TODO comment. Small transaction amounts + human monitoring is acceptable risk for demo. **DO NOT ship to prod without verification.**
 **Done when:** Webhook verification model is documented (which of #1/#2/#3), code implements it correctly, `BITSO_WEBHOOK_SECRET` is either populated or removed from env, verification succeeds against a real Bitso stage webhook.
 
+### OL-016 · OpenAPI/Swagger for the API surface
+**Type:** 🔧 Code
+**Effort:** ~half a day for the skeleton + aggregated UI; 1-2 days for full schema coverage of all 29 routes
+**Priority note:** Adrian flagged this as essential and wants it before F&F (2026-08-31). Filed in Tier 2 because it isn't user-facing risk — nothing breaks for a user without it — but it is the main instrument for verifying endpoints by hand, and it unblocks SL-007 (mainnet smoke test) and the CI/testing work.
+**Why:** There is no way to exercise a single endpoint today without curl-by-hand or driving the UI. For a solo CTO validating money flows before letting testers in, a Try-it console per endpoint is the difference between "I think BUY works" and "I watched it work."
+
+**State of the code (verified 2026-08-31):**
+- **Zero** routes across the eight api-* services use Fastify's native `schema:` option — all 29 handlers are bare. A generator dropped in today produces a spec with paths but no request/response shapes.
+- Validation is Joi, and `validateBody` in `packages/shared/src/helpers/validateBody.ts` is typed against `VercelRequest`/`VercelResponse` — a pre-Fastify leftover that can't be called from a Fastify handler at all.
+- Joi schemas exist and are worth keeping: `schemas/users`, `kyc`, `email`, `pricing`, `binance`. They convert mechanically to JSON Schema via `joi-to-json`.
+- Stack is Fastify 5; `@fastify/swagger` + `@fastify/swagger-ui` are the native fit.
+
+**Decision 1 — what the schemas are for:**
+| Option | Result |
+|---|---|
+| Document-only | Hand-write JSON Schema per route for docs; validation stays ad-hoc. Docs can drift from behaviour. |
+| **Schemas as source of truth (recommended)** | Move validation into route schemas. Fastify validates natively, 400s become consistent, and the OAS falls out of the same definitions — no drift possible. Retires the dead Vercel helper. |
+
+**Decision 2 — where the UI lives:**
+| Option | Result |
+|---|---|
+| Per service | Eight Swagger UIs, eight URLs. Simplest to add. Hitting a service directly bypasses the orchestrator's `x-pxo-wallet-address` identity injection, so you're not testing the real path. |
+| **Aggregated at api-orchestrator (recommended)** | One URL, one bearer token, endpoints tagged per service. Matches how the frontend actually talks to the backend and exercises the real auth path. Each service exposes `/openapi.json`; the orchestrator merges them. |
+
+**Steps:**
+1. Add `@fastify/swagger` + `@fastify/swagger-ui` to each api-* service; expose `/openapi.json`.
+2. Aggregate at api-orchestrator behind a single UI route, tagged per upstream.
+3. Wire bearer-JWT into the UI's `securitySchemes` so Try-it works against protected routes.
+4. **Gate the UI behind an env flag** — same pattern as `MOCK_DEPOSITS_ENABLED`. A live console against money endpoints must be off by default in production, on in dev/QA.
+5. Convert existing Joi schemas to JSON Schema and attach as route `schema.body`; hand-write the rest, prioritising the money paths (`buy-pxo`, `sell-pxo`, `buy-pxo-mxn`, `sell-pxo-mxn`).
+6. Delete `validateBody`/`validateQuery` once nothing calls them.
+**Done when:** One authenticated Swagger UI covers all eight services, every money-path endpoint documents its request and response shapes, and the UI is unreachable in production unless explicitly enabled.
+**Bonus:** Once routes carry schemas, contract tests are nearly free — this is the cheapest on-ramp to the missing test suite.
+
+### OL-017 · CI pipeline (there is none today)
+**Type:** 🔧 Code
+**Effort:** 2-4 hours
+**Priority note:** Adrian wants this before F&F (2026-08-31). Tier 2 by the same logic as OL-016 — not user-facing risk on its own, but it's the mechanism that makes every other guarantee real.
+**Why:** `.github/workflows` does not exist. Every check — type-check, lint, build — runs on Adrian's laptop, manually, when he remembers. That is how a `type-check` script sat broken and passing for months (see DEPLOY_BACKLOG resolved log), and how eight services shipped a build that couldn't start. Since every merge already goes through a PR even when working solo, a CI gate costs one file and immediately makes the PR mean something.
+
+**What would have caught this week's outage:** a job that runs `node dist/index.js` and curls `/health`. The `ERR_MODULE_NOT_FOUND` crash was fully reproducible from a clean checkout — it needed no Railway, no secrets, no network. **This boot smoke test is the highest-value job in the pipeline; put it in first.**
+
+**Steps:**
+1. `.github/workflows/ci.yml`, triggered on PR and on push to `dev`/`main`.
+2. Pin the toolchain to match production: Node 22 (Railway runs 22.23.x) and `pnpm@9.0.6` per `packageManager`. There's no `.nvmrc` or `engines` field — add one so CI, laptop and Railway can't silently diverge.
+3. Jobs, in this order of value:
+   - **boot smoke:** for each api-* service, `pnpm build` then start `node dist/index.js` and assert `/health` returns 200. Catches the entire class of "compiles fine, dies on start."
+   - **type-check:** `pnpm run type-check` (genuinely works now — verify it stays honest by asserting it fails on a deliberately broken branch once).
+   - **build:** `pnpm run build` across the workspace.
+   - **lint:** add this **last**, and only after cleanup — `apps/web` currently has ~39 pre-existing ESLint errors, so gating on lint today blocks every PR on day one.
+4. Turbo caching in CI is a nice-to-have, not a first-pass requirement.
+**Done when:** A PR that breaks the build, the types, or a service's ability to start cannot be merged green.
+**Related:** OL-007 covers the lint cleanup that unblocks step 3's last job.
+
+### OL-018 · Test suite foundation
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** 1 day for the harness and first tests; ongoing thereafter
+**Priority note:** Wanted before F&F (2026-08-31). Realistically this is where scope gets traded if the date compresses — OL-017 plus the money-path tests below are the part that must not be cut.
+**Why:** There are **zero test files and no `test` script** anywhere in the monorepo. Today, the only verification that a money path works is a human clicking through it. SL-007 (mainnet smoke test) is a one-off manual run; nothing stops a regression the week after.
+
+**Steps:**
+1. Pick the runner — **vitest** is the obvious fit: the repo is already Vite-based for web, and it works unmodified for the Fastify services. One runner, one config style, workspace-aware.
+2. Add `test` to every package and a `test` task to `turbo.json`; wire it into OL-017's pipeline.
+3. Start where value per hour is highest, roughly in this order:
+   - **Pure functions in `@pxo/shared`** — `sanitizeForLog`/`sanitizeUrl`, `buildPxoIntentUri`/`parsePxoIntentUri`. Trivial to test, and they're used across every service.
+   - **Pricing providers** — `BitsoPriceProvider`, `createPriceProvider` selection logic, and the USDC-off-USDT correction path. Pure-ish with an injectable fetch; a wrong number here is a wrong price to a real user.
+   - **Deposit-matching worker** — FIFO selection by `(user_id, source_clabe)`, TTL expiry, and the idempotency behaviour on `bitso_funding_id`. This is the highest-consequence logic in the codebase: it decides who gets issued PXO for an inbound SPEI.
+   - **Route contracts** — nearly free once OL-016 attaches schemas; assert each money endpoint rejects malformed bodies and returns the documented shape.
+4. Explicitly out of scope for the first pass: browser/E2E tests for the web app. Not worth the setup cost pre-F&F.
+**Done when:** `pnpm test` runs green in CI, and the deposit-matching worker and pricing providers have coverage of their decision logic — not their glue.
+**Note:** Resist chasing a coverage number. Four well-chosen tests over the money paths are worth more than 80% coverage of React components.
+
 ---
 
 ## 🟩 Tier 3 — Post-launch
@@ -442,6 +514,8 @@ Not backlog items, but things we don't have answers to. Each becomes a task as i
 13. Should CLABE-verification micro-deposits be refunded or kept as an onboarding cost? → OL-013 decision needed
 14. Single-active-intent rule vs multi-intent FIFO — worth the constraint? → OL-014, pending Adrian's decision
 15. Does Bitso Business stage sign webhooks with a dedicated secret, reuse the API secret, or rely on IP allowlist? → OL-015
+16. OpenAPI: document-only, or route schemas as the single source of validation truth? → OL-016 decision needed
+17. Should CI gate merges (blocking) or just report? And does it also gate Railway deploys, or stay advisory? → OL-017
 
 ---
 
