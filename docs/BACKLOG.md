@@ -42,6 +42,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-009** — Verify PXO contract source against deployed bytecode + document admin roles
 - [ ] **SL-010** — *(conditional on SL-009)* Plan admin key rotation if previous team retains control
 - [ ] **SL-011** — Wallet-chain mismatch protection (block/redirect on wrong network)
+- [ ] **SL-012** — Patch the request-path CVEs: `@fastify/http-proxy`, `axios`, `react-router`
 
 ---
 
@@ -177,6 +178,25 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - Consider whether admin users should be exempt (they already have `VITE_ENABLE_ADMIN_TESTNET` semantics for chain flexibility)
 - SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
 - The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
+
+### SL-012 · Patch the request-path CVEs
+**Type:** 🔧 Code
+**Effort:** 1-2 hours for the free ones; +2-3 hours if the proxy major bump needs work
+**Why:** `pnpm audit --prod` reports **75 vulnerabilities in the shipped dependency tree** (3 critical, 28 high, 40 moderate, 4 low). Most of the volume is transitive noise, but three sit directly on the path that real money travels, and all three have published patches. GitHub's "113" counts the default branch including dev dependencies — the production number is the one that matters.
+
+| Package | Current | Patched | Severity | Where it hurts |
+|---|---|---|---|---|
+| `@fastify/http-proxy` | `^10.0.0` | `>=11.4.4` | **critical** | api-orchestrator. Connection-header abuse enabling header stripping — this is the gateway every request passes through |
+| `@fastify/reply-from` | transitive | `>=12.6.2` | **critical** | Same class; it's the layer under http-proxy |
+| `axios` | `^1.15.0` | `>=1.16.0` | high ×9 | Proxy-Authorization credential leak to redirect targets, MitM via prototype pollution, header injection. Used by every service to call upstreams and Bitso |
+| `react-router` | `^7.14.2` (via `react-router-dom`) | `>=7.15.0` | high | DoS via unbounded path expansion |
+
+**Steps:**
+1. **Free first** — `axios` and `react-router` patches fall inside the existing caret ranges, so a lockfile refresh resolves them with no code change. Do these immediately, verify with `pnpm audit --prod`.
+2. **`@fastify/http-proxy` 10 → 11 is a major bump**, not a caret update. v11 targets Fastify 5 (which is what the orchestrator runs), so it should be compatible, but the orchestrator's entire proxy configuration depends on it — check the `rewritePrefix` / `rewriteRequestHeaders` behaviour that injects `x-pxo-wallet-address` still works. Smoke-test one proxied route per upstream.
+3. Re-run `pnpm audit --prod` and record the residual count in OL-019.
+**Done when:** No critical or high advisory remains against a package on the request path; the orchestrator proxies all seven upstreams correctly after the bump.
+**Note:** This is filed Tier 1 rather than with the broader dependency work because the fixes are cheap, published, and sit in front of user funds. Don't let it get bundled into a general "upgrade everything" project.
 
 ---
 
@@ -440,6 +460,25 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 4. Explicitly out of scope for the first pass: browser/E2E tests for the web app. Not worth the setup cost pre-F&F.
 **Done when:** `pnpm test` runs green in CI, and the deposit-matching worker and pricing providers have coverage of their decision logic — not their glue.
 **Note:** Resist chasing a coverage number. Four well-chosen tests over the money paths are worth more than 80% coverage of React components.
+
+### OL-019 · Dependency vulnerability triage and an ongoing process
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** 4-6 hours triage; then ~30 min/month
+**Blocked by:** nothing, but do SL-012 first — it removes the items that actually matter
+**Why:** After SL-012, what's left is the long tail: 70-odd advisories that are either upstream-blocked or low-consequence. Left untriaged, the count grows until nobody reads it, and the one that matters hides in the noise. GitHub currently reports 113 on `main` (6 critical, 48 high, 52 moderate, 7 low) counting dev dependencies; `pnpm audit --prod` reports 75 in the shipped tree.
+
+**The three categories, and what to do with each:**
+1. **Patchable now** — inside existing semver ranges. `pnpm update`, verify, done. SL-012 covers the urgent ones; sweep the rest.
+2. **Major bumps** — e.g. `swiper` `^11.2.10` → `>=12.1.2` for a critical prototype-pollution advisory. Swiper is a UI carousel on the landing/products pages, so real exposure is low, but a major bump needs a visual check.
+3. **Upstream-blocked** — the bulk of it. `undici` sits under `thirdweb > @walletconnect/* > @reown/appkit > unstorage > @vercel/blob`, reported across **904 paths**. Nothing to do locally until thirdweb updates its tree. These should be acknowledged and suppressed, not re-triaged monthly.
+
+**Steps:**
+1. Sweep category 1 across the workspace; re-audit.
+2. Decide on category 2 per package (bump vs accept, with a reason recorded).
+3. For category 3, record the accepted risk somewhere durable — a `SECURITY_NOTES.md` or `pnpm.auditConfig.ignoreCves` in the root `package.json` — so a future audit shows only what's actionable.
+4. Decide the ongoing cadence: Dependabot PRs (noisy but automatic) or a monthly `pnpm audit --prod` review. Either works; drifting between them doesn't.
+**Done when:** `pnpm audit --prod` output is either empty or entirely accounted for by documented, accepted exceptions, and there's a named cadence for keeping it that way.
+**Related:** OL-017 — once CI exists, `pnpm audit --prod` is a natural non-blocking job so the number is visible on every PR rather than discovered at `git push`.
 
 ---
 
