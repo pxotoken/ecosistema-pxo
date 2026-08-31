@@ -5,7 +5,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { ObjectSchema } from 'joi';
-import { HTTP_STATUS } from '../consts/http';
+import { HTTP_STATUS } from '../consts/http.ts';
 
 /**
  * Validates request body against a Joi schema

@@ -3,6 +3,7 @@
 **Status:** Draft for CTO review, 2026-06-25
 **Audience:** Adrian (CTO), CEO updates, future contributors
 **Source documents:** [MONEY_MECHANICS.md](./MONEY_MECHANICS.md), [ENV_MATRIX.md](./ENV_MATRIX.md), [MULTICHAIN_EXPANSION_DECISION.md](./MULTICHAIN_EXPANSION_DECISION.md)
+**Sibling backlog:** deploy, hosting, and build-pipeline items live in [DEPLOY_BACKLOG.md](./DEPLOY_BACKLOG.md)
 
 ---
 

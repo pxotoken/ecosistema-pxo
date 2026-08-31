@@ -4,7 +4,7 @@
  */
 
 import Joi from 'joi';
-import { OrderSide, OrderType, TimeInForce } from '../types/binance';
+import { OrderSide, OrderType, TimeInForce } from '../types/binance.ts';
 
 /**
  * Schema for creating a new order (POST /api/binance/order)
