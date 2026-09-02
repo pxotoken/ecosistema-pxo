@@ -26,6 +26,8 @@ Types: 🔧 Code · 🔍 Discovery · 🔐 Ops · 📋 Docs · 📞 External
 - [ ] **DEP-004** — Codify per-environment deploy settings for services that can't use Config as Code
 - [ ] **DEP-005** — Make a dead service visible without a human reading deploy logs
 - [ ] **DEP-006** — Decide the build-trigger scope per service (root directory vs explicit watch paths)
+- [ ] **DEP-007** — Confirm Vercel issues its own TLS cert for `pxotoken.com` before 2026-11-14 (recovery otherwise complete)
+- [ ] **DEP-008** — Inventory third-party account ownership and write a contributor offboarding checklist
 
 ---
 
@@ -67,6 +69,43 @@ Nothing breaks right now because no API service imports the root barrel as a val
 3. Set `erasableSyntaxOnly: true` in `packages/config/tsconfig.base.json` (TS 5.8+; repo is on 5.9.3). It errors on anything that can't be stripped — enums, `namespace` with runtime members, constructor parameter properties, `import x = require()`.
 **Done when:** `node -e "import('packages/shared/src/index.ts')"` resolves, and `erasableSyntaxOnly` is on with a green build.
 **Note:** Turning the flag on *before* converting will fail the build on these five enums — convert first. If DEP-001 lands first, the flag becomes optional rather than load-bearing, but it's still worth having.
+
+### DEP-007 · Confirm Vercel issues its own TLS certificate for `pxotoken.com`
+**Type:** 🔐 Ops
+**Effort:** 10 minutes to check; unknown if intervention is needed
+**Status:** Domain recovery **complete and verified 2026-09-02** — site live, email intact. What remains is a single deferred risk: the certificate.
+
+**Background:** The domain is registered in our Hostinger account, but the registry `NS` pointed at `ns1`/`ns2.vercel-dns.com` — a Vercel account belonging to a developer who had left. We held the registrar; we did not hold the DNS. Hostinger greyed out its zone editor because it wasn't authoritative, so we could not add the `_vercel` ownership-verification TXT, or any other record, without going back through him. The zone was moved to Hostinger's nameservers on 2026-09-02 (registry updated 13:54 UTC), Vercel verified ownership, and the domain was attached to our project.
+
+**Verified working, 2026-09-02** (authoritative nameservers plus 8.8.8.8 / 1.1.1.1 / 9.9.9.9 / 208.67.222.222, all in agreement — propagation completed far ahead of the 48h registry TTL):
+
+```
+NS (registry)  ns1.dns-parking.com / ns2.dns-parking.com    both in sync, SOA 2026082701
+A     @        216.198.79.1    the target Vercel asked for, propagated everywhere
+CNAME www      pxotoken.com    www 307 -> apex; http 308 -> https
+apex           HTTP 200, <title>PXO - The Mexican Digital Peso</title>
+MX    @        Google Workspace, priorities 1 / 5 / 5 / 10 / 10 — survived byte-for-byte
+TXT   @        "v=spf1 include:_spf.google.com ~all"    SPF was missing before; added
+TXT   _dmarc   "v=DMARC1; p=none"
+TXT   _vercel  "vc-domain-verify=pxotoken.com,083a606ce023b5567963"
+CAA   @        (none — the old letsencrypt/pki.goog/sectigo pinning did not carry over)
+```
+
+**The open risk.** Vercel did **not** issue a new certificate when the domain was attached. Certificate Transparency shows nothing issued since 2026-08-16, and apex and `www` are both served by the previous account's wildcard cert — `CN=*.pxotoken.com`, serial `056CDCBCB57EF5371424F7DB89080FF2A7E0`, expiring **2026-11-14**. This works because a certificate is bound to the domain name, not to the account.
+
+Let's Encrypt renews at roughly 30 days out, so the decision point is **mid-October**. If Vercel provisions its own cert, this closes itself. If it does not, the site fails on 2026-11-14 with an expired certificate on a live production domain — green right up until it isn't, the same shape as the nine-day crash loop in DEP-005.
+
+**Steps:**
+1. Check Vercel → Project → Settings → Domains now and read the certificate status against the domain. If it reports the 2026-11-14 cert, we have inherited the old one; if it shows pending or freshly issued, we are clear.
+2. Let `scripts/check-cert-renewal.sh` watch it. Exits 0 while the situation is fine or still early, 1 once inside the renewal window with no new cert, 2 when urgent. Scheduled to run through October.
+3. If nothing is issued by ~2026-10-20: removing and re-adding the domain in Vercel forces issuance. Brief downtime — do it outside business hours, and confirm no CAA record is blocking the CA first.
+4. **Only after** a new certificate appears in CT, restore the three `CAA` entries (`letsencrypt.org`, `pki.goog`, `sectigo.com`). All issuance on this domain has been Let's Encrypt, so restoring them would probably be harmless — but adding a new constraint immediately before the one issuance that matters is the wrong sequencing. No CAA is permissive, not broken; this is hardening, not a fix.
+5. Ask the dev to remove the domain from his Vercel account entirely (Domains tab, not just the project) so no stale claim remains.
+6. Confirm no subdomain is meant to reach Railway. The wildcard `*` sends every unclaimed name to Vercel — this matches the old zone, so nothing regressed, but it has never been checked deliberately.
+**Done when:** `pxotoken.com` serves a certificate issued to our own Vercel account (a serial other than `056CDCB…`), and the CAA records are back.
+**Lesson recorded (for DEP-008):** With **no** MX records present, RFC 5321 has senders fall back to the `A` record — which during a registrar migration is the host's parking page, and that refuses SMTP, producing hard bounces rather than retries. An empty MX set is worse than a wrong one. On any future nameserver move, MX is the first record restored, not the last. Second lesson: recovering a domain does not recover its certificate, and the inherited one hides the gap until it expires.
+**Follow-up:** DEP-008 — this was avoidable, and the same gap probably exists on other accounts.
+
 
 ---
 
@@ -152,6 +191,23 @@ turbo.json
 **Do not** re-introduce root directory as a filtering mechanism — it changes the build context as well as the trigger scope, and the two are not separable.
 **Done when:** The choice is deliberate and written down, and if watch paths are used, a `packages/shared` change is verified to trigger all eight services.
 **Note:** DEP-003's IaC migration is the natural moment to settle this, since the trigger scope then lives in version control instead of eight dashboard forms.
+
+### DEP-008 · Inventory third-party account ownership and write a contributor offboarding checklist
+**Type:** 🔐 Ops + 📋 Docs
+**Effort:** 3-4 hours
+**Why:** DEP-007 happened because the domain's DNS lived in a departed developer's personal Vercel account, and nobody noticed until the site went down. Recovery depended entirely on his goodwill — he cooperated, but that was luck, not control. Nothing in the repo records who holds what outside it, so we have no way to know where else this is true. Infrastructure that lives outside version control sits outside every handover we have done.
+
+The on-chain equivalent of this risk is already tracked as SL-009 / SL-010 in [BACKLOG.md](./BACKLOG.md) (contract admin roles possibly still held by the previous team). This item covers the off-chain half.
+
+**Steps:**
+1. Enumerate every third-party account the product depends on. For each, record: the owning entity (company vs. an individual's personal account), who has admin, who has billing, and whether MFA/recovery is company-controlled. At minimum — Hostinger (registrar), Vercel, Railway, Supabase, Google Workspace, thirdweb, Bitso, Conekta, the GitHub org, and any monitoring or email-sending vendor.
+2. Flag every row where the owner is a person rather than the company, or where one individual is the only admin. Those are the DEP-007 shape.
+3. Transfer ownership, or add a company-held admin, for each flagged row. Where a vendor supports only one owner, document the recovery path instead.
+4. Write `docs/runbooks/offboarding.md`: what to run when anyone with access leaves — accounts to transfer, credentials to rotate, registrar/DNS/hosting to verify, on-chain roles to check.
+5. Move credentials into a company password manager rather than individual ones.
+**Done when:** A document in `docs/` lists every external dependency against a named company-held owner, no row depends solely on an individual, and the offboarding checklist exists and has been run once retroactively against the departed dev.
+**Note:** Do this before any further contributor joins or leaves. The cost of the audit is a few hours; the cost of the next DEP-007 is however long it takes to find someone who has stopped answering.
+
 
 ---
 
