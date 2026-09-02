@@ -12,9 +12,6 @@ import { ordersRoutes } from './routes/orders.js';
 import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
 import { buyPxoMxnRoutes } from './routes/buy-pxo-mxn.js';
 import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
-// Conekta is dismissed (chargeback risk). Route file kept in repo for grep
-// recoverability but no longer registered here. To be deleted in a cleanup task.
-// import { conektaWebhookRoutes } from './routes/webhooks/conekta.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
 import { qaMockDepositRoutes } from './routes/qa/mock-deposit.js';
 import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';

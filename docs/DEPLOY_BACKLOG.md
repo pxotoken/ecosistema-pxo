@@ -243,12 +243,18 @@ Two other things surfaced during remediation:
 **Steps:**
 1. Set the seven real Vercel vars on `ecosistema-pxo-web` production, **then redeploy**. `VITE_POLYGON_PXO_RECEIVER_ADDRESS` first — that one is SL-001.
 2. Copy the Bitso block from Railway `dev` to `prod` on api-exchange, using production Bitso credentials rather than stage. Add `BITSO_WEBHOOK_API_BASE_URL` and `BITSO_WEBHOOK_IP_ALLOWLIST` (`52.15.91.227,18.216.72.107,18.219.140.132`).
-3. Delete `BITSO_WEBHOOK_SECRET` from Railway `dev` — dead since the v4 verification rewrite.
-4. Decide Conekta. It is out of beta scope, so either set the block or remove the vars together with the commented-out route at `index.ts:17`. Do not leave it half-wired.
-5. Fill the api-pagos and api-orchestrator gaps; add `FORCE_POLYGON_MAINNET=true` to api-pagos.
+3. ~~Delete `BITSO_WEBHOOK_SECRET` from Railway `dev`.~~ **Done 2026-09-02**, verified absent.
+4. ~~Decide Conekta.~~ **Removed entirely, 2026-09-02.** It had been dismissed on 2026-07-12 for chargeback risk, with the files kept "for grep recoverability" and the route left commented out at `index.ts:17`. That half-wired state is exactly what hid the Bitso webhook bug — the raw-body parser lived in `conekta.ts`, a route that was never registered, so it never applied anywhere. Deleted: `lib/conekta.ts`, `routes/webhooks/conekta.ts`, the commented import, the five `CONEKTA_*` config entries and their `.env.example` block. Railway held no `CONEKTA_*` vars in any environment. Recoverable from git history if card pay-in returns.
+5. Fill the api-pagos and api-orchestrator gaps. ~~Add `FORCE_POLYGON_MAINNET=true` to api-pagos.~~ **Done 2026-09-02** with `--skip-deploys`, so it applies on the next deploy rather than forcing one now.
+
+   **Still open here:** `WEBHOOK_INBOUND_SECRET`, `WEBHOOK_OUTBOUND_SECRET`, `PAYMENT_TTL_MINUTES` and `PAYMENTS_CHAIN_ID` on api-pagos; `UPSTREAM_API_LEGACY` on api-orchestrator. The two secrets need values.
+
+   **Deliberately not done: deleting `BINANCE_API_KEY` from Railway prod.** It is dead config and should go, but `railway variable delete` has no `--skip-deploys` flag (only `set` does), so removing it forces a **production redeploy** of api-exchange. With DEP-001 and DEP-002 still open, that redeploy is the risk, not the variable. Fold it into the next intentional deploy.
 6. ~~Add every undocumented prod var to the matching `.env.example` and to `ENV_MATRIX.md`, or delete it if dead.~~ **Done 2026-09-02.** `WALLET_PRIVATE_KEY` documented on api-exchange/api-pagos/api-wallet with a pointer to SL-003; `ALLOWED_ORIGINS` and `PXO_TOKEN_ADDRESS_MAINNET` on api-pagos; `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` on api-orchestrator. `BINANCE_API_KEY` documented as dead rather than required. Re-running the diff now leaves only that one entry, by design.
 7. ~~Create `.env.example` for `apps/landing` and `apps/pagos`.~~ **Done 2026-09-02**, derived from what the code actually reads (`import.meta.env.*` grep), not from what happens to be set in Vercel. This surfaced that `apps/pagos` reads two vars that production does not set: `VITE_SIGNATURE_TIMEOUT_SECONDS`, and `VITE_PXO_TOKEN_ADDRESS_BSC` (BSC is out of scope — remove the code reference rather than setting the var).
 8. Re-run the diffs until every service reads zero.
+
+**Environment changes applied 2026-09-02:** `BITSO_WEBHOOK_SECRET` deleted from Railway dev; `FORCE_POLYGON_MAINNET=true` set on api-pagos prod (skip-deploys); the eight unused vars deleted from the `ecosistema-pxo-landing` Vercel project, which now carries only `VITE_API_URL`, matching its new `.env.example`.
 
 **Also done 2026-09-02:** the dead `NEXT_PUBLIC_*` fallbacks were removed from `apps/web` — `EnvStatus.tsx` (which mislabelled its panel with variable names that do not exist), `KycDetailsModal.tsx`, and `authActions.ts` (where the effective fallback was always `window.location.host`) — together with the four `.env.example` entries.
 

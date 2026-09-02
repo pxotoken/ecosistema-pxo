@@ -222,7 +222,8 @@ async function fulfillIntent(
     return;
   }
 
-  // Read on-chain decimals for atomic-unit math (same pattern as conekta webhook).
+  // Read on-chain decimals for atomic-unit math rather than assuming 18 — PXO
+  // is a 6-decimal token (see SL-013 for where the frontend gets this wrong).
   let decimals = 18;
   try {
     const client = getServerThirdwebClient();

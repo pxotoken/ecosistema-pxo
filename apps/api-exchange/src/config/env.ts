@@ -49,11 +49,6 @@ export const env = {
   GAS_SUBSIDY_MIN_INTERVAL_MINUTES: Number(process.env.GAS_SUBSIDY_MIN_INTERVAL_MINUTES) || 1,
   MAX_GAS_SUBSIDY_DAILY_AMOUNT_WEI: process.env.MAX_GAS_SUBSIDY_DAILY_AMOUNT_WEI || '',
 
-  CONEKTA_API_BASE_URL: process.env.CONEKTA_API_BASE_URL || 'https://api.conekta.io',
-  CONEKTA_PRIVATE_KEY: process.env.CONEKTA_PRIVATE_KEY || '',
-  CONEKTA_WEBHOOK_SECRET: process.env.CONEKTA_WEBHOOK_SECRET || '',
-  CONEKTA_SUCCESS_URL: process.env.CONEKTA_SUCCESS_URL || 'http://localhost:5173/dashboard/fiat?status=success',
-  CONEKTA_FAILURE_URL: process.env.CONEKTA_FAILURE_URL || 'http://localhost:5173/dashboard/fiat?status=failure',
 
   BITSO_API_BASE_URL: process.env.BITSO_API_BASE_URL || 'https://stage.bitso.com/api/v3',
   BITSO_API_KEY: process.env.BITSO_API_KEY || '',
