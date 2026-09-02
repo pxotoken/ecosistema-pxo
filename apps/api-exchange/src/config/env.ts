@@ -60,9 +60,11 @@ export const env = {
   BITSO_API_SECRET: process.env.BITSO_API_SECRET || '',
   // Bitso v4 webhooks. There is no shared secret: events are signed with
   // Bitso's RSA key and verified against the public key served here.
-  // Prod is https://api.bitso.com/v4. NOTE: the v4 PDF's curl example
-  // shows https://bitso.com/v4/... without the api. subdomain — confirm
-  // with Bitso before flipping prod.
+  // Prod is https://api.bitso.com/v4. The v4 PDF is inconsistent here —
+  // section 2 says v4 drops /api/ from api.bitso.com, while the 2.7.1
+  // curl example shows bitso.com with no api. subdomain. Bitso confirmed
+  // (2026-09-02) that the public-key endpoint resolves on both hosts; we
+  // use api.bitso.com to match BITSO_TICKER_BASE_URL.
   BITSO_WEBHOOK_API_BASE_URL:
     process.env.BITSO_WEBHOOK_API_BASE_URL || 'https://stage.bitso.com/v4',
   // Comma-separated egress IPs Bitso delivers from. Empty disables the
