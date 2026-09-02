@@ -15,7 +15,7 @@
 | # | Finding | Severity | Source |
 |---|---|---|---|
 | 1 | `POLYGON_PXO_RECEIVER_ADDRESS` is **not set** in Railway api-exchange. Backend rejects all mainnet SELL requests with HTTP 500. | **P0 — blocks any mainnet redemption** | `sell-pxo.ts:114` |
-| 2 | Frontend has a hardcoded fallback receiver `0x9f0f2eac50ad04d37d3bf3359735928126ac8382`. Provenance unknown. Any PXO already sent there is unaccounted for. | **P0 — possible orphaned funds** | `usePXOSell.ts:30` |
+| 2 | Frontend hardcoded fallback receiver `0x9f0f2eac50ad04d37d3bf3359735928126ac8382`. **Resolved on-chain 2026-09-02: not orphaned — a live EOA with 95 outbound txs, 3.44 POL and 9.4428 PXO, i.e. someone holds the key.** Production reaches it because `VITE_POLYGON_PXO_RECEIVER_ADDRESS` is unset on Vercel prod. | **P0 — funds routed to an address we do not control** | `usePXOSell.ts:31`, `usePXOExchange.ts:47`, SL-001 |
 | 3 | Admin UI cannot see USDT in treasury (only PXO + USDC). | P1 | `WalletStatusPage.tsx`, `api-wallet/admin/status.ts` |
 | 4 | No on-chain proof / dashboard tying the off-chain escrow to PXO supply. | P1 (audit/compliance) | n/a — gap |
 | 5 | All refills (PXO reserve → treasury, USDT/USDC → treasury, MXN ↔ escrow) are manual and undocumented. | P2 — operational risk | Adrian, 2026-06-25 |

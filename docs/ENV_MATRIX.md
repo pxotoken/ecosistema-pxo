@@ -4,7 +4,18 @@ Single source of truth for which env vars each app needs and **where** they need
 
 Use this file every time you add a new env var. If it's not here, it doesn't exist.
 
-**Last audit:** 2026-06-12 (after Bitso/Conekta integration).
+**Last audit:** 2026-09-02 — first audit of the **deployed** environments, not just this doc. Findings and remediation live in [DEPLOY_BACKLOG.md](./DEPLOY_BACKLOG.md) DEP-009. Headline: production had not been touched in 3+ months and was never configured for this version of the app; `dev` was. `api-exchange` prod is missing 26 of 43 documented vars including the whole Bitso block. *(Previous audit: 2026-06-12, after Bitso/Conekta integration.)*
+
+### Two standing false positives
+
+Every future audit will surface these. They are noise, not gaps:
+
+- **`PORT` on Railway.** Railway supplies it at runtime and does not list it as a variable, so it reads as missing on all eight services. Expected.
+- **`NEXT_PUBLIC_*` on Vercel.** Next.js leftovers in `apps/web/.env.example`. `apps/web` is Vite, which only exposes `VITE_*`; these survive solely as fallbacks in `EnvStatus.tsx:5-7`. Delete them from `.env.example` rather than setting them.
+
+### The one that bit us
+
+`VITE_*` vars are **baked into the bundle at build time**. A missing one ships as `undefined` with no startup error, and setting it in the Vercel dashboard changes nothing until the project is **redeployed**. `VITE_POLYGON_PXO_RECEIVER_ADDRESS` being unset on production is why `usePXOSell.ts:31` fell through to a hardcoded address nobody controls — see SL-001. Treat every `VITE_*` gap as a silent-failure candidate, never a loud one.
 
 ## How to use this doc
 

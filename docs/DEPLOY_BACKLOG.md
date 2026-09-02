@@ -28,6 +28,8 @@ Types: 🔧 Code · 🔍 Discovery · 🔐 Ops · 📋 Docs · 📞 External
 - [ ] **DEP-006** — Decide the build-trigger scope per service (root directory vs explicit watch paths)
 - [ ] **DEP-007** — Confirm Vercel issues its own TLS cert for `pxotoken.com` before 2026-11-14 (recovery otherwise complete)
 - [ ] **DEP-008** — Inventory third-party account ownership and write a contributor offboarding checklist
+- [ ] **DEP-009** — Production was never configured for this version of the app (Railway + Vercel)
+- [ ] **DEP-010** — `apps/api-exchange` has no ESLint config; repo-wide lint fails there
 
 ---
 
@@ -191,6 +193,65 @@ turbo.json
 **Do not** re-introduce root directory as a filtering mechanism — it changes the build context as well as the trigger scope, and the two are not separable.
 **Done when:** The choice is deliberate and written down, and if watch paths are used, a `packages/shared` change is verified to trigger all eight services.
 **Note:** DEP-003's IaC migration is the natural moment to settle this, since the trigger scope then lives in version control instead of eight dashboard forms.
+### DEP-009 · Production was never configured for this version of the app
+**Type:** 🔐 Ops
+**Effort:** 2-3 hours, plus a redeploy of every frontend
+**Why:** Nobody has looked at the production environments in 3+ months. The audit on 2026-09-02 (`railway variable list` and `vercel env ls` across every service, key names only) found that `dev` is the environment tracking this version of the app, and `prod` largely is not. **None of the values below are deliberate** — this is drift from inattention, not decisions.
+
+**Railway — `pxo-ecosystem`, environment `prod`.** Counts exclude the 18 `RAILWAY_*` vars the platform injects. `PORT` is *not* a real gap: Railway supplies it at runtime rather than listing it, so its absence from all eight services is expected.
+
+| Service | documented | in prod | gap |
+|---|---|---|---|
+| api-exchange | 43 | 18 | **26 missing** |
+| api-pagos | 34 | 26 | 10 missing, 3 undocumented |
+| api-orchestrator | 16 | 16 | 1 missing, 2 undocumented |
+| api-auth | 12 | 10 | 1 missing |
+| api-wallet | 14 | 14 | 1 undocumented |
+| api-email / api-kyc / api-users | 11 / 7 / 7 | 10 / 6 / 6 | clean |
+
+`api-exchange` is the serious one. Absent in prod: **the entire Bitso block** (`BITSO_API_KEY`, `BITSO_API_SECRET`, `BITSO_API_BASE_URL`, `BITSO_BUSINESS_CLABE`, `BITSO_BUSINESS_BENEFICIARY_NAME`, `BITSO_TICKER_BASE_URL`, `BITSO_USDC_CORRECTION_ENABLED`), the entire Conekta block, all three gas-subsidy caps, all three deposit-worker settings, `PRICE_PROVIDER`, and both `*_DEFAULT_TOKEN` vars. `dev` has 45 keys including all of Bitso. **The fiat rail is configured in dev and absent in prod.**
+
+Also missing: `WEBHOOK_INBOUND_SECRET`, `WEBHOOK_OUTBOUND_SECRET`, `PAYMENT_TTL_MINUTES`, `PAYMENTS_CHAIN_ID` on api-pagos; `UPSTREAM_API_LEGACY` on api-orchestrator. Present in prod but undocumented: `WALLET_PRIVATE_KEY` on api-exchange, api-pagos and api-wallet (SL-003's plain-vs-encrypted question, still open), plus `BINANCE_API_KEY`, `ALLOWED_ORIGINS`, `PXO_TOKEN_ADDRESS_MAINNET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
+
+**`FORCE_POLYGON_MAINNET`** is `true` on api-exchange and api-wallet but **absent on api-pagos**, which the pre-launch checklist requires across all three.
+
+**Vercel — `ecosistema-pxo-web`, target production.** 12 vars set, 11 documented ones absent. Four (`NEXT_PUBLIC_*`) are Next.js leftovers surviving only as fallbacks in `EnvStatus.tsx:5-7`; delete them from `.env.example` rather than adding them. The seven real gaps:
+
+```
+VITE_POLYGON_PXO_RECEIVER_ADDRESS   <- routes production sales to 0x9f0f...8382 (SL-001)
+VITE_CHAINS_ENVIRONMENT             <- defaults to "PROD" at useWalletStore.ts:111
+VITE_MOCK_DEPOSITS_ENABLED
+VITE_AUTO_RENEW_ON_ACTIVITY
+VITE_JWT_EXPIRATION_TIME
+VITE_SIGNATURE_TIMEOUT_SECONDS
+VITE_BSC_PXO_RECEIVER_ADDRESS       <- BSC is out of scope per the chain decision; likely delete
+```
+
+**`VITE_*` is baked in at build time.** A missing var ships as `undefined` with no startup error, and setting one in the dashboard changes nothing until the project is **redeployed**. That is the mechanism behind SL-001.
+
+`ecosistema-pxo-landing` and `ecosistema-pxo-pagos` have 9 and 12 production vars and **no `.env.example` to diff against**, so they are currently unauditable. Landing's prod config points at testnet (`VITE_PXO_TOKEN_ADDRESS_TESTNET`, `VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS`, `VITE_ENABLE_ADMIN_TESTNET`) — confirm that is intended for a production landing page.
+
+**One piece of good news.** The dangerous flags fail safe when unset: `MOCK_DEPOSITS_ENABLED` and `FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK` are both `=== 'true'` comparisons in `config/env.ts`, so absent means `false`. Production is not silently running in demo mode, and `NODE_ENV=production` is set everywhere. One behaviour *is* decided by omission: `PRICE_PROVIDER` defaults to `'binance'`, so prod prices off Binance rather than Bitso.
+
+**Steps:**
+1. Set the seven real Vercel vars on `ecosistema-pxo-web` production, **then redeploy**. `VITE_POLYGON_PXO_RECEIVER_ADDRESS` first — that one is SL-001.
+2. Copy the Bitso block from Railway `dev` to `prod` on api-exchange, using production Bitso credentials rather than stage. Add `BITSO_WEBHOOK_API_BASE_URL` and `BITSO_WEBHOOK_IP_ALLOWLIST` (`52.15.91.227,18.216.72.107,18.219.140.132`).
+3. Delete `BITSO_WEBHOOK_SECRET` from Railway `dev` — dead since the v4 verification rewrite.
+4. Decide Conekta. It is out of beta scope, so either set the block or remove the vars together with the commented-out route at `index.ts:17`. Do not leave it half-wired.
+5. Fill the api-pagos and api-orchestrator gaps; add `FORCE_POLYGON_MAINNET=true` to api-pagos.
+6. Add every undocumented prod var to the matching `.env.example` and to `ENV_MATRIX.md`, or delete it if dead.
+7. Create `.env.example` for `apps/landing` and `apps/pagos` so they stop being unauditable.
+8. Re-run the diffs until every service reads zero.
+**Done when:** Every service and frontend project diffs clean against its `.env.example`, and `ENV_MATRIX.md` records the audit date.
+**Watch for:** Two false positives will reappear on every future audit unless they stay written down — `PORT` on Railway, and `NEXT_PUBLIC_*` on Vercel. Both are noise.
+
+### DEP-010 · `apps/api-exchange` has no ESLint config
+**Type:** 🔧 Code
+**Effort:** 30 minutes
+**Why:** `pnpm --filter @pxo/api-exchange lint` exits 2 with *"ESLint couldn't find an eslint.config.(js|mjs|cjs) file"*. Five packages have one (`packages/config`, `apps/web`, `apps/landing`, `apps/api-pagos`, `apps/pagos`); api-exchange does not — so the service that moves money is the one with no lint gate, and a repo-wide `pnpm lint` fails there and masks whatever runs after it.
+**Steps:** add `eslint.config.js` extending the shared config in `packages/config`, then triage what it surfaces.
+**Done when:** `pnpm --filter @pxo/api-exchange lint` runs to completion.
+
 
 ### DEP-008 · Inventory third-party account ownership and write a contributor offboarding checklist
 **Type:** 🔐 Ops + 📋 Docs

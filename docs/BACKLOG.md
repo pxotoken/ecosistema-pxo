@@ -31,7 +31,7 @@ Each task is marked with type:
 
 The Tier 1 items, as a single scannable list. When all checked, F&F launch is safe.
 
-- [ ] **SL-001** — Identify owner of `0x9f0f…8382` and recover any orphaned PXO
+- [ ] **SL-001** — Stop production routing funds to `0x9f0f…8382` (live EOA, unknown holder)
 - [ ] **SL-002** — Set `POLYGON_PXO_RECEIVER_ADDRESS` in Railway api-exchange
 - [ ] **SL-003** — Resolve treasury wallet key model (plain vs encrypted) on Railway
 - [ ] **SL-004** — Reconcile env vars across all Railway services against `ENV_MATRIX.md`
@@ -43,21 +43,37 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-010** — *(conditional on SL-009)* Plan admin key rotation if previous team retains control
 - [ ] **SL-011** — Wallet-chain mismatch protection (block/redirect on wrong network)
 - [ ] **SL-012** — Patch the request-path CVEs: `@fastify/http-proxy`, `axios`, `react-router`
+- [ ] **SL-013** — PXO decimals are 6 on-chain; frontend hardcodes 18 (10¹² error)
+- [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
 
 ---
 
 ## 🟥 Tier 1 — Soft-launch blockers
 
-### SL-001 · Identify `0x9f0f…8382` and recover any orphaned PXO
-**Type:** 🔍 Discovery + 🔐 Ops
-**Effort:** 1-3 hours
-**Why:** Frontend has been telling users to send PXO to this hardcoded address since at least the Bitso branch. Unknown if any test PXO is sitting there or if anyone controls the keys.
+### SL-001 · `0x9f0f…8382` is live and controlled by an unknown party — stop sending funds to it
+**Type:** 🔐 Ops + 📞 External
+**Effort:** 1 hour to stop the bleeding; recovery depends on who holds the key
+**On-chain findings (2026-09-02, Polygon mainnet block 93,121,305, cross-checked on two RPCs):**
+
+| Fact | Value |
+|---|---|
+| Account type | **plain EOA** — a single private key, not a contract or multisig |
+| Outbound transactions | **95** |
+| Native POL balance | 3.441910 |
+| PXO balance | **9.4428 PXO** |
+
+This closes the open question, and the answer is worse than "orphaned". The address is **not** abandoned: 95 outbound transactions mean somebody holds the key and has been actively spending from it. An unknown party controls an address that production is still pointing users at.
+
+**How production still reaches it.** `VITE_POLYGON_PXO_RECEIVER_ADDRESS` is **not set on Vercel production**, so `usePXOSell.ts:31` and `usePXOExchange.ts:47` fall through to the hardcoded literal. `VITE_FORCE_POLYGON_MAINNET` **is** set, and `VITE_CHAINS_ENVIRONMENT` is unset so `useWalletStore.ts:111` defaults it to `"PROD"`. Because `VITE_*` values are baked in at build time, nothing errors — the bundle silently ships the fallback. Railway `dev` compounds it: `POLYGON_PXO_RECEIVER_ADDRESS` is set to this same address, so the backend agrees with the bad frontend default.
+
 **Steps:**
-1. Check https://polygonscan.com/address/0x9f0f2eac50ad04d37d3bf3359735928126ac8382 — list PXO balance and inbound transactions
-2. Check if it matches the treasury hot wallet (derive from `WALLET_PRIVATE_KEY_ENCRYPTED`)
-3. Check if it appears in any team password manager or old wallet exports
-4. If orphaned: decide remediation (write off, attempt recovery via prior team contacts)
-**Done when:** The address is named in `TREASURY.md` (or `INCIDENTS.md` if orphaned), and any recoverable PXO is moved to a known wallet.
+1. **Today** — set `VITE_POLYGON_PXO_RECEIVER_ADDRESS` on Vercel production to a wallet we control, and **redeploy**. A Vite var only takes effect on rebuild; setting it without redeploying changes nothing.
+2. Delete both hardcoded fallbacks in `usePXOSell.ts` and `usePXOExchange.ts`. A missing receiver must fail loudly, not silently route real funds to a literal committed years ago.
+3. Repoint `POLYGON_PXO_RECEIVER_ADDRESS` in Railway dev/qa/prod at the same controlled wallet.
+4. Establish whether the 9.4428 PXO is recoverable: check the address against the treasury wallet derived from `WALLET_PRIVATE_KEY_ENCRYPTED`, the team password manager, and old wallet exports. If it belongs to the previous team, ask — they returned the domain.
+5. Record the outcome in `TREASURY.md`, or `INCIDENTS.md` if the PXO is written off.
+**Done when:** No code path and no environment references `0x9f0f…8382`, production is rebuilt, and the 9.4428 PXO is either recovered or explicitly written off in writing.
+**Note:** 9.44 PXO is a trivial sum. The finding that matters is that the path was open at all — with real users, that address receives every sale.
 
 ### SL-002 · Set `POLYGON_PXO_RECEIVER_ADDRESS` in Railway api-exchange
 **Type:** 🔐 Ops
@@ -137,6 +153,25 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 **Effort:** 2-3 hours
 **Why:** Lawyers are reviewing contract claims now and have no blockchain expertise — verification responsibility sits with CTO. Source has been "assured" to live in the `qa` branch of ecosistema-pxo; trust-but-verify. If the source diverges from what's on-chain, every downstream claim (audit, repo publication, legal disclosure) is built on sand.
 **Deployed contract:** `0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7` (Polygon mainnet, per `useWalletStore.ts:47`).
+
+**Partially answered on-chain (2026-09-02).** Read directly from the deployed bytecode, so this is fact rather than assurance — it does not replace the source-vs-bytecode comparison below, but it settles the role question:
+
+| Property | Value |
+|---|---|
+| `owner()` | **`0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17`** |
+| Owner account type | **plain EOA — a single private key, not a multisig**, 7 outbound txs |
+| Access model | **Ownable**, not AccessControl — `hasRole` / `MINTER_ROLE` are absent, so there is no role to grant separately from ownership |
+| `decimals()` | **6** (see SL-013 — the frontend hardcodes 18) |
+| `totalSupply()` | 50,000,000 PXO |
+| Present | `mint(address,uint256)`, `burn(uint256)`, `pause()`, `unpause()`, `transferOwnership(address)` |
+| Absent | `burnFrom(address,uint256)`, `burn(address,uint256)`, `mint(uint256)` |
+
+Three consequences worth reading together:
+
+- **The owner address appears nowhere in this repo.** Until somebody confirms who holds that key, we do not control the token. That is the SL-010 trigger, and it is now a live question rather than a hypothetical.
+- **Ownable, not roles.** Minting cannot be delegated to a service wallet without handing over full ownership — including `pause()`. Any mint-on-demand design has to route through the owner key or a contract that holds it.
+- **One key, no multisig.** A single EOA owning a 50M-supply token, with pause authority, is a concentration risk independent of who holds it.
+
 **Steps:**
 1. Extract Solidity source from the `qa` branch into a working directory
 2. Identify exact compiler version and optimizer settings from Polygonscan's verified source page
@@ -178,6 +213,36 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - Consider whether admin users should be exempt (they already have `VITE_ENABLE_ADMIN_TESTNET` semantics for chain flexibility)
 - SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
 - The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
+
+### SL-013 · PXO decimals are 6 on-chain; the frontend hardcodes 18
+**Type:** 🔧 Code
+**Effort:** 1-2 hours
+**Why:** `decimals()` on the deployed PXO contract returns **6**, verified against two independent RPCs. `apps/web/src/hooks/useSendToken.ts:26-27` hardcodes `18` for both the mainnet and testnet PXO addresses, and line 103 falls back to `18` for anything not in that map:
+
+```ts
+"0xeda62cd0d29e077b98e0b61d905c4af906d8946c": 18, // PXO testnet
+"0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7": 18, // PXO mainnet
+const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
+```
+
+Every PXO amount the send path computes is therefore off by **10¹²**. In the send direction the transfer reverts for insufficient balance, so this fails safe rather than moving wrong amounts — but it means the send-PXO path cannot have been exercised against mainnet, and any balance rendered through the same constant is wrong by the same factor.
+
+`api-exchange` already does this correctly — `routes/webhooks/conekta.ts:157` reads decimals on-chain. The frontend should not be carrying a hardcoded table at all.
+
+**Steps:**
+1. Read `decimals()` on-chain and cache per token address, mirroring what the backend does. Delete the hardcoded map.
+2. Grep for other `?? 18` / `1e18` / `parseUnits(..., 18)` assumptions on PXO across `apps/web` and `apps/pagos`.
+3. Verify against mainnet with a small real transfer once SL-001 is closed and the receiver is an address we control.
+**Done when:** No PXO decimal constant is hardcoded anywhere in the frontends, and a mainnet send of a known amount arrives as that exact amount.
+**Watch for:** USDC and USDT on Polygon are also 6 decimals, so a blanket "everything is 18" assumption is wrong in more than one place. Check each token, don't pattern-match.
+
+### SL-014 · Reconcile production env vars in Railway and Vercel
+**Type:** 🔐 Ops
+**Effort:** 2-3 hours
+**Why:** The production environment has not been looked at in 3+ months, and the audit on 2026-09-02 found it was never configured for this version of the app — `dev` was. Full findings and per-service diffs are in [DEPLOY_BACKLOG.md](./DEPLOY_BACKLOG.md) DEP-009; this entry exists so the soft-launch checklist blocks on it.
+
+The single highest-severity consequence is SL-001: a missing Vercel var is what routes production sales to an address we do not control.
+**Done when:** DEP-009 is closed.
 
 ### SL-012 · Patch the request-path CVEs
 **Type:** 🔧 Code
