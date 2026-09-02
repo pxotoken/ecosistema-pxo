@@ -13,8 +13,9 @@ interface KycDetailsModalProps {
 // Convierte un storage path a URL pública del bucket pxos-files.
 const getImageUrl = (path: string) => {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  const supabaseUrl =
-    import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+  // NEXT_PUBLIC_SUPABASE_URL was a dead fallback here: Vite exposes only
+  // VITE_*, so it never resolved.
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return `${supabaseUrl}/storage/v1/object/public/pxos-files/${path}`;
 };
 

@@ -11,7 +11,9 @@ Use this file every time you add a new env var. If it's not here, it doesn't exi
 Every future audit will surface these. They are noise, not gaps:
 
 - **`PORT` on Railway.** Railway supplies it at runtime and does not list it as a variable, so it reads as missing on all eight services. Expected.
-- **`NEXT_PUBLIC_*` on Vercel.** Next.js leftovers in `apps/web/.env.example`. `apps/web` is Vite, which only exposes `VITE_*`; these survive solely as fallbacks in `EnvStatus.tsx:5-7`. Delete them from `.env.example` rather than setting them.
+- **`NEXT_PUBLIC_*` on Vercel — but ONLY on the frontends.** In `apps/web` these were Next.js leftovers: Vite exposes only `VITE_*`, there is no `envPrefix` override, and `vite.config.ts:16` defines only `global` and `process.env` — so `import.meta.env.NEXT_PUBLIC_*` was always `undefined`. The three dead fallbacks that read them (`EnvStatus.tsx`, `KycDetailsModal.tsx`, `authActions.ts`) were removed on 2026-09-02 along with the `.env.example` entries.
+
+  **Do not generalise this to Railway.** Node reads `process.env` directly with no prefix filtering, so on the backends the `NEXT_PUBLIC_` name is load-bearing: `api-auth/src/config/env.ts:6` and `api-email/src/config/env.ts:17` both read **`NEXT_PUBLIC_SUPABASE_URL`** as their `SUPABASE_URL`. Deleting it from Railway breaks authentication and email. Rename it deliberately in code and config together, or leave it alone.
 
 ### The one that bit us
 

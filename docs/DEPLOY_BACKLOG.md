@@ -233,15 +233,26 @@ VITE_BSC_PXO_RECEIVER_ADDRESS       <- BSC is out of scope per the chain decisio
 
 **One piece of good news.** The dangerous flags fail safe when unset: `MOCK_DEPOSITS_ENABLED` and `FIAT_DEMO_SKIP_BITSO_FUNDING_CHECK` are both `=== 'true'` comparisons in `config/env.ts`, so absent means `false`. Production is not silently running in demo mode, and `NODE_ENV=production` is set everywhere. One behaviour *is* decided by omission: `PRICE_PROVIDER` defaults to `'binance'`, so prod prices off Binance rather than Bitso.
 
+**Correction found while remediating (2026-09-02).** The `NEXT_PUBLIC_*` false positive applies to the **frontends only**. Node reads `process.env` with no prefix filtering, so on Railway the name is load-bearing: `api-auth/src/config/env.ts:6` and `api-email/src/config/env.ts:17` both read **`NEXT_PUBLIC_SUPABASE_URL`** as their `SUPABASE_URL`. Deleting it from Railway breaks authentication and email. An earlier draft of this item did not make that distinction and would have caused an outage.
+
+Two other things surfaced during remediation:
+
+- **`apps/landing`'s testnet-looking prod config is inert.** Eight of its nine Vercel vars are referenced nowhere in `apps/landing/src`; the app reads only `VITE_API_URL`. Delete them from Vercel rather than reasoning about them.
+- **`BINANCE_API_KEY` is dead.** Set in Railway prod, read by no `api-*` service. The Binance ticker used for pricing is public and unauthenticated. Delete it.
+
 **Steps:**
 1. Set the seven real Vercel vars on `ecosistema-pxo-web` production, **then redeploy**. `VITE_POLYGON_PXO_RECEIVER_ADDRESS` first — that one is SL-001.
 2. Copy the Bitso block from Railway `dev` to `prod` on api-exchange, using production Bitso credentials rather than stage. Add `BITSO_WEBHOOK_API_BASE_URL` and `BITSO_WEBHOOK_IP_ALLOWLIST` (`52.15.91.227,18.216.72.107,18.219.140.132`).
 3. Delete `BITSO_WEBHOOK_SECRET` from Railway `dev` — dead since the v4 verification rewrite.
 4. Decide Conekta. It is out of beta scope, so either set the block or remove the vars together with the commented-out route at `index.ts:17`. Do not leave it half-wired.
 5. Fill the api-pagos and api-orchestrator gaps; add `FORCE_POLYGON_MAINNET=true` to api-pagos.
-6. Add every undocumented prod var to the matching `.env.example` and to `ENV_MATRIX.md`, or delete it if dead.
-7. Create `.env.example` for `apps/landing` and `apps/pagos` so they stop being unauditable.
+6. ~~Add every undocumented prod var to the matching `.env.example` and to `ENV_MATRIX.md`, or delete it if dead.~~ **Done 2026-09-02.** `WALLET_PRIVATE_KEY` documented on api-exchange/api-pagos/api-wallet with a pointer to SL-003; `ALLOWED_ORIGINS` and `PXO_TOKEN_ADDRESS_MAINNET` on api-pagos; `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` on api-orchestrator. `BINANCE_API_KEY` documented as dead rather than required. Re-running the diff now leaves only that one entry, by design.
+7. ~~Create `.env.example` for `apps/landing` and `apps/pagos`.~~ **Done 2026-09-02**, derived from what the code actually reads (`import.meta.env.*` grep), not from what happens to be set in Vercel. This surfaced that `apps/pagos` reads two vars that production does not set: `VITE_SIGNATURE_TIMEOUT_SECONDS`, and `VITE_PXO_TOKEN_ADDRESS_BSC` (BSC is out of scope — remove the code reference rather than setting the var).
 8. Re-run the diffs until every service reads zero.
+
+**Also done 2026-09-02:** the dead `NEXT_PUBLIC_*` fallbacks were removed from `apps/web` — `EnvStatus.tsx` (which mislabelled its panel with variable names that do not exist), `KycDetailsModal.tsx`, and `authActions.ts` (where the effective fallback was always `window.location.host`) — together with the four `.env.example` entries.
+
+**Blocked on values or decisions, not on work:** steps 1, 2, 4 and 5 need the controlled receiver wallet address, production Bitso credentials, a Conekta keep-or-delete call, and the api-pagos webhook secrets.
 **Done when:** Every service and frontend project diffs clean against its `.env.example`, and `ENV_MATRIX.md` records the audit date.
 **Watch for:** Two false positives will reappear on every future audit unless they stay written down — `PORT` on Railway, and `NEXT_PUBLIC_*` on Vercel. Both are noise.
 
