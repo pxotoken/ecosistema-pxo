@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { env } from '../config/env.js';
 
 // Bitso Business API adapter (stage by default).
@@ -254,24 +254,9 @@ export async function bitsoCreateMockSpeiDeposit(
   return data.payload;
 }
 
-/**
- * Verify Bitso webhook signature. Bitso sends an `x-signature` header
- * containing HMAC-SHA256 of the raw body using the webhook secret.
- */
-export function verifyBitsoWebhookSignature(
-  rawBody: string,
-  signatureHeader: string | undefined,
-): boolean {
-  if (!env.BITSO_WEBHOOK_SECRET || !signatureHeader) return false;
-  const computed = createHmac('sha256', env.BITSO_WEBHOOK_SECRET)
-    .update(rawBody, 'utf8')
-    .digest('hex');
-  try {
-    return timingSafeEqual(Buffer.from(computed), Buffer.from(signatureHeader));
-  } catch {
-    return false;
-  }
-}
+// Webhook signature verification moved to ./bitso-webhook-signature.ts.
+// Bitso v4 signs asymmetrically (RSA); the old HMAC-over-a-shared-secret
+// implementation here matched no scheme Bitso actually uses.
 
 export interface BitsoWithdrawalEvent {
   eventType: string;
