@@ -51,43 +51,32 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 
 ## 🟥 Tier 1 — Soft-launch blockers
 
-### SL-001 · Confirm we hold `0x9f0f…8382`, then configure the receiver explicitly
-**Type:** 🔐 Ops + 📞 External
-**Effort:** 1 hour to stop the bleeding; recovery depends on who holds the key
-**On-chain findings (2026-09-02, Polygon mainnet block 93,121,305, cross-checked on two RPCs):**
+### SL-001 · ~~Receiver address~~ — RESOLVED 2026-09-03
+**Type:** 🔐 Ops
+**Status:** **Closed on the substance. `0x9f0f…8382` is ours, and no funds were ever out of reach.**
 
-| Fact | Value |
-|---|---|
-| Account type | **plain EOA** — a single private key, not a contract or multisig |
-| Outbound transactions | **95** |
-| Native POL balance | 3.441910 |
-| PXO balance | **9.4428 PXO** |
+`scripts/whoami-server-wallet.sh` derived the address from `WALLET_PRIVATE_KEY` in Railway production and it is byte-for-byte the configured receiver:
 
-The address is **not** abandoned — 95 outbound transactions mean somebody holds the key and spends from it.
+```
+server wallet : 0x9f0f2EAc50AD04D37D3Bf3359735928126aC8382
+receiver      : 0x9f0f2eac50ad04d37d3bf3359735928126ac8382
+```
 
-**Revised reading (2026-09-02).** An earlier draft of this item called that "an unknown party in active control". That was an over-reading of the same evidence. The wallet's composition looks like **this app's own operational hot wallet**: a little PXO from user sells, a small USDC float for paying buys out, and POL for gas.
+The backend has held that key throughout. The 9.4428 PXO and 14.15 USDC sitting there are ours, the 95 outbound transactions were this app's own payouts, and Railway already had the correct value in **both** dev and prod.
 
-| | PXO | USDC | POL |
-|---|---|---|---|
-| owner `0xdaac…6d17` | 49,999,979 | 0 | 34.72 |
-| receiver `0x9f0f…8382` | 9.44 | 14.15 | 3.44 |
+**Two earlier readings in this file were wrong, and both are worth remembering:**
 
-It is also **not** a minter (`isMinter` returns false; a simulated mint reverts), so it holds no admin capability — see SL-009.
+1. *"An unknown party controls an address production points users at."* Over-read from 95 outbound transactions plus unknown provenance. The wallet composition — PXO from sells, a USDC float, POL for gas — should have been read as an operational hot wallet from the start.
+2. *"Production is routing sales to an unverified address."* The hardcoded fallback was the **correct** address. Nothing was ever misrouted.
 
-The code keeps two distinct roles: `liquidity.ts:55` derives a **server wallet** from `WALLET_PRIVATE_KEY`, while `POLYGON_PXO_RECEIVER_ADDRESS` is a separately configured **receiver** used at `gas-subsidy.ts:100`. If those resolve to the same address, we have controlled this wallet all along and this item is "undocumented but ours". If they differ, user PXO is landing where the backend cannot spend from.
+What was real: production depended on a literal committed years ago rather than on configuration, and nobody could say whether that literal was right. The exposure was that the question could not be answered, not that the answer was bad. Had the server wallet ever been rotated, the fallback would have kept sending to the old one, silently, because `VITE_*` bakes in at build time.
 
-**Settle it first:** `scripts/whoami-server-wallet.sh` prints only the address derived from the server key, never the key itself. Everything below is worth doing either way, but the severity depends on that one answer.
+**Done:**
+- Hardcoded fallbacks removed from both hooks and consolidated into `apps/web/src/lib/pxoReceiver.ts`; a missing receiver now throws (884e465, c5089a1, 084c01d).
+- `VITE_POLYGON_PXO_RECEIVER_ADDRESS` set on `ecosistema-pxo-web` production 2026-09-03 and verified byte-for-byte. Railway dev and prod already carried it.
 
-**How production still reaches it.** `VITE_POLYGON_PXO_RECEIVER_ADDRESS` is **not set on Vercel production**, so `usePXOSell.ts:31` and `usePXOExchange.ts:47` fall through to the hardcoded literal. `VITE_FORCE_POLYGON_MAINNET` **is** set, and `VITE_CHAINS_ENVIRONMENT` is unset so `useWalletStore.ts:111` defaults it to `"PROD"`. Because `VITE_*` values are baked in at build time, nothing errors — the bundle silently ships the fallback. Railway `dev` compounds it: `POLYGON_PXO_RECEIVER_ADDRESS` is set to this same address, so the backend agrees with the bad frontend default.
-
-**Steps:**
-1. **Today** — set `VITE_POLYGON_PXO_RECEIVER_ADDRESS` on Vercel production to a wallet we control, and **redeploy**. A Vite var only takes effect on rebuild; setting it without redeploying changes nothing.
-2. Delete both hardcoded fallbacks in `usePXOSell.ts` and `usePXOExchange.ts`. A missing receiver must fail loudly, not silently route real funds to a literal committed years ago.
-3. Repoint `POLYGON_PXO_RECEIVER_ADDRESS` in Railway dev/qa/prod at the same controlled wallet.
-4. Establish whether the 9.4428 PXO is recoverable: check the address against the treasury wallet derived from `WALLET_PRIVATE_KEY_ENCRYPTED`, the team password manager, and old wallet exports. If it belongs to the previous team, ask — they returned the domain.
-5. Record the outcome in `TREASURY.md`, or `INCIDENTS.md` if the PXO is written off.
-**Done when:** No code path and no environment references `0x9f0f…8382`, production is rebuilt, and the 9.4428 PXO is either recovered or explicitly written off in writing.
-**Note:** 9.44 PXO is a trivial sum. The finding that matters is that the path was open at all — with real users, that address receives every sale.
+**Remaining:** the Vercel value only takes effect on a rebuild, and `ecosistema-pxo-web` production is still the **2026-07-31** deployment. Folded into the deploy decision in DEP-009 rather than tracked here.
+**Note:** `VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS` is flagged Sensitive in Vercel, so its value cannot be read back with `vercel env pull` — it returns `[SENSITIVE]`. Testnet only; confirm by hand if Amoy ever matters.
 
 ### SL-002 · Set `POLYGON_PXO_RECEIVER_ADDRESS` in Railway api-exchange
 **Type:** 🔐 Ops
