@@ -17,6 +17,7 @@ import { TOKEN_TRANSFER_GAS_LIMIT } from '@pxo/shared/consts';
 import { isExternalAuthProvider } from '../lib/walletUtils';
 import { sendTransactionWithSignatureDeadline, SignatureTimeoutError } from '../lib/signatureTransaction';
 import type { ExchangeSignatureCallbacks } from './usePXOExchange';
+import { getPXOReceiverAddress } from '../lib/pxoReceiver';
 
 const FORCE_POLYGON_MAINNET = import.meta.env.VITE_FORCE_POLYGON_MAINNET === 'true';
 const ENABLE_ADMIN_TESTNET = import.meta.env.VITE_ENABLE_ADMIN_TESTNET === 'true';
@@ -25,36 +26,6 @@ const SUPPORTED_CHAIN_IDS = new Set([137, 80002]);
 const PXO_TOKEN_ADDRESSES: Record<number, string> = {
   137: import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET || '0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7',
   80002: import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET || '0xeda62cd0d29e077b98e0b61d905c4af906d8946c',
-};
-
-// No hardcoded fallback, deliberately. These used to default to a literal
-// address, and because VITE_* is baked in at build time an unset variable
-// ships as undefined with no startup error — so production silently sent
-// real PXO on mainnet to an address nobody had verified. See SL-001.
-// A missing receiver must fail loudly instead.
-const PXO_RECEIVER_ADDRESSES: Record<number, string | undefined> = {
-  137: import.meta.env.VITE_POLYGON_PXO_RECEIVER_ADDRESS,
-  80002: import.meta.env.VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS,
-};
-
-const RECEIVER_ENV_VAR: Record<number, string> = {
-  137: 'VITE_POLYGON_PXO_RECEIVER_ADDRESS',
-  80002: 'VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS',
-};
-
-// Previously this fell back to the mainnet entry for any unrecognised chain,
-// so an unsupported chain would have been handed the mainnet receiver.
-const getPXOReceiverAddress = (chainId: number): string => {
-  const address = PXO_RECEIVER_ADDRESSES[chainId];
-  if (!address) {
-    const varName = RECEIVER_ENV_VAR[chainId];
-    throw new Error(
-      varName
-        ? `No PXO receiver address configured for chain ${chainId}. Set ${varName} and rebuild — Vite bakes this in at build time, so setting it without a redeploy has no effect.`
-        : `No PXO receiver address configured for chain ${chainId}, and that chain is not supported.`,
-    );
-  }
-  return address;
 };
 
 const getPXOContractAddress = (chainId: number): string =>
