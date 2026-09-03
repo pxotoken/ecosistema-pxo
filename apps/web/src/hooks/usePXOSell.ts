@@ -27,13 +27,35 @@ const PXO_TOKEN_ADDRESSES: Record<number, string> = {
   80002: import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET || '0xeda62cd0d29e077b98e0b61d905c4af906d8946c',
 };
 
-const PXO_RECEIVER_ADDRESSES: Record<number, string> = {
-  137: import.meta.env.VITE_POLYGON_PXO_RECEIVER_ADDRESS || '0x9f0f2eac50ad04d37d3bf3359735928126ac8382',
-  80002: import.meta.env.VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS || '0x9f0f2eac50ad04d37d3bf3359735928126ac8382',
+// No hardcoded fallback, deliberately. These used to default to a literal
+// address, and because VITE_* is baked in at build time an unset variable
+// ships as undefined with no startup error — so production silently sent
+// real PXO on mainnet to an address nobody had verified. See SL-001.
+// A missing receiver must fail loudly instead.
+const PXO_RECEIVER_ADDRESSES: Record<number, string | undefined> = {
+  137: import.meta.env.VITE_POLYGON_PXO_RECEIVER_ADDRESS,
+  80002: import.meta.env.VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS,
 };
 
-const getPXOReceiverAddress = (chainId: number): string =>
-  PXO_RECEIVER_ADDRESSES[chainId] ?? PXO_RECEIVER_ADDRESSES[137];
+const RECEIVER_ENV_VAR: Record<number, string> = {
+  137: 'VITE_POLYGON_PXO_RECEIVER_ADDRESS',
+  80002: 'VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS',
+};
+
+// Previously this fell back to the mainnet entry for any unrecognised chain,
+// so an unsupported chain would have been handed the mainnet receiver.
+const getPXOReceiverAddress = (chainId: number): string => {
+  const address = PXO_RECEIVER_ADDRESSES[chainId];
+  if (!address) {
+    const varName = RECEIVER_ENV_VAR[chainId];
+    throw new Error(
+      varName
+        ? `No PXO receiver address configured for chain ${chainId}. Set ${varName} and rebuild — Vite bakes this in at build time, so setting it without a redeploy has no effect.`
+        : `No PXO receiver address configured for chain ${chainId}, and that chain is not supported.`,
+    );
+  }
+  return address;
+};
 
 const getPXOContractAddress = (chainId: number): string =>
   PXO_TOKEN_ADDRESSES[chainId] ?? PXO_TOKEN_ADDRESSES[137];
@@ -66,6 +88,16 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
     chainId: number;
     pxoAmount: number;
   }) => {
+    // Resolved before the try below: a missing receiver is a build/config
+    // fault, not a gas-validation failure, and must not be reported as one.
+    let receiverAddress: string;
+    try {
+      receiverAddress = getPXOReceiverAddress(params.chainId);
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: (err as Error).message, needsSubsidy: false };
+    }
+
     try {
       const { data } = await api.post('/api/exchange/gas-subsidy', {
         userAddress: params.userAddress,
@@ -74,7 +106,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         source: 'transfer',
         forPxoSell: true,
         tokenContractAddress: getPXOContractAddress(params.chainId),
-        receiverAddress: getPXOReceiverAddress(params.chainId),
+        receiverAddress,
         tokenDecimals: params.chainId === 137 ? 6 : 18,
       });
       return {
