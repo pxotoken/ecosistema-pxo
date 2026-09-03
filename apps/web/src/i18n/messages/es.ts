@@ -132,7 +132,7 @@ export const es = {
     items: {
       what: {
         q: '¿Qué son los pesos digitales o PXO Token?',
-        a: 'PXO Token es un peso digital mexicano: 1 PXO = 1 MXN, siempre. Funciona sobre BNB Smart Chain (BSC), lo que significa que cada transacción es transparente y verificable públicamente. A diferencia de las stablecoins en dólares, PXO te permite ahorrar, pagar y transferir directamente en pesos, sin exponerte a la volatilidad del tipo de cambio.',
+        a: 'PXO Token es un peso digital mexicano: 1 PXO = 1 MXN, siempre. Funciona sobre Polygon, lo que significa que cada transacción es transparente y verificable públicamente. A diferencia de las stablecoins en dólares, PXO te permite ahorrar, pagar y transferir directamente en pesos, sin exponerte a la volatilidad del tipo de cambio.',
       },
       howToGet: {
         q: '¿Cómo puedo obtener PXO Token?',

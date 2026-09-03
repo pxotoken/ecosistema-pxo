@@ -134,7 +134,7 @@ export const en: Messages = {
     items: {
       what: {
         q: 'What are digital pesos or PXO Token?',
-        a: 'PXO Token is a Mexican digital peso: 1 PXO = 1 MXN, always. It runs on BNB Smart Chain (BSC), which means every transaction is transparent and publicly verifiable. Unlike dollar stablecoins, PXO lets you save, pay and transfer directly in pesos, without exposure to exchange-rate volatility.',
+        a: 'PXO Token is a Mexican digital peso: 1 PXO = 1 MXN, always. It runs on Polygon, which means every transaction is transparent and publicly verifiable. Unlike dollar stablecoins, PXO lets you save, pay and transfer directly in pesos, without exposure to exchange-rate volatility.',
       },
       howToGet: {
         q: 'How can I get PXO Token?',
