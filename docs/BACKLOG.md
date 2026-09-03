@@ -622,6 +622,34 @@ The reason to treat this as more than housekeeping: **the same copy block was al
 **Why:** `apps/pagos` is in the repo but its production status is unclear. Has 8+ dead env vars. Determine if it's live, deferred, or abandoned.
 **Done when:** Status documented; if live, add to monitoring; if abandoned, archive.
 
+### PL-007 · api-pagos verifies inbound webhook signatures against re-serialised JSON
+**Type:** 🔧 Code
+**Effort:** 1-2 hours
+**Why:** `apps/api-pagos/src/routes/webhooks/transfer.ts` verifies the inbound transfer webhook against a body it rebuilt rather than the bytes the sender signed:
+
+```ts
+// Dev caveat: we sign the re-serialised JSON. In prod this must be the
+// raw wire bytes — attach `fastify-raw-body` and read `req.rawBody`.
+const rawBody =
+  (req as unknown as { rawBody?: string }).rawBody ?? JSON.stringify(req.body ?? {});
+```
+
+Nothing in api-pagos ever sets `req.rawBody`, so the fallback is the live path. `JSON.stringify` will not round-trip what arrived — key order, whitespace and number formatting all differ — so any real signature check fails. This is the identical defect that made the Bitso webhook unverifiable in api-exchange, fixed on 2026-09-02; see `apps/api-exchange/src/lib/bitso-webhook-signature.ts` and its route for the working pattern.
+
+It differs from the Bitso case in one respect worth crediting: the comment says plainly that it is a dev shortcut, so this is a known gap rather than code that looked finished. It still ships that way.
+
+**Not urgent today.** `apps/api-pagos` and `apps/pagos` are out of scope for the beta, and `WEBHOOK_INBOUND_SECRET` is not set in production anyway (DEP-009), so nothing is currently relying on this check. It is filed here so it is not rediscovered the hard way.
+
+**Promote to Tier 1 the moment api-pagos is in scope**, or before the POS handles any real money — an inbound webhook that cannot verify signatures is an unauthenticated write path into payments.
+
+**Steps:**
+1. Register a plugin-scoped `addContentTypeParser` that keeps the raw string on the request, as `routes/webhooks/bitso.ts` does. Remember Fastify encapsulates parsers per plugin — a parser registered in a sibling route does not apply.
+2. Fail closed with a 400 when `rawBody` is absent, rather than verifying against a reconstruction.
+3. Confirm what the sender actually signs (QuickNode `x-qn-signature` / Alchemy `x-alchemy-signature` are both read here) and match the algorithm to it.
+4. Set `WEBHOOK_INBOUND_SECRET` in Railway when api-pagos re-enters scope.
+**Done when:** A signed webhook from the real provider verifies, and a tampered body is rejected.
+**Related:** PL-006 (whether `apps/pagos` is live at all), DEP-009 (the unset secrets).
+
 ---
 
 ## 🚫 Explicitly out of scope (for now)
