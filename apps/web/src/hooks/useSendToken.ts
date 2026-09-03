@@ -13,19 +13,12 @@ import { Chain } from 'thirdweb';
 import { useAuthContext } from '../contexts/AuthContext';
 import { isExternalAuthProvider } from '../lib/walletUtils';
 import { sendTransactionWithSignatureDeadline, SignatureTimeoutError } from '../lib/signatureTransaction';
+import { getTokenDecimals } from '../lib/tokenDecimals';
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const MIN_GAS_PRICE = BigInt(25000000000);
 const FALLBACK_GAS_PRICE_TESTNET = BigInt(30000000000);
 const FALLBACK_GAS_PRICE_MAINNET = BigInt(20000000000);
-
-const TOKEN_DECIMALS: Record<string, number> = {
-  "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": 6, // USDC mainnet
-  "0xc2132d05d31c914a87c6611c10748aeb04b58e8f": 6, // USDT mainnet
-  "0x41e94eb019c0762f9bfcf9fb1e58725bfb0e7582": 6, // USDC testnet
-  "0xeda62cd0d29e077b98e0b61d905c4af906d8946c": 18, // PXO testnet
-  "0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7": 18, // PXO mainnet
-};
 
 interface SendTokenParams {
   receiverAddress: string;
@@ -100,7 +93,13 @@ export function useSendToken() {
 
       if (!isNative) {
         try {
-          const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
+          // Read from the contract rather than a table. Both PXO entries in the
+          // old table were wrong (mainnet is 6, Amoy is 8, both said 18).
+          const decimals = await getTokenDecimals({
+            client,
+            chain: activeChain,
+            address: tokenAddress,
+          });
           const { data: subsidyData } = await api.post('/api/exchange/gas-subsidy', {
             userAddress: account.address,
             paymentAmount: numAmount,

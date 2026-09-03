@@ -18,6 +18,7 @@ import { isExternalAuthProvider } from '../lib/walletUtils';
 import { sendTransactionWithSignatureDeadline, SignatureTimeoutError } from '../lib/signatureTransaction';
 import type { ExchangeSignatureCallbacks } from './usePXOExchange';
 import { getPXOReceiverAddress } from '../lib/pxoReceiver';
+import { getTokenDecimals } from '../lib/tokenDecimals';
 
 const FORCE_POLYGON_MAINNET = import.meta.env.VITE_FORCE_POLYGON_MAINNET === 'true';
 const ENABLE_ADMIN_TESTNET = import.meta.env.VITE_ENABLE_ADMIN_TESTNET === 'true';
@@ -69,6 +70,15 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       return { success: false, message: (err as Error).message, needsSubsidy: false };
     }
 
+    // Was `chainId === 137 ? 6 : 18`: right for mainnet, wrong for Amoy,
+    // which is 8. Ask the contract instead of encoding the belief here.
+    const chainForDecimals = params.chainId === 137 ? polygon : polygonAmoy;
+    const tokenDecimals = await getTokenDecimals({
+      client: getThirdwebClient(),
+      chain: chainForDecimals,
+      address: getPXOContractAddress(params.chainId),
+    });
+
     try {
       const { data } = await api.post('/api/exchange/gas-subsidy', {
         userAddress: params.userAddress,
@@ -78,7 +88,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         forPxoSell: true,
         tokenContractAddress: getPXOContractAddress(params.chainId),
         receiverAddress,
-        tokenDecimals: params.chainId === 137 ? 6 : 18,
+        tokenDecimals,
       });
       return {
         success: true,

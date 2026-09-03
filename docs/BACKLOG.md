@@ -43,7 +43,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-010** — *(conditional on SL-009)* Plan admin key rotation if previous team retains control
 - [ ] **SL-011** — Wallet-chain mismatch protection (block/redirect on wrong network)
 - [ ] **SL-012** — Patch the request-path CVEs: `@fastify/http-proxy`, `axios`, `react-router`
-- [ ] **SL-013** — PXO decimals are 6 on-chain; frontend hardcodes 18 (10¹² error)
+- [x] **SL-013** — ~~PXO decimals~~ fixed 2026-09-03: web + api-exchange now read on-chain (Amoy is 8, not 18 or 6)
 - [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 
@@ -243,27 +243,33 @@ Three consequences worth reading together:
 
 ---
 
-### SL-013 · PXO decimals are 6 on-chain; the frontend hardcodes 18
+### SL-013 · Hardcoded PXO decimals were wrong in three places — FIXED 2026-09-03
 **Type:** 🔧 Code
-**Effort:** 1-2 hours
-**Why:** `decimals()` on the deployed PXO contract returns **6**, verified against two independent RPCs. `apps/web/src/hooks/useSendToken.ts:26-27` hardcodes `18` for both the mainnet and testnet PXO addresses, and line 103 falls back to `18` for anything not in that map:
+**Status:** **Done for apps/web and api-exchange.** One instance remains in api-pagos, which is out of scope.
 
-```ts
-"0xeda62cd0d29e077b98e0b61d905c4af906d8946c": 18, // PXO testnet
-"0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7": 18, // PXO mainnet
-const decimals = TOKEN_DECIMALS[tokenAddress.toLowerCase()] ?? 18;
-```
+**Corrected finding.** An earlier version of this item claimed the send path miscalculated PXO amounts by 10¹² and that transfers would revert. **That was wrong**, and the correction matters because it changes the priority:
 
-Every PXO amount the send path computes is therefore off by **10¹²**. In the send direction the transfer reverts for insufficient balance, so this fails safe rather than moving wrong amounts — but it means the send-PXO path cannot have been exercised against mainnet, and any balance rendered through the same constant is wrong by the same factor.
+- `transfer({ amount, contract })` from thirdweb reads `decimals()` from the contract itself, so transfers were always correct.
+- `getBalance()` returns `displayValue` derived on-chain, so balances always displayed correctly. `formatBalance(value, decimals = 6)` in `SendFundsModal` is display rounding, not unit conversion.
+- The bad constant only reached `/api/exchange/gas-subsidy` as `tokenDecimals`, and `gas-subsidy.ts:155` hardcodes the amount to `BigInt(1)` when `source === 'transfer'` — which is what the send path sends. `resolvedDecimals` is never read on that branch.
 
-`api-exchange` already does this correctly — `routes/webhooks/conekta.ts:157` reads decimals on-chain. The frontend should not be carrying a hardcoded table at all.
+So nothing was broken at runtime. What existed was three components each holding a **different** belief about the same token, waiting for whoever next needed a real conversion.
 
-**Steps:**
-1. Read `decimals()` on-chain and cache per token address, mirroring what the backend does. Delete the hardcoded map.
-2. Grep for other `?? 18` / `1e18` / `parseUnits(..., 18)` assumptions on PXO across `apps/web` and `apps/pagos`.
-3. Verify against mainnet with a small real transfer once SL-001 is closed and the receiver is an address we control.
-**Done when:** No PXO decimal constant is hardcoded anywhere in the frontends, and a mainnet send of a known amount arrives as that exact amount.
-**Watch for:** USDC and USDT on Polygon are also 6 decimals, so a blanket "everything is 18" assumption is wrong in more than one place. Check each token, don't pattern-match.
+**On-chain truth, verified 2026-09-03 on two independent RPCs per chain:**
+
+| Token | Actual | web said | api-exchange said | api-pagos says |
+|---|---|---|---|---|
+| PXO mainnet `0xd6f9c21a…7d7` | **6** | 18 | 6 | 6 |
+| PXO Amoy `0xeda62cd0…46c` | **8** | 18 | 18 | 6 |
+
+Amoy is **8** — matching nobody. It is a separately deployed contract, not a mirror of mainnet, so there was never a reason for the two to agree. api-pagos even carries a comment asserting PXO is "canonicalized to 6 decimals on every chain"; the chain disagrees.
+
+**Fixed:**
+- `apps/web/src/lib/tokenDecimals.ts` — reads `decimals()` on-chain, cached per (chain, token). It throws rather than guessing: a wrong decimals value is silent and corrupting, a failed read is loud and recoverable.
+- The lookup table in `useSendToken.ts` deleted; `usePXOSell.ts` no longer uses `chainId === 137 ? 6 : 18`.
+- `api-exchange/src/config/chains.ts` — `PXO_DECIMALS[80002]` corrected 18 → 8. It feeds the admin Wallet Status view via `liquidity.ts:93`, which was therefore reporting the wrong figure for Amoy.
+
+**Remaining, out of scope:** `apps/api-pagos/src/config/chains.ts` declares Amoy `pxoDecimals: 6`, and `PaymentService.ts:58` and `:119` use it as `amount * 10 ** pxoDecimals`. **That is the one place a wrong decimals value actually converts units** — a 100× error on Amoy. Mainnet is correct, so the exposure is testnet-only, and api-pagos is out of scope for the beta. Fix it before api-pagos handles anything real; see PL-007, which is the same service.
 
 ### SL-014 · Reconcile production env vars in Railway and Vercel
 **Type:** 🔐 Ops

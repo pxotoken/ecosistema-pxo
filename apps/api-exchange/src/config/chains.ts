@@ -52,9 +52,12 @@ export const DEFAULT_TOKEN_TYPE: Record<SupportedChainId, 'USDC' | 'USDT'> = {
   [POLYGON_AMOY_ID]: (env.POLYGON_AMOY_DEFAULT_TOKEN as 'USDC' | 'USDT') || 'USDC',
 };
 
+// Verified on-chain 2026-09-03 by calling decimals() on each deployment.
+// Amoy was recorded as 18 here and is actually 8 — it is a separately
+// deployed contract, not a mirror of mainnet, so the two differ.
 export const PXO_DECIMALS: Record<SupportedChainId, number> = {
   [POLYGON_MAINNET_ID]: 6,
-  [POLYGON_AMOY_ID]: 18,
+  [POLYGON_AMOY_ID]: 8,
 };
 
 export const STABLE_DECIMALS = 6;
