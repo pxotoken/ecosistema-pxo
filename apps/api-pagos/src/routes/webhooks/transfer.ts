@@ -14,7 +14,7 @@ interface Body {
 
 /**
  * Registers the inbound transfer webhook. Accepts DF-compliant path
- * `/:chainSlug/transfer` (e.g. /bsc/transfer, /polygon-amoy/transfer). The
+ * `/:chainSlug/transfer` (e.g. /polygon/transfer, /polygon-amoy/transfer). The
  * slug is informational only; the active chain is resolved from
  * PAYMENTS_CHAIN_ID. Signature is verified with WEBHOOK_INBOUND_SECRET.
  */

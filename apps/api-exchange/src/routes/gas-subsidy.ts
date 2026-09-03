@@ -4,7 +4,7 @@ import { prepareContractCall, prepareTransaction, sendTransaction } from 'thirdw
 import { estimateGas, getGasPrice } from 'thirdweb';
 import { getRpcClient, eth_getTransactionReceipt } from 'thirdweb/rpc';
 import { privateKeyToAccount } from 'thirdweb/wallets';
-import { polygon, polygonAmoy, bsc } from 'thirdweb/chains';
+import { polygon, polygonAmoy } from 'thirdweb/chains';
 import { env } from '../config/env.js';
 import { getServerSupabase } from '../lib/supabase.js';
 import { getServerThirdwebClient } from '../lib/thirdweb-client.js';
@@ -18,11 +18,10 @@ import {
   PXO_SELL_SUPPORTED_CHAIN_IDS,
   DEFAULT_TOKEN_TYPE,
   TOKEN_TRANSFER_GAS_LIMIT,
-  type GasSubsidyChainId,
   type SupportedChainId,
 } from '../config/chains.js';
 
-const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy, 56: bsc } as const;
+const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy } as const;
 const USDC_DECIMALS = 6;
 const USDT_DECIMALS = 6;
 
@@ -71,11 +70,11 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
         });
       }
 
-      const chain = CHAIN_MAP[chainId as GasSubsidyChainId];
+      const chain = CHAIN_MAP[chainId as SupportedChainId];
       if (!chain) {
         return reply.code(400).send({ error: `Unsupported chain ID: ${chainId}` });
       }
-      const chainKey = chainId as GasSubsidyChainId;
+      const chainKey = chainId as SupportedChainId;
 
       let resolvedTokenAddress: string;
       let resolvedReceiverAddress: string;

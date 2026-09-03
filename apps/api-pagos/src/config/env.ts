@@ -15,17 +15,16 @@ export const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',
 
   // Payments chain — parametrised to decouple from any single L2.
-  // Supported: 80002 (Polygon Amoy, dev default), 137 (Polygon Mainnet),
-  // 56 (BSC Mainnet — production target per DF-POSBlokko).
+  // Supported: 80002 (Polygon Amoy, dev default), 137 (Polygon Mainnet).
+  // Chain 56 was listed here as "production target per DF-POSBlokko" until
+  // 2026-09-02. That is no longer the plan — Polygon only for this phase.
   PAYMENTS_CHAIN_ID: Number(process.env.PAYMENTS_CHAIN_ID) || 80002,
 
   // RPC endpoints (optional overrides; fall back to public RPCs).
   ALCHEMY_API_KEY: process.env.ALCHEMY_API_KEY || '',
-  BSC_RPC_URL: process.env.BSC_RPC_URL || '',
   POLYGON_MAINNET_RPC_URL: process.env.POLYGON_MAINNET_RPC_URL || '',
 
   // PXO token address per chain (resolved in chains.ts).
-  PXO_TOKEN_ADDRESS_BSC: process.env.PXO_TOKEN_ADDRESS_BSC || '',
   PXO_TOKEN_ADDRESS_MAINNET: process.env.PXO_TOKEN_ADDRESS_MAINNET || '',
   PXO_TOKEN_ADDRESS_TESTNET: process.env.PXO_TOKEN_ADDRESS_TESTNET || '',
 
