@@ -45,12 +45,13 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-012** — Patch the request-path CVEs: `@fastify/http-proxy`, `axios`, `react-router`
 - [ ] **SL-013** — PXO decimals are 6 on-chain; frontend hardcodes 18 (10¹² error)
 - [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
+- [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 
 ---
 
 ## 🟥 Tier 1 — Soft-launch blockers
 
-### SL-001 · `0x9f0f…8382` is live and controlled by an unknown party — stop sending funds to it
+### SL-001 · Confirm we hold `0x9f0f…8382`, then configure the receiver explicitly
 **Type:** 🔐 Ops + 📞 External
 **Effort:** 1 hour to stop the bleeding; recovery depends on who holds the key
 **On-chain findings (2026-09-02, Polygon mainnet block 93,121,305, cross-checked on two RPCs):**
@@ -232,6 +233,27 @@ Three consequences worth reading together:
 - SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
 - The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
 
+### SL-012 · Patch the request-path CVEs
+**Type:** 🔧 Code
+**Effort:** 1-2 hours for the free ones; +2-3 hours if the proxy major bump needs work
+**Why:** `pnpm audit --prod` reports **75 vulnerabilities in the shipped dependency tree** (3 critical, 28 high, 40 moderate, 4 low). Most of the volume is transitive noise, but three sit directly on the path that real money travels, and all three have published patches. GitHub's "113" counts the default branch including dev dependencies — the production number is the one that matters.
+
+| Package | Current | Patched | Severity | Where it hurts |
+|---|---|---|---|---|
+| `@fastify/http-proxy` | `^10.0.0` | `>=11.4.4` | **critical** | api-orchestrator. Connection-header abuse enabling header stripping — this is the gateway every request passes through |
+| `@fastify/reply-from` | transitive | `>=12.6.2` | **critical** | Same class; it's the layer under http-proxy |
+| `axios` | `^1.15.0` | `>=1.16.0` | high ×9 | Proxy-Authorization credential leak to redirect targets, MitM via prototype pollution, header injection. Used by every service to call upstreams and Bitso |
+| `react-router` | `^7.14.2` (via `react-router-dom`) | `>=7.15.0` | high | DoS via unbounded path expansion |
+
+**Steps:**
+1. **Free first** — `axios` and `react-router` patches fall inside the existing caret ranges, so a lockfile refresh resolves them with no code change. Do these immediately, verify with `pnpm audit --prod`.
+2. **`@fastify/http-proxy` 10 → 11 is a major bump**, not a caret update. v11 targets Fastify 5 (which is what the orchestrator runs), so it should be compatible, but the orchestrator's entire proxy configuration depends on it — check the `rewritePrefix` / `rewriteRequestHeaders` behaviour that injects `x-pxo-wallet-address` still works. Smoke-test one proxied route per upstream.
+3. Re-run `pnpm audit --prod` and record the residual count in OL-019.
+**Done when:** No critical or high advisory remains against a package on the request path; the orchestrator proxies all seven upstreams correctly after the bump.
+**Note:** This is filed Tier 1 rather than with the broader dependency work because the fixes are cheap, published, and sit in front of user funds. Don't let it get bundled into a general "upgrade everything" project.
+
+---
+
 ### SL-013 · PXO decimals are 6 on-chain; the frontend hardcodes 18
 **Type:** 🔧 Code
 **Effort:** 1-2 hours
@@ -262,26 +284,26 @@ Every PXO amount the send path computes is therefore off by **10¹²**. In the s
 The single highest-severity consequence is SL-001: a missing Vercel var is what routes production sales to an address we do not control.
 **Done when:** DEP-009 is closed.
 
-### SL-012 · Patch the request-path CVEs
-**Type:** 🔧 Code
-**Effort:** 1-2 hours for the free ones; +2-3 hours if the proxy major bump needs work
-**Why:** `pnpm audit --prod` reports **75 vulnerabilities in the shipped dependency tree** (3 critical, 28 high, 40 moderate, 4 low). Most of the volume is transitive noise, but three sit directly on the path that real money travels, and all three have published patches. GitHub's "113" counts the default branch including dev dependencies — the production number is the one that matters.
+### SL-015 · Public FAQ makes three claims nobody has verified
+**Type:** 📋 Docs + 📞 External
+**Effort:** 1 hour to establish what is true; the rewrite depends on the answers
+**Why:** The FAQ answer at `en.ts:149` / `es.ts:147` is live on the site in both languages and asserts:
 
-| Package | Current | Patched | Severity | Where it hurts |
-|---|---|---|---|---|
-| `@fastify/http-proxy` | `^10.0.0` | `>=11.4.4` | **critical** | api-orchestrator. Connection-header abuse enabling header stripping — this is the gateway every request passes through |
-| `@fastify/reply-from` | transitive | `>=12.6.2` | **critical** | Same class; it's the layer under http-proxy |
-| `axios` | `^1.15.0` | `>=1.16.0` | high ×9 | Proxy-Authorization credential leak to redirect targets, MitM via prototype pollution, header injection. Used by every service to call upstreams and Bitso |
-| `react-router` | `^7.14.2` (via `react-router-dom`) | `>=7.15.0` | high | DoS via unbounded path expansion |
+1. Reserves are **"audited monthly and published publicly"**
+2. Every PXO is **"backed 1:1 by a Mexican peso held in custody"**
+3. **"We comply with applicable Mexican regulation (Ley Fintech, CNBV, Banxico)"**
+
+Nothing in this repo evidences any of the three. That is not proof they are false — reserve custody and compliance work live outside the codebase — but it does mean no engineer can confirm them, and claim (1) is the specific pattern SL-009 already flags as material legal exposure when unsupported. "Audited monthly and published publicly" is a stronger and more falsifiable claim than the audit language SL-009 was written about: it names a cadence and asserts publication, so a reader can ask to see the publications.
+
+The reason to treat this as more than housekeeping: **the same copy block was already factually wrong about something checkable.** It claimed PXO runs on BNB Smart Chain while a neighbouring answer said Polygon; the token is on Polygon (`0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7`, verified on-chain 2026-09-02, corrected in commit `58db38b`). A block that contradicted itself on a verifiable fact has not been fact-checked, so its unverifiable claims deserve no more confidence than the one that was already wrong.
 
 **Steps:**
-1. **Free first** — `axios` and `react-router` patches fall inside the existing caret ranges, so a lockfile refresh resolves them with no code change. Do these immediately, verify with `pnpm audit --prod`.
-2. **`@fastify/http-proxy` 10 → 11 is a major bump**, not a caret update. v11 targets Fastify 5 (which is what the orchestrator runs), so it should be compatible, but the orchestrator's entire proxy configuration depends on it — check the `rewritePrefix` / `rewriteRequestHeaders` behaviour that injects `x-pxo-wallet-address` still works. Smoke-test one proxied route per upstream.
-3. Re-run `pnpm audit --prod` and record the residual count in OL-019.
-**Done when:** No critical or high advisory remains against a package on the request path; the orchestrator proxies all seven upstreams correctly after the bump.
-**Note:** This is filed Tier 1 rather than with the broader dependency work because the fixes are cheap, published, and sit in front of user funds. Don't let it get bundled into a general "upgrade everything" project.
-
----
+1. For each claim, establish the current truth: does a monthly reserve audit happen, is it published, where? Is 1:1 custody in place and attestable? Which of Ley Fintech / CNBV / Banxico obligations actually apply and are met today?
+2. Where a claim is true, record where the evidence lives so it is auditable later — `TREASURY.md` (SL-006) is the natural home for the reserve and custody half.
+3. Where a claim is aspirational, reword to what is defensible now. The honest form of an unaudited claim is the one SL-009 already gives for the contract: state what is publicly verifiable, and say plainly what has not been done.
+4. Route the final wording through the lawyers already engaged on SL-009 rather than settling it in a commit. Same reviewers, same exposure, and they are mid-review.
+**Done when:** Every claim in the FAQ is either evidenced by a named artifact or reworded, and the lawyers have signed off on the public-facing text in both languages.
+**Note:** This is a wording and compliance decision, not an engineering one. It is filed here so it does not get lost, not because a developer should resolve it.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
