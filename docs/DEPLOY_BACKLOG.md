@@ -68,6 +68,8 @@ Nothing breaks right now because no API service imports the root barrel as a val
    ```
    Value and type usage both keep working; the reverse mapping is lost (rarely wanted).
 2. Grep for reverse-map usage (`KYCStatus[someValue]`) before converting.
+**Observed 2026-09-03:** the pattern is not confined to `@pxo/shared`. `apps/api-exchange/src/lib/pricing/providers/BitsoPriceProvider.ts` uses a constructor parameter property (`constructor(private correctionProvider?: IPriceProvider) {}`), which `node --experimental-strip-types` rejects with `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`. This is **not** a production fault — api-exchange is compiled by `tsc` and ships `dist/`, so nothing type-strips it. It matters because it shows the service source would not survive the same treatment `@pxo/shared` currently gets, so DEP-001's "just load TS at runtime" shortcut could never be extended to the services even if someone wanted to.
+
 3. Set `erasableSyntaxOnly: true` in `packages/config/tsconfig.base.json` (TS 5.8+; repo is on 5.9.3). It errors on anything that can't be stripped — enums, `namespace` with runtime members, constructor parameter properties, `import x = require()`.
 **Done when:** `node -e "import('packages/shared/src/index.ts')"` resolves, and `erasableSyntaxOnly` is on with a green build.
 **Note:** Turning the flag on *before* converting will fail the build on these five enums — convert first. If DEP-001 lands first, the flag becomes optional rather than load-bearing, but it's still worth having.

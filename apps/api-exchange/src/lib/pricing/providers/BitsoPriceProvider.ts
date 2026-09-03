@@ -46,9 +46,32 @@ export class BitsoPriceProvider implements IPriceProvider {
       }
       // Aliased apart (USDC vs USDT): use the live cross-rate from the
       // correction feed if configured, else fall back to the 1:1 peg.
+      //
+      // The fallback also covers the correction feed *failing*, not just
+      // being absent. Without that, enabling the correction would turn a
+      // value that was always available into a hard dependency on a second
+      // exchange: one Binance blip would take pricing down entirely, and
+      // with it buying and selling. Degrading to the peg is exactly the
+      // behaviour we had before the correction existed, so a failure here
+      // is never worse than not having enabled it.
       if (this.correctionProvider) {
-        const corrected = await this.correctionProvider.getPrice(symbol);
-        return { price: corrected.price, symbol, timestamp: Date.now() };
+        try {
+          const corrected = await this.correctionProvider.getPrice(symbol);
+          // Guard against a feed returning something unusable (NaN, 0,
+          // negative). This is input validation, not a view on what a
+          // plausible USDC/USDT rate is — a real depeg should pass through.
+          if (Number.isFinite(corrected.price) && corrected.price > 0) {
+            return { price: corrected.price, symbol, timestamp: Date.now() };
+          }
+          console.warn(
+            `[pricing] USDC correction returned an unusable price (${corrected.price}) for ${symbol}; falling back to the 1:1 peg.`,
+          );
+        } catch (err) {
+          console.warn(
+            `[pricing] USDC correction feed failed for ${symbol}; falling back to the 1:1 peg.`,
+            err,
+          );
+        }
       }
       return { price: 1, symbol, timestamp: Date.now() };
     }
