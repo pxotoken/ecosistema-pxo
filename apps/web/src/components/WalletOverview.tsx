@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDownUp, Send, Download, Loader2, ChevronDown } from 'lucide-react';
-import { useActiveAccount, useActiveWalletChain, useNetworkSwitcherModal, useWalletDetailsModal, useActiveWallet } from "thirdweb/react";
+import { useActiveAccount, useActiveWalletChain, useNetworkSwitcherModal, useWalletDetailsModal } from "thirdweb/react";
 import { getBalance } from "thirdweb/extensions/erc20";
 import { getWalletBalance } from "thirdweb/wallets";
 import { useNavigate } from 'react-router-dom';
@@ -26,8 +26,8 @@ export const WalletOverview: React.FC = () => {
   const [balance, setBalance] = useState<string>("0");
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedToken, setSelectedToken] = useState<string>("");
-  const [isGlitching, setIsGlitching] = useState(false);
-  const [showBalances, setShowBalances] = useState(true);
+  const [, setIsGlitching] = useState(false);
+  const [showBalances] = useState(true);
   
   const activeChain = useActiveWalletChain();
   const account = useActiveAccount();
@@ -35,7 +35,6 @@ export const WalletOverview: React.FC = () => {
   const networkSwitcher = useNetworkSwitcherModal();
   const { currentChains } = useWalletStore();
   const { open } = useWalletDetailsModal();
-  const wallet = useActiveWallet();
   const { user } = useAuthContext();
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 

@@ -8,11 +8,12 @@ import {
 } from "thirdweb/react";
 
 import { generatePayload, signLoginPayload, JWT_EXPIRATION_SECONDS } from "../lib/authActions";
-import api from "../lib/api";
+import api, { getApiError } from "../lib/api";
 import { User } from '@pxo/shared/types';
 import { getThirdwebClient } from "../lib/client";
 import useKYCRealtime from './useKYCRealtime';
 import useWalletStore from "../store/useWalletStore";
+import { hasAcceptedTerms } from "../lib/termsAcceptance";
 
 const client = getThirdwebClient();
 
@@ -41,7 +42,18 @@ const useAuth = (onLogin?: () => void) => {
   const wallet = useActiveWallet();
   const { disconnect } = useDisconnect();
   const { data: autoConnected, isLoading: isLoadingAutoConnect } = useAutoConnect({ client });
-  
+
+  // Guard: if Thirdweb auto-reconnects a wallet but the user hasn't accepted
+  // the Terms & Conditions in this browser, force a disconnect. This makes the
+  // T&C gate enforceable even when a prior session persists in storage.
+  useEffect(() => {
+    if (isLoadingAutoConnect) return;
+    if (!autoConnected) return;
+    if (!wallet) return;
+    if (hasAcceptedTerms()) return;
+    disconnect(wallet as any);
+  }, [autoConnected, isLoadingAutoConnect, wallet, disconnect]);
+
   const { currentChains } = useWalletStore();
   
   const [user, setUser] = useState<User | null>(null);
@@ -176,7 +188,7 @@ const useAuth = (onLogin?: () => void) => {
         
       } catch (error) {
         console.error("Error checking auth status:", error);
-        setError("Failed to check authentication status");
+        setError(getApiError(error, "Failed to check authentication status"));
         setIsAuthenticated(false);
         setUser(null);
       } finally {
@@ -204,7 +216,9 @@ const useAuth = (onLogin?: () => void) => {
 
   // Handle login process
   const handleLogin = useCallback(async () => {
-    if (!isWalletConnected()) {
+    // `account` is checked explicitly (not just via isWalletConnected) so the
+    // non-null narrowing survives into the calls below.
+    if (!account || !isWalletConnected()) {
       setError("Please connect your wallet first");
       return;
     }
@@ -253,7 +267,7 @@ const useAuth = (onLogin?: () => void) => {
       
     } catch (error) {
       console.error("❌ Login failed:", error);
-      setError(error instanceof Error ? error.message : "Login failed");
+      setError(getApiError(error, "Login failed"));
       setIsAuthenticated(false);
       setUser(null);
       storage.clear();
@@ -326,7 +340,7 @@ const useAuth = (onLogin?: () => void) => {
       
     } catch (error) {
       console.error("❌ Logout failed:", error);
-      setError("Logout failed");
+      setError(getApiError(error, "Logout failed"));
     } finally {
       setLoading(false);
     }

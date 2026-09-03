@@ -3,7 +3,7 @@
  * Utilities for sanitizing sensitive data from logs
  */
 
-import { SENSITIVE_KEYS } from '../consts/security';
+import { SENSITIVE_KEYS } from '../consts/security.ts';
 
 /**
  * Sanitize sensitive data from objects for safe logging

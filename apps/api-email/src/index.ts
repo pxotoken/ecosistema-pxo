@@ -7,6 +7,7 @@ import { UserRepository } from './lib/user-repository.js';
 import { getServerSupabase } from './lib/supabase.js';
 import { contactRoutes } from './routes/contact.js';
 import { broadcastRoutes } from './routes/broadcast.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -33,6 +34,8 @@ async function bootstrap() {
   await app.register(broadcastRoutes(emailService), { prefix: '/api/email' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

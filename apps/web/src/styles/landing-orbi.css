@@ -1,0 +1,1631 @@
+/*
+ * Landing page styles — "Orbi" design.
+ * Ported from docs/looks/pxo-landing-orbi.html. Every rule is scoped under
+ * .orbi-landing so it cannot leak into the dashboard or Tailwind's globals.
+ */
+
+/* ── RESET ── */
+.orbi-landing, .orbi-landing *,
+.orbi-landing *::before,
+.orbi-landing *::after { margin: 0; padding: 0; box-sizing: border-box; }
+.orbi-landing { scroll-behavior: smooth; }
+
+/* ── TOKENS ── */
+.orbi-landing {
+  --bg:          #0d0925;   /* Orbi deep indigo/violet hero bg */
+  --bg-dark:     #080618;
+  --bg-darker:   #060412;
+  --bg-section:  #f0eeff;   /* light lavender for trust bar */
+  --white:       #ffffff;
+  --off-white:   #f5f3ff;
+  --purple:      #7c5cfc;   /* Orbi accent purple */
+  --purple-mid:  #9b7ffe;
+  --purple-light:#c4b0ff;
+  --text-dark:   #1a1145;
+  --text-mid:    #4a3f7a;
+  --text-muted:  #8b80b8;
+  --green:       #7c5cfc;
+  --border-light: rgba(255,255,255,0.15);
+  --border-dark:  rgba(0,0,0,0.08);
+  --pill-bg:     rgba(255,255,255,0.10);
+  --pill-border: rgba(255,255,255,0.20);
+  --radius-pill: 999px;
+  --radius-card: 20px;
+  --radius-sm:   12px;
+}
+
+.orbi-landing {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-dark);
+  background: var(--bg);
+  overflow-x: hidden;
+  margin: 0; padding: 0;
+}
+
+/* ── NAV ── */
+.orbi-landing .orbi-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Logo */
+.orbi-landing .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.orbi-landing .logo-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+.orbi-landing .logo-wordmark {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.orbi-landing .logo-mark {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.orbi-landing .logo-text {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--white);
+  letter-spacing: -0.3px;
+}
+
+/* Nav center: pills */
+.orbi-landing .nav-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orbi-landing .nav-pill {
+  position: relative;
+}
+.orbi-landing .nav-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s;
+  user-select: none;
+}
+.orbi-landing .nav-pill-btn:hover,
+.orbi-landing .nav-pill-btn.active {
+  background: rgba(255,255,255,0.18);
+}
+.orbi-landing .nav-pill-btn svg {
+  width: 12px; height: 12px;
+  transition: transform 0.2s;
+  opacity: 0.7;
+}
+.orbi-landing .nav-pill-btn.active svg { transform: rotate(180deg); }
+
+/* Mega dropdown */
+.orbi-landing .nav-mega {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-dark);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  padding: 20px;
+  min-width: 560px;
+  grid-template-columns: 190px 1fr;
+  gap: 20px;
+}
+.orbi-landing .nav-mega.open { display: block; min-width: 320px; }
+
+.orbi-landing .mega-left {
+  background: var(--off-white);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.orbi-landing .mega-left-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 6px;
+}
+.orbi-landing .mega-left-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  flex: 1;
+}
+.orbi-landing .store-btn {
+  display: block;
+  border: 1px solid var(--border-dark);
+  border-radius: 9px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  transition: border-color 0.15s;
+}
+.orbi-landing .store-btn:hover { border-color: var(--purple); }
+.orbi-landing .store-icon { font-size: 20px; }
+.orbi-landing .store-label { font-size: 10px; color: var(--text-muted); display: block; }
+.orbi-landing .store-name { font-size: 13px; font-weight: 700; color: var(--text-dark); display: block; }
+
+.orbi-landing .mega-items { display: flex; flex-direction: column; gap: 2px; }
+.orbi-landing .mega-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.orbi-landing .mega-item:hover { background: var(--off-white); }
+.orbi-landing .mega-item-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--off-white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-dark);
+}
+.orbi-landing .mega-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+.orbi-landing .mega-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* About simple dropdown */
+.orbi-landing .nav-about-drop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-dark);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  padding: 8px;
+  min-width: 200px;
+}
+.orbi-landing .nav-about-drop.open { display: block; }
+.orbi-landing .about-item {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.orbi-landing .about-item:hover { background: var(--off-white); color: var(--purple); }
+
+/* Nav right */
+.orbi-landing .nav-right { display: flex; align-items: center; gap: 12px; }
+
+.orbi-landing .btn-lang {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--pill-border);
+  background: transparent;
+  color: var(--white);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.orbi-landing .btn-lang svg { width: 12px; height: 12px; }
+
+/* ── HERO ── */
+.orbi-landing .hero {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 100px 24px 80px;
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+}
+.orbi-landing .hero::after { display: none; }
+.orbi-landing .hero-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.orbi-landing .hero-title {
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  color: var(--white);
+  margin-bottom: 18px;
+}
+.orbi-landing .hero-title-accent { color: var(--purple-light); }
+
+.orbi-landing .hero-sub {
+  font-size: 17px;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.65;
+  margin-bottom: 32px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.orbi-landing .btn-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--white);
+  color: var(--text-dark);
+  padding: 13px 20px 13px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.18s;
+}
+.orbi-landing .btn-hero:hover { opacity: 0.9; transform: translateY(-1px); }
+.orbi-landing .btn-hero-arrow {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--text-dark);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* Hero right: hand+phone */
+.orbi-landing .hero-visual {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 560px;
+  overflow: visible;
+}
+
+/* Fake "hand holding phone" built in CSS */
+.orbi-landing .hand-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+.orbi-landing .phone-hand {
+  width: 260px;
+  background: #0d0926;
+  border-radius: 40px;
+  border: 2px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  box-shadow:
+    0 40px 100px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(124,92,252,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  animation: orbi-float-y 4s ease-in-out infinite;
+}
+@keyframes orbi-float-y {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-16px); }
+}
+
+/* Phone UI inside */
+.orbi-landing .ph-notch {
+  display: flex; justify-content: space-between;
+  padding: 12px 20px 0;
+  font-size: 10px; font-weight: 600;
+  color: rgba(255,255,255,0.8);
+}
+.orbi-landing .ph-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 18px 0;
+}
+.orbi-landing .ph-topbar-title { font-size: 13px; font-weight: 700; color: #fff; }
+.orbi-landing .ph-topbar-icons { display: flex; gap: 8px; font-size: 14px; }
+
+.orbi-landing .ph-balance {
+  text-align: center;
+  padding: 16px 18px 10px;
+}
+.orbi-landing .ph-bal-eyebrow {
+  font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(124,92,252,0.9); margin-bottom: 4px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.orbi-landing .ph-bal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--purple-mid); }
+.orbi-landing .ph-bal-amount { font-size: 30px; font-weight: 700; color: #fff; letter-spacing: -1px; }
+.orbi-landing .ph-bal-sub { font-size: 10px; color: var(--purple-mid); margin-top: 2px; }
+
+.orbi-landing .ph-actions {
+  display: flex; justify-content: space-around;
+  padding: 8px 16px 14px;
+}
+.orbi-landing .ph-act {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.orbi-landing .ph-act-circle {
+  width: 40px; height: 40px;
+  border-radius: 14px;
+  background: rgba(124,92,252,0.22);
+  border: 1px solid rgba(124,92,252,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.orbi-landing .ph-act-circle.g { background: rgba(124,92,252,0.18); border-color: rgba(124,92,252,0.35); }
+.orbi-landing .ph-act-label { font-size: 8px; color: rgba(255,255,255,0.55); font-weight: 600; }
+
+.orbi-landing .ph-spei {
+  margin: 0 12px 10px;
+  background: rgba(124,92,252,0.15);
+  border: 1px solid rgba(124,92,252,0.28);
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.orbi-landing .ph-spei-icon { font-size: 14px; }
+.orbi-landing .ph-spei-t1 { font-size: 9px; font-weight: 700; color: #fff; }
+.orbi-landing .ph-spei-t2 { font-size: 8px; color: rgba(255,255,255,0.5); }
+
+.orbi-landing .ph-recent-label {
+  padding: 0 18px 6px;
+  font-size: 8px; font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.orbi-landing .ph-tx {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 14px;
+}
+.orbi-landing .ph-tx-ic { width: 24px; height: 24px; border-radius: 7px; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.orbi-landing .ph-tx-name { font-size: 8px; font-weight: 700; color: #fff; }
+.orbi-landing .ph-tx-date { font-size: 7px; color: rgba(255,255,255,0.35); }
+.orbi-landing .ph-tx-amt { margin-left: auto; font-size: 9px; font-weight: 700; }
+.orbi-landing .ph-tx-amt.p { color: var(--green); }
+.orbi-landing .ph-tx-amt.n { color: rgba(255,100,100,0.9); }
+
+/* Floating action tags around phone */
+.orbi-landing .float-tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: var(--radius-pill);
+  padding: 9px 16px;
+  white-space: nowrap;
+}
+.orbi-landing .ft-icon {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.orbi-landing .ft-label { font-size: 13px; font-weight: 600; color: var(--white); }
+
+.orbi-landing .ft-compra { top: 40px; right: 0; animation: orbi-ft1 3.8s ease-in-out infinite; }
+.orbi-landing .ft-gana { right: -30px; top: 40%; animation: orbi-ft2 4.2s ease-in-out infinite 0.6s; }
+.orbi-landing .ft-recibe { bottom: 120px; right: 10px; animation: orbi-ft1 3.5s ease-in-out infinite 1s; }
+.orbi-landing .ft-envia { bottom: 60px; left: -10px; animation: orbi-ft2 4s ease-in-out infinite 0.3s; }
+
+@keyframes orbi-ft1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes orbi-ft2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+/* ── TRUST BAR ── */
+.orbi-landing .trust-bar {
+  background: #f2efff;
+  padding: 40px 24px;
+  border-bottom: 1px solid rgba(124,92,252,0.12);
+}
+.orbi-landing .trust-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.orbi-landing .trust-label {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  font-weight: 500;
+}
+.orbi-landing .carousel-wrap { overflow: hidden; }
+.orbi-landing .carousel-track {
+  display: flex;
+  align-items: center;
+  gap: 52px;
+  animation: orbi-slide-left 22s linear infinite;
+  width: max-content;
+}
+.orbi-landing .carousel-track:hover { animation-play-state: paused; }
+@keyframes orbi-slide-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.orbi-landing .partner-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: opacity 0.25s;
+}
+.orbi-landing .partner-chip:hover { opacity: 1; }
+.orbi-landing .pchip-logo {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.orbi-landing .pchip-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.3px;
+}
+.orbi-landing .sep { width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+
+/* ── WHY SECTION ── */
+.orbi-landing .why-section {
+  background: var(--white);
+  padding: 100px 24px;
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+.orbi-landing .why-section::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 700px; height: 500px;
+  background: radial-gradient(ellipse, rgba(124,92,252,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.orbi-landing .why-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Side phone graphic */
+.orbi-landing .why-phone-wrap {
+  position: absolute;
+  right: -120px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.25;
+  pointer-events: none;
+}
+.orbi-landing .why-phone-ghost {
+  width: 160px;
+  background: #1a0f4a;
+  border-radius: 28px;
+  height: 280px;
+  border: 2px solid rgba(124,92,252,0.3);
+}
+
+.orbi-landing .section-tag {
+  display: inline-block;
+  background: var(--off-white);
+  border: 1px solid rgba(124,92,252,0.2);
+  border-radius: var(--radius-pill);
+  padding: 5px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 20px;
+}
+
+.orbi-landing .section-title {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+.orbi-landing .section-title .acc { color: var(--purple); }
+.orbi-landing .section-title em { font-style: normal; color: var(--purple); }
+
+.orbi-landing .section-sub {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 560px;
+  margin: 0 auto 48px;
+  line-height: 1.7;
+}
+
+/* Scrolling benefits pills */
+.orbi-landing .benefits-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 36px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.orbi-landing .benefit-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--off-white);
+  border: 1px solid rgba(124,92,252,0.15);
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-mid);
+  cursor: default;
+  transition: border-color 0.2s, color 0.2s;
+}
+.orbi-landing .benefit-pill:hover { border-color: var(--purple); color: var(--purple); }
+.orbi-landing .benefit-pill span { font-size: 16px; }
+
+.orbi-landing .btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--text-dark);
+  color: var(--white);
+  padding: 13px 20px 13px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.18s;
+}
+.orbi-landing .btn-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+.orbi-landing .btn-cta-arrow {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+/* ── SPEI CARD ── */
+.orbi-landing .spei-section {
+  padding: 0 24px 80px;
+  background: var(--white);
+}
+.orbi-landing .spei-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #f5f2ff;
+  border-radius: 28px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-height: 400px;
+}
+.orbi-landing .spei-left { padding: 60px; }
+.orbi-landing .spei-title {
+  font-size: clamp(26px, 3vw, 42px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  color: var(--text-dark);
+  margin-bottom: 22px;
+}
+.orbi-landing .spei-title .acc { color: var(--purple); }
+.orbi-landing .spei-title .acc2 { color: var(--green); }
+.orbi-landing .spei-features { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
+.orbi-landing .spei-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; color: var(--text-mid);
+}
+.orbi-landing .feat-dot { font-size: 16px; }
+.orbi-landing .spei-right {
+  position: relative;
+  background: radial-gradient(ellipse 90% 90% at 55% 50%, #312090 0%, #1e1462 50%, #0d0926 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 380px;
+  overflow: hidden;
+}
+.orbi-landing .spei-right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+  background-size: 20px 20px;
+  mask-image: radial-gradient(ellipse 80% 80% at 55% 50%, black 10%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 55% 50%, black 10%, transparent 75%);
+  pointer-events: none;
+}
+.orbi-landing .spei-phone-wrap {
+  position: relative;
+  z-index: 2;
+}
+.orbi-landing .spei-phone {
+  width: 190px;
+  background: #0d0926;
+  border-radius: 32px;
+  border: 2px solid rgba(255,255,255,0.1);
+  padding: 16px 14px 20px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.35);
+}
+.orbi-landing .sp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.orbi-landing .sp-title { font-size: 11px; font-weight: 700; color: #fff; }
+.orbi-landing .sp-close { font-size: 12px; color: rgba(255,255,255,0.4); }
+.orbi-landing .sp-input-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+.orbi-landing .sp-amount-box {
+  background: rgba(124,92,252,0.12);
+  border: 1px solid rgba(124,92,252,0.25);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.orbi-landing .sp-amount { font-size: 24px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.orbi-landing .sp-sub { font-size: 9px; color: var(--purple-mid); }
+.orbi-landing .sp-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.orbi-landing .sp-row:last-of-type { border: none; }
+.orbi-landing .sp-row-l { display: flex; align-items: center; gap: 6px; }
+.orbi-landing .sp-row-ic { width: 20px; height: 20px; border-radius: 6px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.orbi-landing .sp-row-name { font-size: 8px; font-weight: 700; color: #fff; }
+.orbi-landing .sp-row-sub { font-size: 7px; color: rgba(255,255,255,0.4); }
+.orbi-landing .sp-row-val { font-size: 9px; font-weight: 600; }
+.orbi-landing .sp-confirm { margin-top: 12px; background: var(--green); border-radius: 9px; padding: 9px; text-align: center; font-size: 10px; font-weight: 700; color: #1a0f4a; }
+
+.orbi-landing .spei-tag {
+  position: absolute;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 600;
+  color: #fff;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+.orbi-landing .spei-tag-icon { font-size: 14px; }
+.orbi-landing .spei-tag.t1 { top: 40px; right: 20px; color: var(--purple-light); animation: orbi-ft1 3.5s ease-in-out infinite; }
+.orbi-landing .spei-tag.t2 { bottom: 50px; left: 10px; color: rgba(255,255,255,0.85); animation: orbi-ft2 4s ease-in-out infinite 0.7s; }
+
+/* ── COINS SECTION ── */
+.orbi-landing .coins-section {
+  padding: 80px 24px;
+  text-align: center;
+  background: #fafafe;
+  overflow: hidden;
+  position: relative;
+}
+.orbi-landing .coins-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(124,92,252,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+.orbi-landing .coins-float-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 56px;
+  position: relative;
+  height: 160px;
+}
+.orbi-landing .coin {
+  position: absolute;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+  font-size: 11px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.18);
+  user-select: none;
+}
+.orbi-landing .c-pxo1 { width: 108px; height: 108px; left: 8%; top: 10px; background: radial-gradient(circle at 35% 30%, #9b7ffe, #4a2ec8); color: #fff; font-size: 14px; animation: orbi-cb1 3.8s ease-in-out infinite; }
+.orbi-landing .c-pxo2 { width: 80px; height: 80px; right: 10%; top: 30px; background: radial-gradient(circle at 35% 30%, #7c5cfc, #3a20b0); color: #fff; font-size: 11px; animation: orbi-cb2 4.2s ease-in-out infinite 0.6s; }
+.orbi-landing .c-pxo3 { width: 65px; height: 65px; left: 30%; bottom: 0; background: radial-gradient(circle at 35% 30%, #b8a4ff, #7c5cfc); color: #fff; font-size: 9px; animation: orbi-cb3 3.5s ease-in-out infinite 0.9s; }
+.orbi-landing .c-usdt { width: 85px; height: 85px; left: 42%; top: 5px; background: radial-gradient(circle at 35% 30%, #5a3fc0, #3a28a0); color: #fff; animation: orbi-cb1 4s ease-in-out infinite 1.2s; }
+.orbi-landing .c-mxn { width: 68px; height: 68px; left: 20%; top: 45px; background: radial-gradient(circle at 35% 30%, #7c5cfc, #4a30b0); color: #fff; animation: orbi-cb3 4.5s ease-in-out infinite 1.5s; }
+@keyframes orbi-cb1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
+@keyframes orbi-cb2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+@keyframes orbi-cb3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+
+/* ── FAQ ── */
+.orbi-landing .faq-section {
+  padding: 80px 24px;
+  background: var(--white);
+}
+.orbi-landing .faq-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 80px;
+  align-items: start;
+}
+.orbi-landing .faq-left h2 {
+  font-size: clamp(26px, 3vw, 40px);
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  color: var(--text-dark);
+  margin-bottom: 24px;
+}
+.orbi-landing .btn-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--text-dark);
+  color: var(--white);
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.18s;
+}
+.orbi-landing .btn-help:hover { opacity: 0.8; }
+
+.orbi-landing .faq-list { border-top: 1px solid var(--border-dark); }
+.orbi-landing .faq-item { border-bottom: 1px solid var(--border-dark); }
+.orbi-landing .faq-q {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 0;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--purple);
+  gap: 16px;
+  transition: color 0.18s;
+}
+.orbi-landing .faq-q:hover { color: var(--text-dark); }
+.orbi-landing .faq-item.open .faq-q { color: var(--text-dark); font-weight: 600; }
+.orbi-landing .faq-chevron { font-size: 13px; color: var(--text-muted); transition: transform 0.25s; flex-shrink: 0; }
+.orbi-landing .faq-item.open .faq-chevron { transform: rotate(180deg); }
+.orbi-landing .faq-a {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.75;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.2s;
+}
+.orbi-landing .faq-item.open .faq-a { max-height: 280px; padding-bottom: 22px; }
+
+/* ── CTA FINAL ── */
+.orbi-landing .cta-section {
+  background: var(--white);
+  padding: 0 24px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.orbi-landing .cta-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 28px;
+  background: #1a0f4a;
+  min-height: 360px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.orbi-landing .cta-card-glow {
+  position: absolute;
+  right: -100px; top: -100px;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,92,252,0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.orbi-landing .cta-content {
+  position: relative;
+  z-index: 2;
+  padding: 60px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.orbi-landing .cta-content h2 {
+  font-size: clamp(28px, 3.5vw, 46px);
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  color: var(--white);
+  margin-bottom: 14px;
+  line-height: 1.1;
+}
+.orbi-landing .cta-content p {
+  font-size: 16px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 32px;
+  max-width: 420px;
+  line-height: 1.6;
+  text-align: center;
+}
+.orbi-landing .store-btns-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.orbi-landing .store-pill-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.orbi-landing .proximamente-badge {
+  background: rgba(124,92,252,0.85);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.orbi-landing .store-pill-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.orbi-landing .store-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  padding: 10px 18px;
+  text-decoration: none;
+  transition: background 0.18s, border-color 0.18s;
+}
+.orbi-landing .store-pill:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
+.orbi-landing .store-pill-icon { font-size: 22px; }
+.orbi-landing .store-pill-t1 { font-size: 9px; color: rgba(255,255,255,0.5); font-weight: 500; display: block; }
+.orbi-landing .store-pill-t2 { font-size: 14px; color: var(--white); font-weight: 700; display: block; }
+
+/* CTA right: person silhouette */
+.orbi-landing .cta-visual {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+}
+.orbi-landing .cta-clouds {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 60% 30%, rgba(124,92,252,0.25) 0%, transparent 60%);
+}
+.orbi-landing .cta-person-text {
+  font-size: 160px;
+  line-height: 1;
+  opacity: 0.12;
+  position: absolute;
+  bottom: 0;
+  right: 60px;
+}
+
+/* ── FOOTER ── */
+.orbi-landing .orbi-footer {
+  background: #0d0926;
+  padding: 60px 24px 36px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  text-align: left;
+}
+
+.orbi-landing .footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+.orbi-landing .footer-top {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 60px;
+  margin-bottom: 48px;
+}
+.orbi-landing .footer-logo {
+  display: flex; flex-direction: column;
+  margin-bottom: 14px;
+}
+.orbi-landing .footer-logo-name { font-size: 20px; font-weight: 900; color: var(--white); letter-spacing: -0.3px; }
+.orbi-landing .footer-logo-sub { font-size: 9px; color: var(--purple-mid); letter-spacing: 3px; text-transform: uppercase; }
+.orbi-landing .footer-tagline { font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.6; margin-bottom: 20px; }
+.orbi-landing .footer-social { display: flex; gap: 10px; }
+.orbi-landing .footer-social a {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  transition: border-color 0.18s, color 0.18s;
+}
+.orbi-landing .footer-social a:hover { border-color: var(--purple-mid); color: var(--white); }
+.orbi-landing .footer-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 18px;
+}
+.orbi-landing .footer-col-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.orbi-landing .footer-col-links a {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  font-weight: 400;
+  transition: color 0.18s;
+}
+.orbi-landing .footer-col-links a:hover { color: var(--white); }
+.orbi-landing .footer-divider { height: 1px; background: rgba(255,255,255,0.06); margin-bottom: 28px; }
+.orbi-landing .footer-legal { font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.7; max-width: 1100px; margin: 0 auto; }
+.orbi-landing .footer-legal strong { color: rgba(255,255,255,0.35); }
+
+/* ── HAMBURGER ── */
+.orbi-landing .hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 6px;
+  background: none;
+  border: none;
+}
+.orbi-landing .hamburger span { display: block; width: 22px; height: 2px; background: var(--white); border-radius: 2px; transition: all 0.3s; }
+.orbi-landing .mobile-nav {
+  display: none;
+  position: fixed;
+  top: 64px; left: 0; right: 0; bottom: 0;
+  background: rgba(20,10,58,0.98);
+  z-index: 999;
+  padding: 24px;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+}
+.orbi-landing .mobile-nav.open { display: flex; }
+.orbi-landing .mnav-item {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  transition: all 0.18s;
+  border: none; background: none; cursor: pointer; text-align: left; width: 100%;
+}
+.orbi-landing .mnav-item:hover { background: rgba(255,255,255,0.06); color: var(--white); }
+.orbi-landing .mnav-div { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 0; }
+.orbi-landing .mnav-cta { margin-top: 16px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .orbi-landing .nav-center,
+.orbi-landing .btn-lang { display: none; }
+  .orbi-landing .hamburger { display: flex; }
+
+  .orbi-landing .hero-inner { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+  .orbi-landing .hero-sub { margin: 0 auto 32px; }
+  .orbi-landing .hero-visual { height: 460px; }
+  .orbi-landing .phone-orbi-img { height: 300px; }
+  .orbi-landing .ft-compra { right: -10px; top: 20px; }
+  .orbi-landing .ft-gana { right: -20px; top: 35%; }
+  .orbi-landing .ft-recibe { bottom: 80px; right: 0; }
+  .orbi-landing .ft-envia { display: none; }
+
+  .orbi-landing .spei-card { grid-template-columns: 1fr; }
+  .orbi-landing .spei-right { min-height: 300px; order: -1; }
+  .orbi-landing .spei-left { padding: 36px 24px; }
+
+  .orbi-landing .faq-inner { grid-template-columns: 1fr; gap: 36px; }
+
+  .orbi-landing .cta-visual { display: none; }
+  .orbi-landing .cta-content { padding: 40px 28px; }
+
+  .orbi-landing .footer-top { grid-template-columns: 1fr; gap: 36px; }
+
+}
+
+@media (max-width: 480px) {
+  .orbi-landing .hero-title { font-size: 32px; }
+  .orbi-landing .hero-visual { height: 320px; }
+  .orbi-landing .phone-hand { width: 190px; }
+  .orbi-landing .float-tag { display: none; }
+
+}
+
+/* ── GLOBE + PHONE HERO (Orbi style) ── */
+.orbi-landing .globe-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+.orbi-landing .globe-svg-bg {
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 80% 80% at 50% 50%,
+      rgba(124,92,252,0.22) 0%,
+      rgba(80,50,200,0.10) 45%,
+      transparent 70%);
+  position: relative;
+  overflow: hidden;
+}
+/* Dot-grid world map using CSS repeating pattern */
+.orbi-landing .globe-svg-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 80%);
+  animation: orbi-globe-rotate 30s linear infinite;
+}
+/* Glowing meridian lines */
+.orbi-landing .globe-svg-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(124,92,252,0.25);
+  box-shadow:
+    0 0 60px 20px rgba(124,92,252,0.12),
+    inset 0 0 60px 20px rgba(124,92,252,0.08);
+}
+@keyframes orbi-globe-rotate {
+  0%   { background-position: 0 0; }
+  100% { background-position: 200px 0; }
+}
+
+.orbi-landing .phone-orbi-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: orbi-float-y 4s ease-in-out infinite;
+}
+.orbi-landing .phone-orbi-img {
+  height: 460px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 0;
+  display: block;
+  filter: drop-shadow(0 32px 60px rgba(0,0,0,0.6));
+  /* Smooth fade into hero dark bg at bottom */
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 60%, rgba(0,0,0,0.3) 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 60%, rgba(0,0,0,0.3) 85%, transparent 100%);
+}
+
+/* Orbi-style floating transaction tags */
+.orbi-landing .orbi-tag {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 14px;
+  padding: 10px 16px;
+  white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+.orbi-landing .otag-flag { font-size: 20px; flex-shrink: 0; }
+.orbi-landing .otag-label { font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 500; line-height: 1; margin-bottom: 3px; }
+.orbi-landing .otag-val { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; line-height: 1; }
+
+.orbi-landing .tag-tl { top: 80px;  left: 0px;   animation: orbi-ft1 3.8s ease-in-out infinite; }
+.orbi-landing .tag-tr { top: 60px;  right: -10px; animation: orbi-ft2 4.2s ease-in-out infinite 0.6s; }
+.orbi-landing .tag-bl { bottom: 120px; left: -10px;  animation: orbi-ft2 3.6s ease-in-out infinite 1s; }
+.orbi-landing .tag-br { bottom: 100px; right: 0px; animation: orbi-ft1 4s ease-in-out infinite 0.4s; }
+
+/* Connection dot lines from tags to phone */
+.orbi-landing .orbi-tag::after {
+  display: none;
+}
+
+/* ── ENHANCED COIN ANIMATIONS ── */
+.orbi-landing .coin {
+  overflow: hidden;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22), 0 2px 8px rgba(124,92,252,0.15) !important;
+}
+.orbi-landing .coin img {
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+.orbi-landing .coin:hover img { transform: scale(1.06) rotate(8deg); }
+
+/* coin glow on hover */
+.orbi-landing .c-pxo1:hover { box-shadow: 0 16px 50px rgba(124,92,252,0.5), 0 0 0 3px rgba(124,92,252,0.3) !important; }
+.orbi-landing .c-pxo2:hover { box-shadow: 0 12px 40px rgba(124,92,252,0.45), 0 0 0 2px rgba(124,92,252,0.25) !important; }
+.orbi-landing .c-pxo3:hover { box-shadow: 0 10px 32px rgba(124,92,252,0.4) !important; }
+
+/* Coin spin on load */
+@keyframes orbi-coin-spin-in {
+  0% { transform: rotateY(90deg) scale(0.5); opacity: 0; }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+.orbi-landing .c-pxo1 { animation: orbi-cb1 3.8s ease-in-out infinite, orbi-coin-spin-in 0.8s ease-out forwards; }
+.orbi-landing .c-pxo2 { animation: orbi-cb2 4.2s ease-in-out infinite 0.6s, orbi-coin-spin-in 0.8s ease-out 0.2s forwards; }
+.orbi-landing .c-pxo3 { animation: orbi-cb3 3.5s ease-in-out infinite 0.9s, orbi-coin-spin-in 0.8s ease-out 0.4s forwards; }
+.orbi-landing .c-usdt { animation: orbi-cb1 4s ease-in-out infinite 1.2s; }
+.orbi-landing .c-mxn { animation: orbi-cb3 4.5s ease-in-out infinite 1.5s; }
+
+/* Particle dots connecting coins */
+.orbi-landing .coins-section { position: relative; }
+
+@media (max-width: 900px) {
+  .orbi-landing .phone-orbi-img { height: 320px; border-radius: 28px; }
+  .orbi-landing .tag-tl { left: -5px; font-size: 12px; }
+  .orbi-landing .tag-tr { right: -5px; }
+  .orbi-landing .tag-bl { left: -5px; }
+  .orbi-landing .tag-br { right: -5px; }
+  .orbi-landing .otag-val { font-size: 13px; }
+
+}
+@media (max-width: 480px) {
+  .orbi-landing .phone-orbi-img { height: 260px; }
+  .orbi-landing .orbi-tag { display: none; }
+
+}
+
+.orbi-landing .spei-img-wrap {
+  position: relative;
+  z-index: 2;
+  animation: orbi-float-y 4s ease-in-out infinite;
+  filter: drop-shadow(0 24px 48px rgba(0,0,0,0.5));
+}
+.orbi-landing .spei-wallet-img {
+  width: 230px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 20px;
+  display: block;
+  border: 1.5px solid rgba(74,200,245,0.55);
+  box-shadow: 0 0 0 1px rgba(74,200,245,0.15);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 65%, rgba(0,0,0,0.2) 90%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 65%, rgba(0,0,0,0.2) 90%, transparent 100%);
+}
+
+/* ── WHAT WE DO ── */
+.orbi-landing .what-we-do {
+  background: #f2efff;
+  padding: 44px 0 36px;
+  border-bottom: 1px solid rgba(124,92,252,0.18);
+  overflow: hidden;
+  margin-top: 0;
+}
+.orbi-landing .what-we-do-inner { padding: 0 24px; }
+.orbi-landing .what-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.orbi-landing .use-case-track {
+  gap: 16px;
+  animation: orbi-slide-left 32s linear infinite;
+}
+.orbi-landing .use-case-track:hover { animation-play-state: paused; }
+.orbi-landing .uc-card {
+  flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid rgba(124,92,252,0.12);
+  border-radius: 18px;
+  padding: 20px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+.orbi-landing .uc-card:hover {
+  box-shadow: 0 8px 28px rgba(124,92,252,0.14);
+  border-color: rgba(124,92,252,0.3);
+  transform: translateY(-3px);
+}
+.orbi-landing .uc-icon-wrap {
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.orbi-landing .uc-buy { background: rgba(124,92,252,0.1);  color: #7c5cfc; }
+.orbi-landing .uc-sell { background: rgba(220,60,60,0.09);  color: #cc4444; }
+.orbi-landing .uc-send { background: rgba(124,92,252,0.10); color: var(--purple); }
+.orbi-landing .uc-receive { background: rgba(124,92,252,0.10); color: var(--purple); }
+.orbi-landing .uc-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
+.orbi-landing .uc-sub { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.orbi-landing .uc-tokens { display: flex; gap: 6px; flex-wrap: wrap; }
+.orbi-landing .uc-token-badge {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  font-size: 10px; font-weight: 700;
+  border: 1px solid;
+}
+.orbi-landing .uc-token-badge img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
+.orbi-landing .pxo-badge { background: rgba(124,92,252,0.07); color: var(--purple); border-color: rgba(124,92,252,0.22); }
+.orbi-landing .usdt-badge { background: rgba(124,92,252,0.07); color: #6040d0; border-color: rgba(124,92,252,0.22); }
+.orbi-landing .usdc-badge { background: rgba(39,117,202,0.07); color: #2775ca; border-color: rgba(39,117,202,0.22); }
+.orbi-landing .uc-stable-card {
+  width: 290px;
+  background: linear-gradient(135deg, #f0ecff 0%, #e8e3ff 100%);
+  border-color: rgba(124,92,252,0.2);
+}
+.orbi-landing .uc-stable-title {
+  font-size: 10px; font-weight: 700;
+  color: var(--purple);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+.orbi-landing .uc-stable-coins { display: flex; gap: 8px; }
+.orbi-landing .uc-stable-coin {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(124,92,252,0.14);
+  border-radius: 12px;
+  padding: 10px 6px;
+}
+.orbi-landing .uc-stable-coin img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.orbi-landing .uc-stable-coin > span { font-size: 12px; font-weight: 800; color: var(--text-dark); }
+.orbi-landing .uc-stable-coin small { font-size: 8px; color: var(--text-muted); text-align: center; line-height: 1.3; }
+.orbi-landing .coin-letter {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 900;
+}
+.orbi-landing .coin-usdt { background: #5a3fc0; color: #fff; }
+.orbi-landing .coin-usdc { background: #2775ca; color: #fff; }
+
+/* ── HERO TRUST STRIP ── */
+.orbi-landing .hero-trust-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.5);
+}
+.orbi-landing .trust-sep { opacity: 0.3; }
+
+/* ── STAT STRIP ── */
+.orbi-landing .stat-strip {
+  background: var(--bg);
+  padding: 36px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.orbi-landing .stat-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.orbi-landing .stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 0 24px;
+}
+.orbi-landing .stat-num {
+  display: block;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  color: var(--purple-light);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.orbi-landing .stat-label {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.4;
+}
+.orbi-landing .stat-div {
+  width: 1px;
+  height: 48px;
+  background: rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+/* ── EMPRESA NAV LINK ── */
+.orbi-landing .nav-simple-empresa {
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  color: rgba(255,255,255,0.75);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.18s, background 0.18s;
+}
+.orbi-landing .nav-simple-empresa:hover {
+  color: var(--white);
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── HOW IT WORKS ── */
+.orbi-landing .how-section {
+  background: var(--white);
+  padding: 80px 24px;
+}
+.orbi-landing .how-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+.orbi-landing .how-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  margin-top: 52px;
+}
+.orbi-landing .how-step {
+  flex: 1;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.orbi-landing .how-step-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--purple);
+  letter-spacing: 2px;
+  opacity: 0.5;
+}
+.orbi-landing .how-step-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--off-white);
+  border: 1px solid rgba(124,92,252,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.orbi-landing .how-step-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+.orbi-landing .how-step-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.orbi-landing .how-arrow {
+  font-size: 22px;
+  color: rgba(124,92,252,0.3);
+  padding: 0 12px;
+  margin-top: 52px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .orbi-landing .how-steps { flex-direction: column; align-items: center; gap: 24px; }
+  .orbi-landing .how-arrow { transform: rotate(90deg); margin-top: 0; }
+  .orbi-landing .stat-inner { flex-direction: column; gap: 24px; }
+  .orbi-landing .stat-div { width: 60px; height: 1px; }
+  .orbi-landing .hero-trust-strip { font-size: 11px; gap: 8px; }
+
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   React port adjustments
+   The design used <a> tags for the CTAs and the FAQ questions; here they are
+   real <button>s (they trigger the wallet connect flow / toggle an accordion),
+   so they need the typography and box resets buttons do not inherit.
+   ────────────────────────────────────────────────────────────────────────── */
+.orbi-landing .btn-hero,
+.orbi-landing .btn-cta {
+  font-family: inherit;
+  line-height: 1.5;
+}
+.orbi-landing .btn-hero:disabled,
+.orbi-landing .btn-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+.orbi-landing .faq-q {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+.orbi-landing .hamburger:focus-visible,
+.orbi-landing .nav-pill-btn:focus-visible,
+.orbi-landing .btn-lang:focus-visible,
+.orbi-landing .btn-hero:focus-visible,
+.orbi-landing .btn-cta:focus-visible,
+.orbi-landing .faq-q:focus-visible {
+  outline: 2px solid var(--purple-mid);
+  outline-offset: 3px;
+}
+
+/* The landing owns the full viewport background (the dark hero bleeds to the
+   top of the page on overscroll). */
+.orbi-landing {
+  min-height: 100vh;
+}
+
+/* Footer / dropdown entries that open a modal are <button>s, not links —
+   give them the same look as their <a> siblings. */
+.orbi-landing .footer-col-links button {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 400;
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.18s;
+}
+.orbi-landing .footer-col-links button:hover { color: var(--white); }
+
+.orbi-landing button.about-item,
+.orbi-landing button.mnav-item {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+/* ── LANGUAGE SWITCHER ──
+   The design shipped the "🌐 ESP" pill with a chevron but no menu; this is the
+   dropdown it implies, plus a mobile fallback (the pill is hidden under 900px). */
+.orbi-landing .lang-pill { position: relative; }
+.orbi-landing .lang-drop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-dark);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  padding: 8px;
+  min-width: 120px;
+  z-index: 1001;
+}
+.orbi-landing .lang-drop.open { display: block; }
+.orbi-landing .lang-drop .about-item.active { color: var(--purple); font-weight: 700; }
+
+.orbi-landing .mnav-langs { display: flex; gap: 8px; padding: 4px 16px 0; }
+.orbi-landing .mnav-lang {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  color: rgba(255,255,255,0.7);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.orbi-landing .mnav-lang:hover { background: rgba(255,255,255,0.18); color: var(--white); }
+.orbi-landing .mnav-lang.active {
+  background: rgba(255,255,255,0.9);
+  border-color: transparent;
+  color: var(--text-dark);
+  font-weight: 700;
+}

@@ -5,7 +5,7 @@ import { polygon, polygonAmoy } from 'thirdweb/chains';
 import { getServerSupabase } from '../lib/supabase.js';
 import { getServerThirdwebClient } from '../lib/thirdweb-client.js';
 import { getServerLiquidity } from '../lib/liquidity.js';
-import { PricingService, BinancePriceProvider } from '../lib/pricing/index.js';
+import { PricingService, createPriceProvider } from '../lib/pricing/index.js';
 import { sendPXOToUser } from '../lib/send-pxo.js';
 import { getUserByWallet } from '../lib/user-lookup.js';
 import { requireCaller } from '../middleware/identity.js';
@@ -64,7 +64,7 @@ export const buyPxoRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
       .single();
     if (tokenError || !token) return reply.code(400).send({ error: 'Invalid token' });
 
-    const pricingService = new PricingService(new BinancePriceProvider());
+    const pricingService = new PricingService(createPriceProvider());
     const buyPriceResult = await pricingService.getBuyPrice(`PXO/${tokenSymbol}`);
     const exchangeRate = buyPriceResult.price;
     const calculatedPxoAmount = amount / exchangeRate;

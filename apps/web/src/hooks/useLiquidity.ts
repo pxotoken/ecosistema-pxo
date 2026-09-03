@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useActiveWalletChain } from 'thirdweb/react';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 
 interface LiquidityToken {
   address: string | null;
@@ -36,9 +36,7 @@ export function useLiquidity() {
         }
         setData(json.liquidity as LiquidityData);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Failed to fetch liquidity';
-        setError(message);
+        setError(getApiError(err, 'Failed to fetch liquidity'));
         console.error('Error fetching liquidity:', err);
       } finally {
         setLoading(false);

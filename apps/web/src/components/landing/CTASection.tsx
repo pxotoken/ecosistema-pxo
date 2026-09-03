@@ -1,10 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AccedePXOButton } from '../crypto';
-import { useAuthContext } from '../../contexts/AuthContext';
 
 export const CTASection: React.FC = () => {
-  const { handleLogin, handleLogout } = useAuthContext();
 
   const items = [
     {
@@ -81,7 +79,7 @@ export const CTASection: React.FC = () => {
       viewport={{ once: true }}
       className="flex justify-center mt-12"
     >
-      <AccedePXOButton onLogin={handleLogin} onLogout={handleLogout} />
+      <AccedePXOButton />
     </motion.div>
 
   </div>

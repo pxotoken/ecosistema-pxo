@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import httpProxy from '@fastify/http-proxy';
 import { env } from './config/env.js';
 import { requireAuth } from './middleware/auth.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 const allowedOrigins = env.ALLOWED_ORIGINS;
@@ -132,6 +133,37 @@ async function bootstrap() {
     http2: false,
   });
 
+  // Exchange — fiat (MXN) webhooks. PUBLIC: called by Conekta / Bitso,
+  // no JWT possible; the upstream verifies HMAC signatures itself.
+  // Must register BEFORE the generic /api/exchange/* auth-gated entries.
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/webhooks',
+    rewritePrefix: '/api/exchange/webhooks',
+    http2: false,
+  });
+
+  // Exchange — fiat on-ramp / off-ramp (authenticated, identity propagated).
+  // Register BEFORE /api/exchange/buy-pxo and /api/exchange/sell-pxo so the
+  // longer, more specific -mxn prefix wins for routes like /buy-pxo-mxn.
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/buy-pxo-mxn',
+    rewritePrefix: '/api/exchange/buy-pxo-mxn',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/sell-pxo-mxn',
+    rewritePrefix: '/api/exchange/sell-pxo-mxn',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
   // Exchange — authenticated endpoints (identity propagated).
   // /api/exchange/buy-pxo -> api-exchange
   await app.register(httpProxy, {
@@ -202,6 +234,8 @@ async function bootstrap() {
   });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

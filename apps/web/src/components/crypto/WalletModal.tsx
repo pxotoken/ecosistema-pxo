@@ -5,7 +5,6 @@ import {
   Send,
   Download,
   List,
-  Clock,
   Wallet,
   LogOut,
   User,
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 import {
   useWalletDetailsModal,
-  useActiveWallet,
   useActiveAccount,
   useNetworkSwitcherModal,
   useActiveWalletChain,
@@ -79,10 +77,9 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
   const navigate = useNavigate();
   const networkSwitcher = useNetworkSwitcherModal();
   const account = useActiveAccount();
-  const wallet = useActiveWallet();
   const activeChain = useActiveWalletChain();
   const { open } = useWalletDetailsModal();
-  const { currentChains, tokens, environment } = useWalletStore();
+  const { currentChains, tokens } = useWalletStore();
   const { logout, user } = useAuthContext();
   const { addToast } = useToast();
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);

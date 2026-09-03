@@ -9,7 +9,7 @@ export type ActivityType =
   | 'wallet_operation'
   | 'idle';
 
-interface Activity {
+export interface Activity {
   type: ActivityType;
   startedAt: number;
   metadata?: Record<string, any>;

@@ -7,6 +7,7 @@ import { UserRepository } from './lib/user-repository.js';
 import { usersRoutes } from './routes/users.js';
 import { adminUsersRoutes } from './routes/admin-users.js';
 import { cronRoutes } from './routes/cron.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -27,6 +28,8 @@ async function bootstrap() {
   await app.register(usersRoutes(users), { prefix: '/api/users' });
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app);
 }
 
 bootstrap().catch((err) => {

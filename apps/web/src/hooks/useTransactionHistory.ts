@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HistoryItem, TransactionType } from '@pxo/shared/types';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 
 interface TransactionHistoryFilters {
   type?: TransactionType[];
@@ -54,7 +54,7 @@ export function useTransactionHistory(initialFilters?: TransactionHistoryFilters
         throw new Error('Invalid response format');
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error fetching orders'));
+      setError(new Error(getApiError(err, 'Error fetching orders')));
       console.error('Error fetching orders:', err);
     } finally {
       setIsLoading(false);

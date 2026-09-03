@@ -3,7 +3,7 @@
  * Type definitions for axios client configuration
  */
 
-import type { ApiProvider } from '../consts/providers';
+import type { ApiProvider } from '../consts/providers.ts';
 import type { InternalAxiosRequestConfig } from 'axios';
 
 /**

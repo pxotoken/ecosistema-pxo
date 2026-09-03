@@ -1,4 +1,5 @@
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LocaleProvider } from './i18n';
 import { AuthProvider, useAuthContext } from './contexts/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
 import { SessionManager } from './components/SessionManager';
@@ -20,11 +21,13 @@ function AppInner() {
 function App() {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <AppInner />
-        </AuthProvider>
-      </ToastProvider>
+      <LocaleProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AppInner />
+          </AuthProvider>
+        </ToastProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 }

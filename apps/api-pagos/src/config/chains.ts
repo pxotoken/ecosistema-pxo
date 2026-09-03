@@ -1,13 +1,11 @@
 import { env } from './env.js';
 
-export const BSC_MAINNET_ID = 56 as const;
 export const POLYGON_MAINNET_ID = 137 as const;
 export const POLYGON_AMOY_ID = 80002 as const;
 
-export type PaymentsChainId =
-  | typeof BSC_MAINNET_ID
-  | typeof POLYGON_MAINNET_ID
-  | typeof POLYGON_AMOY_ID;
+// BNB Smart Chain (56) was supported here until 2026-09-02. Dropped per the
+// chain-scope decision: Polygon only for this phase.
+export type PaymentsChainId = typeof POLYGON_MAINNET_ID | typeof POLYGON_AMOY_ID;
 
 export interface ChainConfig {
   chainId: PaymentsChainId;
@@ -32,20 +30,7 @@ function polygonMainnetRpc(): string {
     : 'https://polygon-rpc.com';
 }
 
-function bscRpc(): string {
-  return env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org';
-}
-
 const CHAINS: Record<PaymentsChainId, () => ChainConfig> = {
-  [BSC_MAINNET_ID]: () => ({
-    chainId: BSC_MAINNET_ID,
-    name: 'BNB Smart Chain',
-    rpcUrl: bscRpc(),
-    blockExplorerUrl: 'https://bscscan.com',
-    pxoDecimals: 6,
-    pxoTokenAddress: env.PXO_TOKEN_ADDRESS_BSC,
-    avgBlockTimeMs: 3_000,
-  }),
   [POLYGON_MAINNET_ID]: () => ({
     chainId: POLYGON_MAINNET_ID,
     name: 'Polygon',
@@ -71,12 +56,12 @@ const CHAINS: Record<PaymentsChainId, () => ChainConfig> = {
 };
 
 export function isSupportedChainId(id: number): id is PaymentsChainId {
-  return id === BSC_MAINNET_ID || id === POLYGON_MAINNET_ID || id === POLYGON_AMOY_ID;
+  return id === POLYGON_MAINNET_ID || id === POLYGON_AMOY_ID;
 }
 
 export function getChainConfig(chainId: number = env.PAYMENTS_CHAIN_ID): ChainConfig {
   if (!isSupportedChainId(chainId)) {
-    throw new Error(`Unsupported chainId ${chainId}. Supported: 56, 137, 80002`);
+    throw new Error(`Unsupported chainId ${chainId}. Supported: 137, 80002`);
   }
   return CHAINS[chainId]();
 }

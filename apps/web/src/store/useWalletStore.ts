@@ -86,12 +86,25 @@ const tokens = {
 
 const FORCE_POLYGON_MAINNET = import.meta.env.VITE_FORCE_POLYGON_MAINNET === 'true';
 const ENABLE_ADMIN_TESTNET = import.meta.env.VITE_ENABLE_ADMIN_TESTNET === 'true';
+// Default chain used for the initial in-app wallet connection. Thirdweb social
+// wallets provision the account on this chain and cannot be switched
+// user-side, so this env decides where new sessions land. Values: 137 (Polygon
+// mainnet), 80002 (Polygon Amoy testnet). Falls back to Amoy when unset so
+// dev/F&F environments don't accidentally provision on mainnet.
+const DEFAULT_CHAIN_ID = Number(import.meta.env.VITE_DEFAULT_CHAIN_ID) || 80002;
 
+/**
+ * Returns the supported chain list, with the env-selected default chain first
+ * so `currentChains[0]` in useAuth's connect() call lands on the intended
+ * network for in-app (social/email) wallets.
+ */
 const getChains = (isAdmin = false) => {
   if (FORCE_POLYGON_MAINNET && !(isAdmin && ENABLE_ADMIN_TESTNET)) {
     return [polygon];
   }
-  return [polygon, polygonAmoy];
+  return DEFAULT_CHAIN_ID === polygon.id
+    ? [polygon, polygonAmoy]
+    : [polygonAmoy, polygon];
 };
 
 const useWalletStore = create<WalletState>((set: any) => ({

@@ -152,6 +152,9 @@ importers:
       '@fastify/http-proxy':
         specifier: ^10.0.0
         version: 10.0.2
+      '@pxo/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -404,6 +407,9 @@ importers:
       lucide-react:
         specifier: ^0.344.0
         version: 0.344.0(react@18.3.1)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -429,6 +435,9 @@ importers:
       '@pxo/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@types/qrcode':
+        specifier: ^1.5.5
+        version: 1.5.6
       '@types/react':
         specifier: ^18.3.5
         version: 18.3.28

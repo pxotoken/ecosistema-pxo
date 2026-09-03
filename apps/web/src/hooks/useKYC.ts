@@ -31,9 +31,6 @@ export function normalizeCountryToIso2(value: string | undefined | null): string
   return COUNTRY_LABEL_TO_ISO2[trimmed] ?? '';
 }
 
-const getErrorMessage = (err: unknown): string =>
-  err instanceof Error ? err.message : 'Unknown error';
-
 interface SubmitKycInput {
   firstName: string;
   lastName: string;
@@ -61,7 +58,7 @@ export const useKYC = () => {
     try {
       return await fn();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(getApiError(err, 'Unknown error'));
       throw err;
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { useSwitchActiveWalletChain } from 'thirdweb/react';
 import { getContract, getGasPrice } from 'thirdweb';

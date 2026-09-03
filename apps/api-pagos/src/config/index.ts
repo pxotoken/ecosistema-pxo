@@ -1,6 +1,5 @@
 export { env } from './env.js';
 export {
-  BSC_MAINNET_ID,
   POLYGON_MAINNET_ID,
   POLYGON_AMOY_ID,
   getActiveChain,

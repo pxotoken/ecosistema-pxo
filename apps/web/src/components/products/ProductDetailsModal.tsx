@@ -30,7 +30,6 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   isOpen,
   onClose,
   initialCategory,
-  allCategories,
 }) => {
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [selectedSubProduct, setSelectedSubProduct] = useState<SubProduct | null>(null);
@@ -49,13 +48,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const riskColorClass = {
-    High: 'text-red-500',
-    Medium: 'text-orange-500',
-    Low: 'text-green-500',
-  };
-
-  const handleViewSubProduct = (subProduct: SubProduct) => {
+  const handleViewSubProduct = (_subProduct: SubProduct) => {
     // Feature temporarily disabled as per user request.
     // This function previously set the selected sub-product and changed the view to 'detail'.
     console.log("handleViewSubProduct: La función para ver los detalles del subproducto está temporalmente deshabilitada.");
@@ -213,7 +206,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <div className="mt-6 pt-6 border-t border-light-border dark:border-dark-border">
               <h3 className="text-xl font-bold text-light-text dark:text-dark-text font-editorial mb-4">More {initialCategory?.title ?? 'Related'} Products</h3>
               <div className="space-y-3">
-                {relatedSubProducts.map((relatedSp, index) => (
+                {relatedSubProducts.map((relatedSp) => (
                   <div
                     key={relatedSp.id}
                     className="flex items-center justify-between p-4 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl shadow-glass transition-all duration-300 cursor-pointer hover:shadow-glow hover:border-lime-accent/30"

@@ -4,7 +4,7 @@ import { prepareContractCall, prepareTransaction, sendTransaction } from 'thirdw
 import { estimateGas, getGasPrice } from 'thirdweb';
 import { getRpcClient, eth_getTransactionReceipt } from 'thirdweb/rpc';
 import { privateKeyToAccount } from 'thirdweb/wallets';
-import { polygon, polygonAmoy, bsc } from 'thirdweb/chains';
+import { polygon, polygonAmoy } from 'thirdweb/chains';
 import { env } from '../config/env.js';
 import { getServerSupabase } from '../lib/supabase.js';
 import { getServerThirdwebClient } from '../lib/thirdweb-client.js';
@@ -17,11 +17,11 @@ import {
   PXO_TOKEN_ADDRESSES,
   PXO_SELL_SUPPORTED_CHAIN_IDS,
   DEFAULT_TOKEN_TYPE,
-  type GasSubsidyChainId,
+  TOKEN_TRANSFER_GAS_LIMIT,
   type SupportedChainId,
 } from '../config/chains.js';
 
-const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy, 56: bsc } as const;
+const CHAIN_MAP = { 137: polygon, 80002: polygonAmoy } as const;
 const USDC_DECIMALS = 6;
 const USDT_DECIMALS = 6;
 
@@ -70,11 +70,11 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
         });
       }
 
-      const chain = CHAIN_MAP[chainId as GasSubsidyChainId];
+      const chain = CHAIN_MAP[chainId as SupportedChainId];
       if (!chain) {
         return reply.code(400).send({ error: `Unsupported chain ID: ${chainId}` });
       }
-      const chainKey = chainId as GasSubsidyChainId;
+      const chainKey = chainId as SupportedChainId;
 
       let resolvedTokenAddress: string;
       let resolvedReceiverAddress: string;
@@ -175,8 +175,14 @@ export const gasSubsidyRoutes: FastifyPluginAsync = async (app: FastifyInstance)
         gasPrice = chainId === 80002 ? BigInt(30_000_000_000) : BigInt(20_000_000_000);
       }
 
-      // 150% of estimated gas cost
-      const subsidyAmount = (estimatedGas * gasPrice * BigInt(15)) / BigInt(10);
+      // Size the subsidy off the gas limit the user's transfer will actually
+      // send (TOKEN_TRANSFER_GAS_LIMIT), not the RPC estimate — the estimate
+      // can undershoot the fixed 100k cap, leaving the wallet short. Guard with
+      // max() so a future token needing more than the cap is still covered.
+      const gasUnitsToFund =
+        estimatedGas > TOKEN_TRANSFER_GAS_LIMIT ? estimatedGas : TOKEN_TRANSFER_GAS_LIMIT;
+      // 150% of gas cost, to absorb gasPrice drift before the transfer is sent.
+      const subsidyAmount = (gasUnitsToFund * gasPrice * BigInt(15)) / BigInt(10);
 
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: recentSubsidies } = await supabase

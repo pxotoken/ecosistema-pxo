@@ -17,6 +17,10 @@ export const updateProfileSchema = Joi.object({
     .pattern(/^\+?[0-9 ()-]{6,20}$/)
     .optional()
     .messages({ 'string.pattern.base': 'Invalid phone format' }),
+  CLABE: Joi.string()
+    .pattern(/^\d{18}$/)
+    .optional()
+    .messages({ 'string.pattern.base': 'CLABE must be exactly 18 digits' }),
 })
   .min(1)
   .messages({ 'object.min': 'At least one field must be provided' });

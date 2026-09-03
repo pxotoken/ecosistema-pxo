@@ -10,6 +10,7 @@ import { chargeRoutes } from './routes/charges/index.js';
 import { webhookRoutes } from './routes/webhooks/index.js';
 import { startExpirationWorker } from './jobs/expirationWorker.js';
 import { startReconciliationWorker } from './jobs/reconciliation.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -41,14 +42,22 @@ async function bootstrap() {
     info: (m: string) => app.log.info(m),
     error: (m: string) => app.log.error(m),
   };
-  startExpirationWorker(services.payments, env.EXPIRATION_WORKER_INTERVAL_MS, workerLogger);
-  startReconciliationWorker(
+  const expirationWorker = startExpirationWorker(
+    services.payments,
+    env.EXPIRATION_WORKER_INTERVAL_MS,
+    workerLogger,
+  );
+  const reconciliationWorker = startReconciliationWorker(
     services.reconciliation,
     env.RECONCILIATION_WORKER_INTERVAL_MS,
     workerLogger,
   );
 
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app, {
+    onShutdown: [() => expirationWorker.stop(), () => reconciliationWorker.stop()],
+  });
 }
 
 bootstrap().catch((err) => {

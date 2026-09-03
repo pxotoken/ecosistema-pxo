@@ -10,6 +10,12 @@ import { sellPxoRoutes } from './routes/sell-pxo.js';
 import { gasSubsidyRoutes } from './routes/gas-subsidy.js';
 import { ordersRoutes } from './routes/orders.js';
 import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
+import { buyPxoMxnRoutes } from './routes/buy-pxo-mxn.js';
+import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
+import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
+import { qaMockDepositRoutes } from './routes/qa/mock-deposit.js';
+import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';
+import { registerGracefulShutdown } from '@pxo/shared/helpers';
 
 const app = Fastify({ logger: true });
 
@@ -34,7 +40,29 @@ async function bootstrap() {
   await app.register(pricesRoutes, { prefix: '/api' });
   await app.register(pricingRulesRoutes, { prefix: '/api/admin' });
 
+  // Fiat (MXN) on-ramp (SPEI via Bitso) + off-ramp (SPEI withdrawal via
+  // Bitso). Conekta was removed 2026-07-12 due to chargeback risk on
+  // irreversible stablecoin issuance.
+  await app.register(buyPxoMxnRoutes, { prefix: '/api/exchange' });
+  await app.register(sellPxoMxnRoutes, { prefix: '/api/exchange' });
+  await app.register(bitsoWebhookRoutes, { prefix: '/api/exchange' });
+
+  // QA-only mock deposit tool. Route is NOT registered when the env flag
+  // is off — the endpoint literally does not exist in production.
+  if (env.MOCK_DEPOSITS_ENABLED) {
+    await app.register(qaMockDepositRoutes, { prefix: '/api/exchange' });
+    app.log.warn(
+      'MOCK_DEPOSITS_ENABLED=true — /api/exchange/qa/mock-bitso-deposit is active. Ensure this is NOT production.',
+    );
+  }
+
+  // Background reconciliation of inbound SPEI fundings against open deposit
+  // intents. Fires immediately and then on a fixed interval.
+  const depositWorker = startDepositMatchingWorker(app.log);
+
   await app.listen({ port: env.PORT, host: env.HOST });
+
+  registerGracefulShutdown(app, { onShutdown: [() => depositWorker.stop()] });
 }
 
 bootstrap().catch((err) => {

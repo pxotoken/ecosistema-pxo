@@ -13,9 +13,12 @@ import { usePXOPrices } from './usePXOPrices';
 import { useLiquidity } from './useLiquidity';
 import { useAuthContext } from '../contexts/AuthContext';
 import { KYCStatus } from '@pxo/shared/types';
+import { TOKEN_TRANSFER_GAS_LIMIT } from '@pxo/shared/consts';
 import { isExternalAuthProvider } from '../lib/walletUtils';
 import { sendTransactionWithSignatureDeadline, SignatureTimeoutError } from '../lib/signatureTransaction';
 import type { ExchangeSignatureCallbacks } from './usePXOExchange';
+import { getPXOReceiverAddress } from '../lib/pxoReceiver';
+import { getTokenDecimals } from '../lib/tokenDecimals';
 
 const FORCE_POLYGON_MAINNET = import.meta.env.VITE_FORCE_POLYGON_MAINNET === 'true';
 const ENABLE_ADMIN_TESTNET = import.meta.env.VITE_ENABLE_ADMIN_TESTNET === 'true';
@@ -25,14 +28,6 @@ const PXO_TOKEN_ADDRESSES: Record<number, string> = {
   137: import.meta.env.VITE_PXO_TOKEN_ADDRESS_MAINNET || '0xd6f9c21a585e2d77b62ec8c65ab9bec70e2b77d7',
   80002: import.meta.env.VITE_PXO_TOKEN_ADDRESS_TESTNET || '0xeda62cd0d29e077b98e0b61d905c4af906d8946c',
 };
-
-const PXO_RECEIVER_ADDRESSES: Record<number, string> = {
-  137: import.meta.env.VITE_POLYGON_PXO_RECEIVER_ADDRESS || '0x9f0f2eac50ad04d37d3bf3359735928126ac8382',
-  80002: import.meta.env.VITE_POLYGON_AMOY_PXO_RECEIVER_ADDRESS || '0x9f0f2eac50ad04d37d3bf3359735928126ac8382',
-};
-
-const getPXOReceiverAddress = (chainId: number): string =>
-  PXO_RECEIVER_ADDRESSES[chainId] ?? PXO_RECEIVER_ADDRESSES[137];
 
 const getPXOContractAddress = (chainId: number): string =>
   PXO_TOKEN_ADDRESSES[chainId] ?? PXO_TOKEN_ADDRESSES[137];
@@ -65,6 +60,25 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
     chainId: number;
     pxoAmount: number;
   }) => {
+    // Resolved before the try below: a missing receiver is a build/config
+    // fault, not a gas-validation failure, and must not be reported as one.
+    let receiverAddress: string;
+    try {
+      receiverAddress = getPXOReceiverAddress(params.chainId);
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: (err as Error).message, needsSubsidy: false };
+    }
+
+    // Was `chainId === 137 ? 6 : 18`: right for mainnet, wrong for Amoy,
+    // which is 8. Ask the contract instead of encoding the belief here.
+    const chainForDecimals = params.chainId === 137 ? polygon : polygonAmoy;
+    const tokenDecimals = await getTokenDecimals({
+      client: getThirdwebClient(),
+      chain: chainForDecimals,
+      address: getPXOContractAddress(params.chainId),
+    });
+
     try {
       const { data } = await api.post('/api/exchange/gas-subsidy', {
         userAddress: params.userAddress,
@@ -73,8 +87,8 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         source: 'transfer',
         forPxoSell: true,
         tokenContractAddress: getPXOContractAddress(params.chainId),
-        receiverAddress: getPXOReceiverAddress(params.chainId),
-        tokenDecimals: params.chainId === 137 ? 6 : 18,
+        receiverAddress,
+        tokenDecimals,
       });
       return {
         success: true,
@@ -84,7 +98,7 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
       };
     } catch (err) {
       console.error('Error validating gas:', err);
-      return { success: false, message: 'Error validating gas', needsSubsidy: false };
+      return { success: false, message: getApiError(err, 'Error validating gas'), needsSubsidy: false };
     }
   };
 
@@ -199,7 +213,10 @@ export const usePXOSell = (onSellSuccess?: () => void) => {
         amount: pxoAmount,
         contract: pxoContract,
         to: getPXOReceiverAddress(chainId),
-        overrides: { gasPrice },
+        // Explicit gas limit shared with the server sender and gas-subsidy
+        // sizing — thirdweb's auto-estimate can undershoot the PXO proxy on
+        // Amoy's flaky RPCs, causing "out of gas" reverts.
+        overrides: { gasPrice, gas: TOKEN_TRANSFER_GAS_LIMIT },
       });
 
       let receipt;

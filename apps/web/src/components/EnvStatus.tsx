@@ -1,11 +1,14 @@
 import React from 'react';
 
 export const EnvStatus: React.FC = () => {
+  // This app is Vite, which only exposes VITE_*. The NEXT_PUBLIC_* fallbacks
+  // that used to sit here were Next.js leftovers that could never resolve,
+  // and they made the panel report variable names that do not exist.
   const envVars = {
-    'NEXT_PUBLIC_SUPABASE_URL': import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL,
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY': import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    'NEXT_PUBLIC_THIRDWEB_CLIENT_ID': import.meta.env.VITE_THIRDWEB_CLIENT_ID || import.meta.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
-    'NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN': import.meta.env.VITE_THIRDWEB_AUTH_DOMAIN || import.meta.env.NEXT_PUBLIC_THIRDWEB_AUTH_DOMAIN,
+    'VITE_SUPABASE_URL': import.meta.env.VITE_SUPABASE_URL,
+    'VITE_SUPABASE_ANON_KEY': import.meta.env.VITE_SUPABASE_ANON_KEY,
+    'VITE_THIRDWEB_CLIENT_ID': import.meta.env.VITE_THIRDWEB_CLIENT_ID,
+    'VITE_THIRDWEB_AUTH_DOMAIN': import.meta.env.VITE_THIRDWEB_AUTH_DOMAIN,
   };
 
   return (

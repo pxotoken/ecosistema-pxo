@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { getServerSupabase } from '../lib/supabase.js';
 import { requireCaller } from '../middleware/identity.js';
-import { PXO_RECEIVER_ADDRESSES, type GasSubsidyChainId } from '../config/chains.js';
+import { PXO_RECEIVER_ADDRESSES, type SupportedChainId } from '../config/chains.js';
 
 interface OrdersQuery {
   userAddress?: string;
@@ -86,7 +86,7 @@ export const ordersRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
         const baseTokenSymbol = order.currency_pair.split('/')[0];
         const chainId = order.chain_id ?? parsedChainId;
         const systemWallet =
-          PXO_RECEIVER_ADDRESSES[chainId as GasSubsidyChainId] ?? '';
+          PXO_RECEIVER_ADDRESSES[chainId as SupportedChainId] ?? '';
 
         return {
           id: order.id,

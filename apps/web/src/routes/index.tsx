@@ -3,17 +3,27 @@ import { LandingPage } from '../components/LandingPage';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { WalletSection } from '../components/WalletSection';
 import { ExchangeRates } from '../components/ExchangeRates';
+import { BuyPxoWithDigitalDollars } from '../components/BuyPxoWithDigitalDollars';
+import { SellPxoWithDigitalDollars } from '../components/SellPxoWithDigitalDollars';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { ProductSection } from '../components/ProductSection';
 import { KYCSettings } from '../components/settings/KYCSettings';
+import { BuyPxoPage } from '../components/fiat/BuyPxoPage';
+import { RedeemPxoPage } from '../components/fiat/RedeemPxoPage';
 import { KycAdminPage } from '../components/kyc/KycAdminPage';
 import { UserAdminPage } from '../components/admin/UserAdminPage';
 import { WalletStatusPage } from '../components/admin/WalletStatusPage';
 import { PricingRulesAdminPage } from '../components/admin/PricingRulesAdminPage';
+import { MockDepositPage } from '../components/qa/MockDepositPage';
 import { KYCGuard } from '../components/guards/KYCGuard';
 import { RequireAuth } from './RequireAuth';
 import { RequireGuest } from './RequireGuest';
 import { PATHS } from './paths';
+
+// QA-only routes gated by the env flag. When false, the routes are not
+// added to the router at all — direct URL navigation hits the 404 fallback.
+const MOCK_DEPOSITS_ENABLED =
+  import.meta.env.VITE_MOCK_DEPOSITS_ENABLED === 'true';
 
 const DASHBOARD_ROUTES = [
   { path: PATHS.dashboard.wallet, element: <WalletSection /> },
@@ -25,6 +35,33 @@ const DASHBOARD_ROUTES = [
       </KYCGuard>
     ),
   },
+  {
+    path: PATHS.dashboard.exchangeBuy,
+    element: (
+      <KYCGuard>
+        <BuyPxoWithDigitalDollars />
+      </KYCGuard>
+    ),
+  },
+  {
+    path: PATHS.dashboard.exchangeSell,
+    element: (
+      <KYCGuard>
+        <SellPxoWithDigitalDollars />
+      </KYCGuard>
+    ),
+  },
+  { path: PATHS.dashboard.fiatBuy, element: (
+    <KYCGuard>
+      <BuyPxoPage />
+    </KYCGuard>
+  ) },
+  { path: PATHS.dashboard.fiatRedeem, element: (
+    <KYCGuard>
+      <RedeemPxoPage />
+    </KYCGuard>
+  ) },
+  { path: '/dashboard/fiat', element: <Navigate to={PATHS.dashboard.fiatBuy} replace /> },
   { path: PATHS.dashboard.products, element: <ProductSection /> },
   { path: PATHS.dashboard.insights, element: <TransactionHistory /> },
   { path: PATHS.dashboard.settings, element: <KYCSettings /> },
@@ -32,6 +69,9 @@ const DASHBOARD_ROUTES = [
   { path: PATHS.dashboard.adminUsers, element: <UserAdminPage /> },
   { path: PATHS.dashboard.adminWalletStatus, element: <WalletStatusPage /> },
   { path: PATHS.dashboard.adminPricingRules, element: <PricingRulesAdminPage /> },
+  ...(MOCK_DEPOSITS_ENABLED
+    ? [{ path: PATHS.dashboard.qaMockDeposit, element: <MockDepositPage /> }]
+    : []),
 ];
 
 export function AppRoutes() {

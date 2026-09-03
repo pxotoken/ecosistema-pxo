@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
 import { formatUnits } from 'viem';
-import api from '../lib/api';
+import api, { getApiError } from '../lib/api';
 import { HistoryItem, TransactionType } from '@pxo/shared/types';
 
 interface BlockchainTransactionFilters {
@@ -9,41 +9,6 @@ interface BlockchainTransactionFilters {
   startDate?: Date;
   endDate?: Date;
   chain?: number[];
-}
-
-interface Transaction {
-  chain_id: number;
-  block_number: string;
-  block_hash: string;
-  block_timestamp: string;
-  hash: string;
-  from_address: string;
-  to_address: string;
-  value: number;
-  gas_price: number;
-  gas: number;
-  gas_used: number;
-  effective_gas_price: number;
-  status: number;
-  tokenSymbol: string;
-  tokenAddress: string;
-  tokenDecimals: number;
-  contractAddress: string;
-  isReceived: boolean;
-}
-
-interface TransactionResponse {
-  data: Transaction[];
-  meta: {
-    chain_ids: number[];
-    address: string;
-    page: number;
-    limit_per_chain: number;
-    total_items: number;
-    total_pages: number;
-    tokenSymbol: string;
-    tokenAddress: string;
-  };
 }
 
 export function useBlockchainTransactionHistory(initialFilters?: BlockchainTransactionFilters) {
@@ -131,7 +96,7 @@ export function useBlockchainTransactionHistory(initialFilters?: BlockchainTrans
 
       setTransactions(filteredTransactions);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Error fetching transactions'));
+      setError(new Error(getApiError(err, 'Error fetching transactions')));
       console.error('Error fetching blockchain transactions:', err);
     } finally {
       setIsLoading(false);

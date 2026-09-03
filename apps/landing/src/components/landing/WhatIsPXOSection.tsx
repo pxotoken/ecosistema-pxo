@@ -1,5 +1,4 @@
 import React from 'react';
-import { Shield, Zap, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const WhatIsPXOSection: React.FC = () => {

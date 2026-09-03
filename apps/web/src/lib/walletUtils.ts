@@ -1,4 +1,4 @@
-import type { Wallet } from 'thirdweb';
+import type { Wallet } from 'thirdweb/wallets';
 
 type AuthUser = {
   auth_provider_class?: string | null;
