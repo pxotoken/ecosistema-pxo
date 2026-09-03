@@ -31,7 +31,7 @@ Each task is marked with type:
 
 The Tier 1 items, as a single scannable list. When all checked, F&F launch is safe.
 
-- [ ] **SL-001** — Stop production routing funds to `0x9f0f…8382` (live EOA, unknown holder)
+- [ ] **SL-001** — Confirm we hold `0x9f0f…8382`, then set the receiver explicitly and drop the hardcoded fallback
 - [ ] **SL-002** — Set `POLYGON_PXO_RECEIVER_ADDRESS` in Railway api-exchange
 - [ ] **SL-003** — Resolve treasury wallet key model (plain vs encrypted) on Railway
 - [ ] **SL-004** — Reconcile env vars across all Railway services against `ENV_MATRIX.md`
@@ -62,7 +62,20 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 | Native POL balance | 3.441910 |
 | PXO balance | **9.4428 PXO** |
 
-This closes the open question, and the answer is worse than "orphaned". The address is **not** abandoned: 95 outbound transactions mean somebody holds the key and has been actively spending from it. An unknown party controls an address that production is still pointing users at.
+The address is **not** abandoned — 95 outbound transactions mean somebody holds the key and spends from it.
+
+**Revised reading (2026-09-02).** An earlier draft of this item called that "an unknown party in active control". That was an over-reading of the same evidence. The wallet's composition looks like **this app's own operational hot wallet**: a little PXO from user sells, a small USDC float for paying buys out, and POL for gas.
+
+| | PXO | USDC | POL |
+|---|---|---|---|
+| owner `0xdaac…6d17` | 49,999,979 | 0 | 34.72 |
+| receiver `0x9f0f…8382` | 9.44 | 14.15 | 3.44 |
+
+It is also **not** a minter (`isMinter` returns false; a simulated mint reverts), so it holds no admin capability — see SL-009.
+
+The code keeps two distinct roles: `liquidity.ts:55` derives a **server wallet** from `WALLET_PRIVATE_KEY`, while `POLYGON_PXO_RECEIVER_ADDRESS` is a separately configured **receiver** used at `gas-subsidy.ts:100`. If those resolve to the same address, we have controlled this wallet all along and this item is "undocumented but ours". If they differ, user PXO is landing where the backend cannot spend from.
+
+**Settle it first:** `scripts/whoami-server-wallet.sh` prints only the address derived from the server key, never the key itself. Everything below is worth doing either way, but the severity depends on that one answer.
 
 **How production still reaches it.** `VITE_POLYGON_PXO_RECEIVER_ADDRESS` is **not set on Vercel production**, so `usePXOSell.ts:31` and `usePXOExchange.ts:47` fall through to the hardcoded literal. `VITE_FORCE_POLYGON_MAINNET` **is** set, and `VITE_CHAINS_ENVIRONMENT` is unset so `useWalletStore.ts:111` defaults it to `"PROD"`. Because `VITE_*` values are baked in at build time, nothing errors — the bundle silently ships the fallback. Railway `dev` compounds it: `POLYGON_PXO_RECEIVER_ADDRESS` is set to this same address, so the backend agrees with the bad frontend default.
 
@@ -160,17 +173,22 @@ This closes the open question, and the answer is worse than "orphaned". The addr
 |---|---|
 | `owner()` | **`0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17`** |
 | Owner account type | **plain EOA — a single private key, not a multisig**, 7 outbound txs |
-| Access model | **Ownable**, not AccessControl — `hasRole` / `MINTER_ROLE` are absent, so there is no role to grant separately from ownership |
+| Access model | **Ownable + the legacy OpenZeppelin `MinterRole` pattern.** `hasRole` / `MINTER_ROLE()` are absent, but `isMinter(address)`, `addMinter(address)` and `removeMinter(address)` are all present |
 | `decimals()` | **6** (see SL-013 — the frontend hardcodes 18) |
 | `totalSupply()` | 50,000,000 PXO |
-| Present | `mint(address,uint256)`, `burn(uint256)`, `pause()`, `unpause()`, `transferOwnership(address)` |
+| Present | `mint(address,uint256)`, `burn(uint256)`, `pause()`, `unpause()`, `transferOwnership(address)`, `isMinter`/`addMinter`/`removeMinter` |
+| Owner's PXO balance | **49,999,979 PXO** — effectively the entire supply |
+| `isMinter(owner)` | `false`, yet a simulated `mint` from the owner succeeds — so the guard is owner-**or**-minter |
+| `isMinter(0x9f0f…8382)` | `false`; simulated mint reverts with *"Caller is not a minter"* |
 | Absent | `burnFrom(address,uint256)`, `burn(address,uint256)`, `mint(uint256)` |
 
 Three consequences worth reading together:
 
 - **The owner address appears nowhere in this repo.** Until somebody confirms who holds that key, we do not control the token. That is the SL-010 trigger, and it is now a live question rather than a hypothetical.
-- **Ownable, not roles.** Minting cannot be delegated to a service wallet without handing over full ownership — including `pause()`. Any mint-on-demand design has to route through the owner key or a contract that holds it.
+- **Minting IS delegable.** An earlier draft of this item said otherwise; that was wrong, and it mattered. `addMinter(address)` lets the owner grant minting to a service wallet **without** transferring ownership or pause authority, and `removeMinter(address)` revokes it. Verified by simulation (`eth_call`), not by reading the message: a mint from the owner succeeds, from any other address it reverts with *"Caller is not a minter"*.
+- **`burn(uint256)` needs no role** — it burns the caller's own balance, so a burn from a zero-balance address fails on balance rather than authorisation. Burn-on-redemption therefore works as transfer-to-treasury-then-treasury-burns, with no privilege required.
 - **One key, no multisig.** A single EOA owning a 50M-supply token, with pause authority, is a concentration risk independent of who holds it.
+- **Supply is not the constraint.** The owner already holds 49,999,979 of the 50,000,000 PXO. The "no PXO available on the prod wallet" problem is not a minting problem at all — the tokens exist and sit in one wallet. Either transfer a float to the operational wallet, or `addMinter` a service wallet. Both need the same person: whoever holds `0xdaac…6d17`.
 
 **Steps:**
 1. Extract Solidity source from the `qa` branch into a working directory
