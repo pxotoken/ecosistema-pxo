@@ -46,6 +46,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [x] **SL-013** — ~~PXO decimals~~ fixed 2026-09-03: web + api-exchange now read on-chain (Amoy is 8, not 18 or 6)
 - [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
+- [ ] **SL-016** — Deposit matcher pairs fundings to intents on CLABE alone; no amount or date check (worker disabled as mitigation)
 
 ---
 
@@ -299,6 +300,41 @@ The reason to treat this as more than housekeeping: **the same copy block was al
 4. Route the final wording through the lawyers already engaged on SL-009 rather than settling it in a commit. Same reviewers, same exposure, and they are mid-review.
 **Done when:** Every claim in the FAQ is either evidenced by a named artifact or reworded, and the lawyers have signed off on the public-facing text in both languages.
 **Note:** This is a wording and compliance decision, not an engineering one. It is filed here so it does not get lost, not because a developer should resolve it.
+
+### SL-016 · Deposit matcher pairs a funding to an intent on sender CLABE alone
+**Type:** 🔧 Code
+**Effort:** 2-3 hours
+**Why:** `apps/api-exchange/src/workers/deposit-matching-worker.ts` decides that a Bitso funding satisfies a deposit intent using **only** the sender CLABE. Verified by reading the whole file: `funding.amount` is never referenced, and the funding's `created_at` is never considered. The only amounts in scope are `intent.mxn_amount` and `intent.pxo_amount`, and the only date ordering is on the intent side (line 157).
+
+The loop is: complete + MXN → extract `sender_clabe` → skip if the funding is already attached to an intent → find the user registered under that CLABE → take that user's **oldest PENDING intent** → `fulfillIntent()` issues PXO for **the intent's** amount.
+
+So any unconsumed funding from a matching CLABE satisfies any intent, of any size, from any date. A 0.01 MXN deposit fulfils a 500,000 MXN intent. A five-month-old deposit fulfils an intent created today.
+
+**Why this is live now.** Production had no Bitso credentials until 2026-09-03, so the worker could never fetch fundings and never matched anything. Configuring Bitso for the beta armed it.
+
+**The specific exposure.** The Bitso account holds nine unconsumed MXN fundings totalling **1,780,207.50 MXN**, from five sender CLABEs, dated 2026-02-18 to 2026-03-24:
+
+```
+2026-03-24   135,091.97  ****6209      2026-03-07     1,000.00  ****3949
+2026-03-24   276,831.61  ****6209      2026-02-26     3,000.00  ****7681
+2026-03-20   293,677.73  ****6209      2026-02-18   300,000.00  ****0009
+2026-03-17   470,606.18  ****6209      2026-02-18   300,000.00  ****1451
+2026-03-16         0.01  ****6209
+```
+
+The account has had no funding since 2026-03-27, and the worker reads the **last 50** fundings, so these nine sit in the scan window permanently — they never age out. If anyone registers one of those five CLABEs and creates a pending intent, they receive PXO without paying for it. `****6209`'s pattern (four large transfers plus a 0.01 test) reads like a company or treasury account, which is exactly the kind someone on the team might register while testing.
+
+**Mitigated 2026-09-03** by setting `DEPOSIT_MATCH_WORKER_ENABLED=false` on api-exchange prod. That disables the SPEI on-ramp, which is acceptable only while the beta is crypto-only. **Re-enabling the worker without fixing the matcher re-arms this.**
+
+**Steps:**
+1. Require the funding amount to satisfy the intent: compare `funding.amount` against `intent.mxn_amount`. Decide the policy deliberately — exact match, or a tolerance, or "at least the intent amount". SPEI transfers arrive for the exact amount requested, so exact-with-small-tolerance is the natural default; whatever is chosen, an underpayment must never fulfil.
+2. Ignore fundings that predate the intent. A deposit cannot pay for an intent that did not exist when it arrived.
+3. Bound the scan window by age as well as count, so a dormant account cannot keep stale fundings permanently in scope.
+4. Decide what to do with a funding that matches a registered CLABE but no intent, or matches on CLABE but not amount. Today it is silently skipped; it should probably be surfaced for manual reconciliation rather than left to be matched by whatever intent appears next.
+5. Establish what the nine existing fundings are and reconcile them out of the window — they are real money that arrived and is currently unaccounted for in this system, independent of the matching bug.
+6. Only then set `DEPOSIT_MATCH_WORKER_ENABLED=true` again.
+**Done when:** A funding fulfils an intent only when amount and chronology both agree, and the nine historical fundings are reconciled or explicitly excluded.
+**Note:** Step 5 is worth doing regardless of the code fix. 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
