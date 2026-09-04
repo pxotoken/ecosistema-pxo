@@ -48,6 +48,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 - [ ] **SL-016** — Deposit matcher pairs fundings to intents on CLABE alone; no amount or date check (worker disabled as mitigation)
 - [ ] **SL-017** — Mint PXO when the wallet cannot cover an order (code done; activates itself once `addMinter` runs)
+- [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 
 ---
 
@@ -424,6 +425,65 @@ Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode a
 
 1. **The conversion is not instantaneous, so the treasury carries FX exposure between the mint and the sale.** PXO is minted against an MXN price quoted at purchase time, but the pesos are only realised when the CFO sells. If USDC/MXN moves in between, the MXN actually raised differs from the MXN the token was issued against — the reserve ends up slightly over- or under-funded per trade. Negligible at beta volumes, material at scale, and it compounds silently because nothing measures it. Worth deciding: is there a conversion cadence (same-day? per-threshold?) and who watches the gap.
 2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent, and the CFO conversion does not address it: it fixes what backs the supply, not that the supply keeps rising.
+
+### SL-018 · Decide the contract strategy: keep the unverifiable deployment, or redeploy
+**Type:** 🔍 Discovery + 📞 External
+**Effort:** the decision is hours; executing a redeploy is days
+**Status:** thinking exercise, 2026-09-04. **Not scheduled.** Recorded so the reasoning survives.
+
+**The situation.** The deployed mainnet contract cannot be verified: nobody has the source revision that produced it, and the person who does is not someone we want to depend on (SL-009). So today the token that underwrites the product is a black box we can describe from its bytecode but cannot publish. Lawyers are reviewing contract claims against that.
+
+**The window is closing, and that is the real argument.** Holders of mainnet PXO today: the owner (49,999,979), the operational wallet (9.44), and a handful of test accounts. A migration now is an afternoon of airdrops. After friends-and-family it becomes a user-visible event requiring comms, a swap contract, and support. **This is the cheapest this decision will ever be**, and the cost curve is steep.
+
+---
+
+#### What redeploying would buy
+
+1. **A verified contract whose source lives in this repo.** Publishable, auditable, defensible to lawyers and investors, and independent of the previous team — permanently.
+2. **The chance to fix the ownership model, which is the strongest reason.** A single EOA currently owns a 50M-supply token and holds pause authority (SL-009). Moving ownership to a multisig at deploy time costs nothing; retrofitting it later means asking one person to voluntarily hand over control of the asset. If the redeploy achieves nothing else, it achieves this.
+3. **`burnFrom`, which redemption needs.** The deployed contract has only `burn(uint256)` — self-burn. Redemption therefore has to be transfer-to-treasury-then-burn (SL-017). The newer source has a burner role.
+4. **Alignment.** The repo would describe the thing that is deployed. Today `docs/contracts/pxo.sol` describes something else, which is how this was discovered.
+
+#### What it would cost, and the part that needs the most thought
+
+**The current source is a Tether clone, and it carries powers the deployed contract does not have.** Present in the file, absent from the deployment:
+
+| capability | what it allows |
+|---|---|
+| `basisPointsRate` / `maximumFee` / `setParams` | a transfer fee, up to 20 bps, set by a `feeSetter` role |
+| `addBlackList` / `removeBlackList` (+ batch) | freezing any address |
+| `DestroyedBlackFunds` | **destroying a blacklisted holder's balance** |
+| `deprecated` / `upgradedAddress` / `transferByLegacy` | Tether's upgrade-pointer pattern |
+| burner, blacklister, feeSetter roles | three more privileged roles beyond minter |
+
+None of that is inherently wrong — freeze capability is often a regulatory requirement for a fiat-backed token, and Tether is a reasonable model to copy. But **redeploying this source would be a material expansion of what the issuer can do to a holder's balance, and it would happen by inheritance rather than by decision.** With Ley Fintech / CNBV / Banxico claims already in the public FAQ (SL-015) and lawyers mid-review, that has to be an explicit, documented, legally-reviewed choice — including whether a fee mechanism belongs in a peso stablecoin at all, and who may hold `feeSetter`.
+
+Other costs: the source **does not compile as written** (OZ v4 import path, v5 `Ownable` constructor — SL-009) so it needs repair and review before it is deployable; new code is new bug surface, and this one has never been audited; every address reference in Railway, Vercel and the frontends changes; and the old contract must be paused and deprecated so it cannot be traded in parallel.
+
+---
+
+#### Options
+
+| | Effort | Verified? | Ownership fixed? | Notes |
+|---|---|---|---|---|
+| **A. Keep as-is** | none | no | no | Cheapest today. The black box, the single-key owner and the missing `burnFrom` all persist indefinitely. |
+| **B. Recover the source** | unknown | yes | no | Needs the previous team, which is the thing being avoided. Also fixes nothing else. |
+| **C. Reconstruct the source** | days, uncertain | maybe | no | Strip the burner role from the file, compile on solc 0.8.30, iterate until bytecode matches. Might never match. Fixes nothing else either. |
+| **D. Redeploy** | days | yes | **yes** | The only option that also fixes ownership, `burnFrom` and repo/chain alignment. Requires the capability decisions above. |
+
+#### Recommendation
+
+**D, before friends-and-family, subject to three preconditions**, because the migration window is open now and closes permanently, and because the ownership fix is worth the exercise on its own even setting verification aside.
+
+The preconditions are the whole point — a redeploy done without them is worse than the status quo:
+
+1. **The capability set is decided deliberately**, in writing, with legal input: fee mechanism in or out, blacklist in or out, fund destruction in or out, and who holds each role.
+2. **Ownership goes to a multisig at deploy**, not to an EOA with a promise to migrate later.
+3. **The source compiles, is reviewed, and its build is reproducible** — pinned compiler, pinned OpenZeppelin, optimizer settings recorded, verified on Polygonscan as the last step of deployment rather than a later chore.
+
+If those cannot be met before F&F, **A is better than a rushed D.** An unverified contract with a known owner is a documented weakness; a hastily redeployed one with unreviewed blacklist and fee powers is a new liability that looks like progress.
+
+**Not urgent:** none of this blocks Monday, the beta, or minting. It blocks nothing at all today. It gets more expensive every week.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
