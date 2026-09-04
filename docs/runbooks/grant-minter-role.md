@@ -25,11 +25,14 @@ wallet will have the transaction rejected by the contract.
 
 ---
 
-## Route A — Polygonscan (preferred; no software to install)
+## Route A — Polygonscan — **not available**
 
-Only available if the contract is verified on Polygonscan. Open
-<https://polygonscan.com/address/0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7>
-and look for a **Contract** tab with a green tick. If it is there:
+Checked 2026-09-04: the contract is **not verified** on Polygonscan, Blockscout,
+Routescan or Sourcify, so there is no *Write Contract* tab to use. Verifying it
+is blocked on obtaining the exact deployed source (see SL-009) and is not a
+prerequisite for this — **use Route B.**
+
+The steps below are kept for the day verification lands:
 
 1. Click **Contract** → **Write Contract**.
 2. Click **Connect to Web3** and connect the owner wallet. The address shown
@@ -41,10 +44,10 @@ and look for a **Contract** tab with a green tick. If it is there:
 
 The transaction costs a small amount of POL for gas — under a cent.
 
-## Route B — your wallet's advanced send
+## Route B — your wallet's advanced send  ← **use this one**
 
-If Polygonscan has no Write Contract tab, most wallets can send a transaction
-with custom data:
+Most wallets can send a transaction with custom data. In MetaMask this is
+Send → paste the contract as the recipient → then the Hex/Data field.
 
 ```
 To      0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7

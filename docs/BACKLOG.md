@@ -159,6 +159,45 @@ What was real: production depended on a literal committed years ago rather than 
 **Why:** Lawyers are reviewing contract claims now and have no blockchain expertise — verification responsibility sits with CTO. Source has been "assured" to live in the `qa` branch of ecosistema-pxo; trust-but-verify. If the source diverges from what's on-chain, every downstream claim (audit, repo publication, legal disclosure) is built on sand.
 **Deployed contract:** `0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7` (Polygon mainnet, per `useWalletStore.ts:47`).
 
+**Source-vs-bytecode: answered 2026-09-04, and the answer is that they do not match.**
+
+`docs/contracts/pxo.sol` (identical to `apps/contracts/pxo.sol`, committed by Miguel Troncoso 2026-05-12) is **not** the source of the deployed mainnet contract. It is a later revision of the same contract.
+
+*Evidence it is the right lineage.* The constructor arguments recovered from the creation bytecode match its constructor signature exactly:
+
+```
+constructor(uint256 _initialSupply, string _name, string _symbol, uint8 _decimals, address initialOwner)
+
+_initialSupply  50000000000000   = 50,000,000 × 10^6
+_name           "PXO Token"
+_symbol         "PXO"
+_decimals       6
+initialOwner    0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17
+```
+
+So the owner has held the contract since deployment; it was never transferred.
+
+*Evidence it is a different revision.* The file declares `burnFrom(address,uint256)`, `addBurner`, `isBurner` and an `onlyBurner` modifier. **None of those selectors exist in the deployed bytecode.** `mint`, `addMinter`, `isMinter`, `removeMinter` and `burn(uint256)` exist in both. The file also carries fee parameters (`setParams`, `basisPointsRate`, `maximumFee`) and a dirty-funds burn that would need checking against the deployment separately.
+
+The file also **cannot compile as written**: it imports `@openzeppelin/contracts/security/Pausable.sol`, which exists only in OZ v4, while calling `Ownable(initialOwner)`, which exists only in OZ v5. Confirmed against the v4.9.6 and v5.0.2 tags.
+
+*Build facts recovered from the bytecode metadata:*
+
+| | mainnet `0xd6f9c21a…7d7` | Amoy `0xeda62cd0…46c` |
+|---|---|---|
+| compiler | **solc 0.8.30** | **solc 0.5.17** |
+| size | 16,627 bytes | 11,050 bytes |
+| metadata | IPFS | bzzr / experimental |
+| `mint` / `addMinter` / `isMinter` | present | **absent** |
+
+**The Amoy token is a different contract entirely**, not the same source deployed twice — which is also why its decimals are 8 and mainnet's are 6 (SL-013). Nothing in this repo is its source, and `pxo.sol` could not be: `pragma ^0.8.0` cannot compile under 0.5.17.
+
+*Consequences:*
+- **Polygonscan verification is not currently possible** on either network. Mainnet needs the exact pre-burner-role revision; Amoy needs source nobody has. The contract is unverified on Polygonscan, Blockscout, Routescan and Sourcify — checked.
+- **`addMinter` does not need verification** — Route B in [runbooks/grant-minter-role.md](./runbooks/grant-minter-role.md) works on an unverified contract.
+- **What to ask the previous team for is now precise:** the revision of `pxo.sol` *without* the burner role, plus the OpenZeppelin version and optimizer settings, compiled with **solc 0.8.30**. That is a much narrower request than "send us the source".
+- Minting cannot be tested on Amoy, because that contract has no `mint`. SL-017's `hasMinterRole` fails closed there, so `auto` correctly degrades to transfer-only.
+
 **Partially answered on-chain (2026-09-02).** Read directly from the deployed bytecode, so this is fact rather than assurance — it does not replace the source-vs-bytecode comparison below, but it settles the role question:
 
 | Property | Value |
