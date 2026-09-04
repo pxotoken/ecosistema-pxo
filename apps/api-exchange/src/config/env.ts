@@ -84,5 +84,11 @@ export const env = {
   // QA-only self-serve tool to simulate SPEI deposits via Bitso's stage
   // `/spei/test/deposits` endpoint. NEVER enable in production. The
   // /qa/mock-bitso-deposit route is registered only when this is true.
+  // How PXO reaches a buyer: "transfer" (move existing balance only),
+  // "mint" (always create), or unset/"auto" — transfer when the operational
+  // wallet covers the whole order, mint otherwise. Auto also degrades to
+  // transfer-only when the wallet does not hold the minter role, so the
+  // behaviour follows the on-chain grant without needing a deploy.
+  PXO_ISSUANCE_MODE: process.env.PXO_ISSUANCE_MODE || '',
   MOCK_DEPOSITS_ENABLED: process.env.MOCK_DEPOSITS_ENABLED === 'true',
 } as const;

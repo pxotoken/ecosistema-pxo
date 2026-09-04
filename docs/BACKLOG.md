@@ -47,6 +47,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 - [ ] **SL-016** — Deposit matcher pairs fundings to intents on CLABE alone; no amount or date check (worker disabled as mitigation)
+- [ ] **SL-017** — Mint PXO when the wallet cannot cover an order (code done; activates itself once `addMinter` runs)
 
 ---
 
@@ -351,6 +352,36 @@ Anything failing a condition is written once to the new `unmatched_fundings` tab
 6. Only then set `DEPOSIT_MATCH_WORKER_ENABLED=true` again.
 **Done when:** A funding fulfils an intent only when amount and chronology both agree, and the nine historical fundings are reconciled or explicitly excluded.
 **Note:** Step 5 is worth doing regardless of the code fix. 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it.
+
+### SL-017 · Mint PXO on demand when the operational wallet cannot cover an order
+**Type:** 🔧 Code + 📞 External
+**Effort:** code done 2026-09-04; blocked on one transaction by the contract owner
+**Status:** **Implemented and merged to `dev`. Nothing to enable** — it activates itself when the minter role is granted.
+
+**Why:** the operational wallet held 9.44 PXO on 2026-09-04. Any purchase beyond that failed, which is the only thing standing between a deployed app and a usable one. The owner holds 49,999,979 PXO, so the shortfall was never a supply problem — but a transfer needs somebody to act each time, and minting does not.
+
+**How it works.** `sendPXOToUser()` — the single path used by both the crypto buy and the SPEI buy — chooses between moving balance and creating supply:
+
+| `PXO_ISSUANCE_MODE` | behaviour |
+|---|---|
+| unset / `auto` | transfer if the wallet covers the whole order, else mint, else refuse |
+| `transfer` | move balance only; never create supply |
+| `mint` | always create |
+
+Two deliberate properties:
+
+- **The minter role is read from the chain, not from config** (`isMinter()`, cached 60s). So `addMinter` takes effect on its own, with no deploy and no env change. There is nothing to switch on afterwards.
+- **`auto` degrades rather than failing.** Without the role, orders the wallet can cover behave exactly as before; only oversized orders are refused, with a message naming the shortfall *and* the missing role.
+
+`auto` mints the **whole** order rather than topping up the difference — one transaction, and no partial-fill state where the transfer lands and the mint does not.
+
+Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode against covered / exactly-covered / short balances, with and without the role, plus mode parsing and rejection of an unrecognised value rather than defaulting to one that moves money.
+
+**Remaining:** the owner calls `addMinter(0x9f0f2EAc…8382)` — see [runbooks/grant-minter-role.md](./runbooks/grant-minter-role.md). Verification and rollback: [runbooks/enable-minting-and-deposit-matching.md](./runbooks/enable-minting-and-deposit-matching.md).
+
+**Two things to settle before minting at volume, neither of which is engineering:**
+1. **Minted PXO is not backed by pesos.** A USDC purchase creates supply backed by USDC, while the public FAQ claims 1:1 MXN custody (SL-015, unverified). Somebody must own that accounting.
+2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
