@@ -28,9 +28,20 @@ interface DepositIntentRow {
  * Responsibilities per tick:
  *   1) Expire PENDING intents past their TTL.
  *   2) Pull recent Bitso fundings.
- *   3) For each unmatched funding: find a PENDING intent owned by a user
- *      whose registered CLABE equals the funding's sender_clabe. Oldest wins
- *      (FIFO). If matched: claim atomically, issue PXO on-chain, mark COMPLETED.
+ *   3) For each unplaced funding, require ALL of:
+ *        - the sender's CLABE is registered to a user;
+ *        - that user has a PENDING intent whose source_clabe matches;
+ *        - the intent was created BEFORE the money arrived;
+ *        - the funding amount equals the intent amount exactly.
+ *      Oldest qualifying intent wins (FIFO). If matched: claim atomically,
+ *      issue PXO on-chain, mark COMPLETED.
+ *   4) Anything that fails one of those is written to `unmatched_fundings`
+ *      with the reason, once per funding id, for a human to reconcile.
+ *
+ * The amount and chronology conditions are load-bearing, not defensive. Until
+ * 2026-09-04 the match was on CLABE alone, so any unconsumed funding from a
+ * matching sender satisfied any intent of any size from any date — a 0.01 MXN
+ * deposit would settle a 500,000 MXN intent. See SL-016.
  *
  * Idempotency: bitso_funding_id has a partial unique index, so a re-tick that
  * tries to re-match a funding fails cleanly at insert-time (we ignore that error).
@@ -115,12 +126,6 @@ async function matchFundings(log: FastifyBaseLogger): Promise<void> {
     if (!BITSO_COMPLETE_STATUSES.has(funding.status)) continue;
     if (funding.currency.toLowerCase() !== 'mxn') continue;
 
-    const senderClabe = extractSenderClabe(funding);
-    if (!senderClabe) {
-      log.debug({ fid: funding.fid }, 'deposit-matching-worker: no sender_clabe in details');
-      continue;
-    }
-
     // Skip if this funding has already been tied to an intent.
     const { data: alreadyMatched } = await supabase
       .from('deposit_intents')
@@ -128,6 +133,12 @@ async function matchFundings(log: FastifyBaseLogger): Promise<void> {
       .eq('bitso_funding_id', funding.fid)
       .maybeSingle();
     if (alreadyMatched) continue;
+
+    const senderClabe = extractSenderClabe(funding);
+    if (!senderClabe) {
+      await recordUnmatched(funding, 'clabe_missing', log);
+      continue;
+    }
 
     // Find the user registered under this CLABE. Case-sensitive column.
     const { data: userRow, error: userErr } = await supabase
@@ -140,20 +151,23 @@ async function matchFundings(log: FastifyBaseLogger): Promise<void> {
       continue;
     }
     if (!userRow) {
-      log.info(
-        { fid: funding.fid, senderClabe: `****${senderClabe.slice(-4)}` },
-        'deposit-matching-worker: sender_clabe not registered to any user',
-      );
+      await recordUnmatched(funding, 'clabe_not_registered', log, { senderClabe });
       continue;
     }
 
-    // FIFO: oldest PENDING intent for this user's CLABE.
+    // FIFO: oldest PENDING intent for this user's CLABE that was created
+    // BEFORE the money arrived. A deposit cannot pay for an intent that did
+    // not exist yet, and without this a months-old funding could settle an
+    // intent opened today — which is how SL-016 could have issued PXO for
+    // nothing. It also means the historical fundings sitting in the scan
+    // window can never match anything, by construction.
     const { data: intent, error: intentErr } = await supabase
       .from('deposit_intents')
       .select('id, user_id, mxn_amount, pxo_amount, source_clabe, chain_id, user_address, trading_order_id')
       .eq('user_id', userRow.id)
       .eq('source_clabe', senderClabe)
       .eq('status', 'PENDING')
+      .lte('created_at', funding.created_at)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -166,15 +180,94 @@ async function matchFundings(log: FastifyBaseLogger): Promise<void> {
       continue;
     }
     if (!intent) {
-      log.debug(
-        { fid: funding.fid, userId: userRow.id },
-        'deposit-matching-worker: funding arrived without a pending intent',
+      // Distinguish "nothing pending at all" from "only intents newer than
+      // the money", because they mean different things to whoever reconciles.
+      const { count } = await supabase
+        .from('deposit_intents')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userRow.id)
+        .eq('source_clabe', senderClabe)
+        .eq('status', 'PENDING');
+      await recordUnmatched(
+        funding,
+        (count ?? 0) > 0 ? 'funding_predates_intent' : 'no_pending_intent',
+        log,
+        { senderClabe },
       );
+      continue;
+    }
+
+    // Exact amount. SPEI transfers are made for the amount the app quoted, so
+    // anything else is an anomaly a human should look at rather than something
+    // to auto-fulfil. Compared in cents to keep floating point out of it.
+    if (toCents(funding.amount) !== toCents(intent.mxn_amount)) {
+      await recordUnmatched(funding, 'amount_mismatch', log, {
+        senderClabe,
+        intentId: intent.id,
+        expectedAmount: intent.mxn_amount,
+      });
       continue;
     }
 
     await fulfillIntent(intent as DepositIntentRow, funding.fid, log);
   }
+}
+
+/** Money amounts as integer cents, so equality is exact. */
+function toCents(value: string | number): number {
+  return Math.round(Number(value) * 100);
+}
+
+type UnmatchedReason =
+  | 'clabe_missing'
+  | 'clabe_not_registered'
+  | 'no_pending_intent'
+  | 'amount_mismatch'
+  | 'funding_predates_intent';
+
+/**
+ * Record a funding we could not place, one row per funding id.
+ *
+ * Upserted rather than inserted: the worker rescans the same window every
+ * tick, and previously that meant re-logging the same deposits every 30
+ * seconds with no durable record. `first_seen_at` is preserved by the
+ * conflict clause; `last_seen_at` shows the funding is still in the window.
+ */
+async function recordUnmatched(
+  funding: { fid: string; amount: string; currency: string; created_at: string },
+  reason: UnmatchedReason,
+  log: FastifyBaseLogger,
+  extra?: { senderClabe?: string; intentId?: string; expectedAmount?: number },
+): Promise<void> {
+  const supabase = getServerSupabase();
+  const { error } = await supabase.from('unmatched_fundings').upsert(
+    {
+      bitso_funding_id: funding.fid,
+      amount: Number(funding.amount),
+      currency: funding.currency.toUpperCase(),
+      sender_clabe: extra?.senderClabe ?? null,
+      funding_created_at: funding.created_at,
+      reason,
+      intent_id: extra?.intentId ?? null,
+      expected_amount: extra?.expectedAmount ?? null,
+      last_seen_at: new Date().toISOString(),
+    },
+    { onConflict: 'bitso_funding_id' },
+  );
+
+  if (error) {
+    log.warn({ err: error, fid: funding.fid, reason }, 'deposit-matching-worker: could not record unmatched funding');
+    return;
+  }
+
+  log.debug(
+    {
+      fid: funding.fid,
+      reason,
+      senderClabe: extra?.senderClabe ? `****${extra.senderClabe.slice(-4)}` : undefined,
+    },
+    'deposit-matching-worker: funding recorded for reconciliation',
+  );
 }
 
 async function fulfillIntent(

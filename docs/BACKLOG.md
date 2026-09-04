@@ -324,14 +324,30 @@ So any unconsumed funding from a matching CLABE satisfies any intent, of any siz
 
 The account has had no funding since 2026-03-27, and the worker reads the **last 50** fundings, so these nine sit in the scan window permanently — they never age out. If anyone registers one of those five CLABEs and creates a pending intent, they receive PXO without paying for it. `****6209`'s pattern (four large transfers plus a 0.01 test) reads like a company or treasury account, which is exactly the kind someone on the team might register while testing.
 
-**Mitigated 2026-09-03** by setting `DEPOSIT_MATCH_WORKER_ENABLED=false` on api-exchange prod. That disables the SPEI on-ramp, which is acceptable only while the beta is crypto-only. **Re-enabling the worker without fixing the matcher re-arms this.**
+**Mitigated 2026-09-03** by setting `DEPOSIT_MATCH_WORKER_ENABLED=false` on api-exchange prod.
+
+**Fixed in code 2026-09-04.** A funding now settles an intent only when *all* of these hold:
+
+- the sender's CLABE is registered to a user;
+- that user has a `PENDING` intent with a matching `source_clabe`;
+- **the intent was created before the money arrived** (`created_at <= funding.created_at`);
+- **the amounts are equal to the cent** (compared as integer cents, so no float slack).
+
+The chronology condition is what defuses the specific exposure: a deposit cannot pay for an intent that did not exist when it landed, so the nine historical fundings can never match anything, by construction, no matter who registers those CLABEs later.
+
+Anything failing a condition is written once to the new `unmatched_fundings` table with a reason — `clabe_missing`, `clabe_not_registered`, `no_pending_intent`, `funding_predates_intent`, `amount_mismatch` — instead of being re-logged every 30 seconds and forgotten. `no_pending_intent` and `funding_predates_intent` are recorded separately because they mean different things to whoever reconciles. Migration: `apps/api-exchange/migrations/003_unmatched_fundings.sql`.
+
+**Before re-enabling the worker:**
+1. Apply migration 003. Without the table the matcher still behaves correctly, but unmatched fundings are only warned about, not recorded.
+2. Set `DEPOSIT_MATCH_WORKER_ENABLED=true` **and force a redeploy** — on this project a stored variable does not apply itself.
+3. Confirm the nine historical fundings land in `unmatched_fundings` as `clabe_not_registered` and that nothing is fulfilled.
 
 **Steps:**
-1. Require the funding amount to satisfy the intent: compare `funding.amount` against `intent.mxn_amount`. Decide the policy deliberately — exact match, or a tolerance, or "at least the intent amount". SPEI transfers arrive for the exact amount requested, so exact-with-small-tolerance is the natural default; whatever is chosen, an underpayment must never fulfil.
-2. Ignore fundings that predate the intent. A deposit cannot pay for an intent that did not exist when it arrived.
-3. Bound the scan window by age as well as count, so a dormant account cannot keep stale fundings permanently in scope.
-4. Decide what to do with a funding that matches a registered CLABE but no intent, or matches on CLABE but not amount. Today it is silently skipped; it should probably be surfaced for manual reconciliation rather than left to be matched by whatever intent appears next.
-5. Establish what the nine existing fundings are and reconcile them out of the window — they are real money that arrived and is currently unaccounted for in this system, independent of the matching bug.
+1. ~~Require the funding amount to satisfy the intent.~~ **Done** — exact match, to the cent.
+2. ~~Ignore fundings that predate the intent.~~ **Done.**
+3. Bound the scan window by age as well as count. **Not done** — the chronology rule makes stale fundings unmatchable, so this is now housekeeping rather than safety: it would stop the worker re-evaluating nine dead fundings every tick.
+4. ~~Decide what to do with a funding that matches a registered CLABE but no intent.~~ **Done** — `unmatched_fundings`.
+5. Establish what the nine existing fundings are and reconcile them. **Still open, and worth doing on its own account:** 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it. Sent to the team 2026-09-04.
 6. Only then set `DEPOSIT_MATCH_WORKER_ENABLED=true` again.
 **Done when:** A funding fulfils an intent only when amount and chronology both agree, and the nine historical fundings are reconciled or explicitly excluded.
 **Note:** Step 5 is worth doing regardless of the code fix. 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it.
