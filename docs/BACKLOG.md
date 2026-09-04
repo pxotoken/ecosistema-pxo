@@ -48,6 +48,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 - [ ] **SL-016** — Deposit matcher pairs fundings to intents on CLABE alone; no amount or date check (worker disabled as mitigation)
 - [ ] **SL-017** — Mint PXO when the wallet cannot cover an order (code done; activates itself once `addMinter` runs)
+- [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 
 ---
@@ -426,6 +427,40 @@ Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode a
 1. **The conversion is not instantaneous, so the treasury carries FX exposure between the mint and the sale.** PXO is minted against an MXN price quoted at purchase time, but the pesos are only realised when the CFO sells. If USDC/MXN moves in between, the MXN actually raised differs from the MXN the token was issued against — the reserve ends up slightly over- or under-funded per trade. Negligible at beta volumes, material at scale, and it compounds silently because nothing measures it. Worth deciding: is there a conversion cadence (same-day? per-threshold?) and who watches the gap.
 2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent, and the CFO conversion does not address it: it fixes what backs the supply, not that the supply keeps rising.
 
+### SL-019 · A single private key owns the PXO contract
+**Type:** 🔐 Ops + 📞 External
+**Effort:** an hour of setup, one transaction — but the transaction is irreversible
+**Independent of SL-018.** This does **not** require redeploying. The deployed contract exposes `transferOwnership(address)`.
+
+**Why:** `owner()` is `0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17`, a plain EOA with 7 outbound transactions. That one key:
+
+- holds **49,999,979 of the 50,000,000** PXO supply;
+- can `mint` without limit;
+- can `pause` the token, halting every transfer including the app's;
+- grants and revokes the minter role the product now depends on (SL-017);
+- can `renounceOwnership()`, orphaning the contract permanently.
+
+There is no multisig, no recovery path and no succession. Losing that key means nobody can ever mint, pause or grant a minter role again. Compromising it means an attacker can mint unlimited PXO against a reserve that does not exist. Neither has a mitigation today beyond one person's care.
+
+This is a governance risk that exists independently of every other item in this backlog, and it is the single largest one.
+
+**What good looks like:** ownership held by a Safe (Gnosis Safe) with a threshold of at least 2, signers on separate devices and ideally separate people.
+
+**One property makes this cheap to adopt:** day-to-day operation does **not** go through the owner. Minting is done by the operational wallet under the minter role, so routine buys never need a multisig signature. The Safe would hold only the owner powers — grant/revoke minter, pause, and any future capability change — which are exactly the actions that *should* be slow and deliberate.
+
+**The risk is in the transfer itself, and it is sharp.** The contract uses plain `Ownable`, not `Ownable2Step` — `acceptOwnership()` and `pendingOwner()` are absent from the bytecode. So `transferOwnership` is **one-way with no acceptance step**. Sending it to an address that cannot act — a typo, a Safe on the wrong chain, a Safe whose signers are unreachable — **permanently destroys all owner powers**. There is no undo, and it would be discovered only the next time someone tried to mint.
+
+**Steps:**
+1. Decide signers and threshold. This is a business decision about who can halt the token, not an engineering one.
+2. Create the Safe **on Polygon mainnet** and record its address.
+3. **Rehearse before transferring.** Have the Safe send a trivial transaction — a few POL to itself — proving the signers can actually reach the threshold and execute on Polygon. A Safe that cannot transact is indistinguishable from a correct address until it is too late.
+4. Have the current owner call `transferOwnership(<safe>)`, with the address checked character by character by two people.
+5. Confirm `owner()` returns the Safe, then confirm the Safe can exercise a real owner power — `addMinter` on a throwaway address, then `removeMinter` — before considering it done.
+6. Document the Safe, its signers and the recovery expectations in `TREASURY.md` (SL-006).
+**Done when:** `owner()` is a multisig that has demonstrably executed an owner-only function, and the arrangement is written down.
+**Watch for:** `renounceOwnership()` remains callable by whoever is owner. A Safe makes an accidental call far less likely, but the function does not go away.
+**Sequencing note:** if SL-018 concludes in favour of redeploying soon, doing this first is still not wasted — it removes the single-key risk in the meantime, and the new contract can be deployed owned by the same Safe.
+
 ### SL-018 · Decide the contract strategy: keep the unverifiable deployment, or redeploy
 **Type:** 🔍 Discovery + 📞 External
 **Effort:** the decision is hours; executing a redeploy is days
@@ -440,7 +475,7 @@ Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode a
 #### What redeploying would buy
 
 1. **A verified contract whose source lives in this repo.** Publishable, auditable, defensible to lawyers and investors, and independent of the previous team — permanently.
-2. **The chance to fix the ownership model, which is the strongest reason.** A single EOA currently owns a 50M-supply token and holds pause authority (SL-009). Moving ownership to a multisig at deploy time costs nothing; retrofitting it later means asking one person to voluntarily hand over control of the asset. If the redeploy achieves nothing else, it achieves this.
+2. ~~The chance to fix the ownership model.~~ **Corrected 2026-09-04: this is not a reason to redeploy.** The deployed contract exposes `transferOwnership(address)`, so ownership can move to a multisig today, on the existing contract, in one transaction. Tracked separately as **SL-019**. A redeploy would let the multisig be the owner *from genesis* rather than from a handover, which is tidier but not worth days of work on its own.
 3. **`burnFrom`, which redemption needs.** The deployed contract has only `burn(uint256)` — self-burn. Redemption therefore has to be transfer-to-treasury-then-burn (SL-017). The newer source has a burner role.
 4. **Alignment.** The repo would describe the thing that is deployed. Today `docs/contracts/pxo.sol` describes something else, which is how this was discovered.
 
@@ -473,7 +508,7 @@ Other costs: the source **does not compile as written** (OZ v4 import path, v5 `
 
 #### Recommendation
 
-**D, before friends-and-family, subject to three preconditions**, because the migration window is open now and closes permanently, and because the ownership fix is worth the exercise on its own even setting verification aside.
+**D, before friends-and-family, subject to three preconditions**, because the migration window is open now and closes permanently. Note this is a weaker case than first drafted: the ownership fix — the strongest-sounding argument — turns out not to need a redeploy at all (SL-019), which leaves verification, `burnFrom` and repo/chain alignment as the real benefits. Those are worth doing, but they are worth less than "we cannot fix governance without it" implied.
 
 The preconditions are the whole point — a redeploy done without them is worse than the status quo:
 
