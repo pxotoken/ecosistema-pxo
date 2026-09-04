@@ -94,15 +94,23 @@ If the wallet **can** cover the order, supply must **not** change — that is th
 regardless of the on-chain role. The CEO revoking with `removeMinter` also
 works and takes effect within the 60-second cache window.
 
-## Two things to settle before minting at any volume
+## What backs minted PXO
 
-1. **Minted PXO is not backed by pesos.** When someone buys with USDC, the new
-   supply is backed by USDC. The public FAQ says every PXO is "backed 1:1 by a
-   Mexican peso held in custody" (SL-015, unverified). Somebody needs to own
-   that accounting; it is a real question an investor may ask.
-2. **Supply only grows.** There is no burn-on-redemption yet, and the contract
-   has no `burnFrom`, so redemption has to be transfer-to-treasury then
-   `burn(uint256)` by the treasury. Until that exists, every mint is permanent.
+A USDC/USDT purchase creates PXO backed, at that moment, by the stablecoin
+received. **The CFO converts it** — selling the USDC/USDT on Bitso for MXN so
+the reserve ends up in pesos. That is manual, and owned by the CFO along with
+reconciling `unmatched_fundings`. Automation is tracked as PL-008.
+
+Two consequences to keep in view while it is manual:
+
+1. **The conversion is not instantaneous, so the treasury carries FX exposure
+   between the mint and the sale.** PXO is minted against an MXN price quoted
+   at purchase, but the pesos are realised when the CFO sells. If USDC/MXN
+   moves in between, the reserve ends up slightly over- or under-funded per
+   trade. Negligible at beta volumes, and nothing currently measures it.
+2. **Supply only grows.** There is no burn-on-redemption, and the contract has
+   no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`.
+   The CFO conversion fixes *what backs* the supply, not that it keeps rising.
 
 ---
 

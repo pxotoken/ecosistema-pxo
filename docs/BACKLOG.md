@@ -379,9 +379,12 @@ Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode a
 
 **Remaining:** the owner calls `addMinter(0x9f0f2EAc…8382)` — see [runbooks/grant-minter-role.md](./runbooks/grant-minter-role.md). Verification and rollback: [runbooks/enable-minting-and-deposit-matching.md](./runbooks/enable-minting-and-deposit-matching.md).
 
-**Two things to settle before minting at volume, neither of which is engineering:**
-1. **Minted PXO is not backed by pesos.** A USDC purchase creates supply backed by USDC, while the public FAQ claims 1:1 MXN custody (SL-015, unverified). Somebody must own that accounting.
-2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent.
+**How the backing works (answered 2026-09-04).** A USDC/USDT purchase creates PXO backed, at that instant, by the stablecoin received. The **CFO converts it**: selling the USDC/USDT on Bitso for MXN, so the reserve ends up in pesos. Manual for now, and owned by the CFO along with reconciling `unmatched_fundings`. Automating both is [PL-008](#pl-008--automate-the-cfo-treasury-loop).
+
+**What that leaves open, and it is worth naming:**
+
+1. **The conversion is not instantaneous, so the treasury carries FX exposure between the mint and the sale.** PXO is minted against an MXN price quoted at purchase time, but the pesos are only realised when the CFO sells. If USDC/MXN moves in between, the MXN actually raised differs from the MXN the token was issued against — the reserve ends up slightly over- or under-funded per trade. Negligible at beta volumes, material at scale, and it compounds silently because nothing measures it. Worth deciding: is there a conversion cadence (same-day? per-threshold?) and who watches the gap.
+2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent, and the CFO conversion does not address it: it fixes what backs the supply, not that the supply keeps rising.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
@@ -699,6 +702,23 @@ Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode a
 **Effort:** 2 days
 **Why:** `apps/pagos` is in the repo but its production status is unclear. Has 8+ dead env vars. Determine if it's live, deferred, or abandoned.
 **Done when:** Status documented; if live, add to monitoring; if abandoned, archive.
+
+### PL-008 · Automate the CFO treasury loop
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** Unknown until the manual process has run for a while
+**Why:** Two treasury jobs are manual and owned by the CFO as of 2026-09-04:
+
+1. **Converting stablecoin backing into pesos.** PXO minted against a USDC/USDT purchase is backed by that stablecoin until the CFO sells it on Bitso for MXN. See SL-017.
+2. **Reconciling `unmatched_fundings`** — SPEI money that arrived without a matching deposit intent, recorded by the matcher for a human to place. See SL-016.
+
+Both are deliberately manual to start with, which is the right call: neither process is well enough understood to automate safely, and both move real money. This item exists so the intent to automate is not lost, and so the manual period is used to learn what the automation would need.
+
+**Worth capturing while it is manual, because it is what the automation will be built from:**
+- How long the mint→conversion gap actually runs in practice, and how far USDC/MXN moves inside it. That gap is the FX exposure named in SL-017 and nothing currently measures it.
+- What proportion of `unmatched_fundings` rows have a real explanation versus being noise, and which `reason` values dominate.
+- Whether conversion is better driven by a cadence (daily) or a threshold (accumulated balance), which is a treasury policy question rather than an engineering one.
+**Done when:** either the loop is automated, or there is a written decision that it stays manual and why.
+**Note:** do not automate either half before the reserve accounting question in SL-017 has an owner. Automating a process whose correctness nobody can currently check would just make the errors faster.
 
 ### PL-007 · api-pagos verifies inbound webhook signatures against re-serialised JSON
 **Type:** 🔧 Code
