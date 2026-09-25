@@ -1,6 +1,6 @@
 /*
- * Landing page styles — "Orbi" design.
- * Ported from docs/looks/pxo-landing-orbi.html. Every rule is scoped under
+ * Landing page styles — "Orbi" design, v3 palette/typography.
+ * Ported from docs/looks/pxo-landing-v3.html. Every rule is scoped under
  * .orbi-landing so it cannot leak into the dashboard or Tailwind's globals.
  */
 
@@ -12,30 +12,35 @@
 
 /* ── TOKENS ── */
 .orbi-landing {
-  --bg:          #0d0925;   /* Orbi deep indigo/violet hero bg */
-  --bg-dark:     #080618;
-  --bg-darker:   #060412;
-  --bg-section:  #f0eeff;   /* light lavender for trust bar */
+  /* v3 palette: teal / cyan / navy. The --purple* names are kept so this file
+     stays a 1:1 port of the design file, which also kept them. */
+  --bg:          #007481;
+  --bg-dark:     #007481;
+  --bg-darker:   #1a1f45;
+  --bg-section:  #eef4f7;
   --white:       #ffffff;
-  --off-white:   #f5f3ff;
-  --purple:      #7c5cfc;   /* Orbi accent purple */
-  --purple-mid:  #9b7ffe;
-  --purple-light:#c4b0ff;
-  --text-dark:   #1a1145;
-  --text-mid:    #4a3f7a;
-  --text-muted:  #8b80b8;
-  --green:       #7c5cfc;
-  --border-light: rgba(255,255,255,0.15);
-  --border-dark:  rgba(0,0,0,0.08);
-  --pill-bg:     rgba(255,255,255,0.10);
-  --pill-border: rgba(255,255,255,0.20);
+  --off-white:   #f0f6f8;
+  --purple:      #007481;
+  --purple-mid:  #00bed6;
+  --purple-light:#00bed6;
+  --teal:        #007481;
+  --cyan:        #00bed6;
+  --navy:        #007481;
+  --text-dark:   #1a3540;
+  --text-mid:    #2a5060;
+  --text-muted:  #4a7080;
+  --green:       #007481;
+  --border-light: rgba(255,255,255,0.18);
+  --border-dark:  rgba(36,42,90,0.10);
+  --pill-bg:     rgba(255,255,255,0.12);
+  --pill-border: rgba(255,255,255,0.25);
   --radius-pill: 999px;
   --radius-card: 20px;
   --radius-sm:   12px;
 }
 
 .orbi-landing {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Work Sans', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--text-dark);
@@ -54,8 +59,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  background: var(--bg);
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: #007481;
+  border-bottom: 1px solid rgba(0,190,214,0.25);
 }
 
 /* Logo */
@@ -267,7 +272,7 @@
 
 /* ── HERO ── */
 .orbi-landing .hero {
-  background: var(--bg);
+  background: linear-gradient(135deg, #007481 0%, #0a5570 50%, #242a5a 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -297,7 +302,7 @@
   color: var(--white);
   margin-bottom: 18px;
 }
-.orbi-landing .hero-title-accent { color: var(--purple-light); }
+.orbi-landing .hero-title-accent { color: var(--cyan); }
 
 .orbi-landing .hero-sub {
   font-size: 17px;
@@ -313,8 +318,8 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: var(--white);
-  color: var(--text-dark);
+  background: #ffffff;
+  color: #007481;
   padding: 13px 20px 13px 24px;
   border-radius: var(--radius-pill);
   font-size: 15px;
@@ -328,8 +333,9 @@
 .orbi-landing .btn-hero-arrow {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: var(--text-dark);
-  color: var(--white);
+  background: #007481;
+  /* v3 sets color to #007481 too, which hides the glyph; kept white. */
+  color: #ffffff;
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
   flex-shrink: 0;
@@ -569,14 +575,16 @@
 
 .orbi-landing .section-tag {
   display: inline-block;
-  background: var(--off-white);
-  border: 1px solid rgba(124,92,252,0.2);
+  background: rgba(0,190,214,0.1);
+  border: 1px solid rgba(0,190,214,0.35);
   border-radius: var(--radius-pill);
   padding: 5px 16px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--purple);
+  font-weight: 700;
+  color: #007481;
   margin-bottom: 20px;
+  font-family: 'Work Sans', sans-serif;
+  letter-spacing: 0.5px;
 }
 
 .orbi-landing .section-title {
@@ -632,8 +640,8 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: var(--text-dark);
-  color: var(--white);
+  background: #007481;
+  color: #ffffff;
   padding: 13px 20px 13px 24px;
   border-radius: var(--radius-pill);
   font-size: 15px;
@@ -647,8 +655,8 @@
 .orbi-landing .btn-cta-arrow {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: var(--white);
-  color: var(--text-dark);
+  background: rgba(255,255,255,0.2);
+  color: var(--white);
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
 }
@@ -661,7 +669,7 @@
 .orbi-landing .spei-card {
   max-width: 1200px;
   margin: 0 auto;
-  background: #f5f2ff;
+  background: #e8f5f7;
   border-radius: 28px;
   overflow: hidden;
   display: grid;
@@ -688,7 +696,7 @@
 .orbi-landing .feat-dot { font-size: 16px; }
 .orbi-landing .spei-right {
   position: relative;
-  background: radial-gradient(ellipse 90% 90% at 55% 50%, #312090 0%, #1e1462 50%, #0d0926 100%);
+  background: radial-gradient(ellipse 90% 90% at 55% 50%, #007481 0%, #005a68 50%, #242a5a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -700,7 +708,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0,190,214,0.2) 1px, transparent 1px);
   background-size: 20px 20px;
   mask-image: radial-gradient(ellipse 80% 80% at 55% 50%, black 10%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 55% 50%, black 10%, transparent 75%);
@@ -849,7 +857,7 @@
   cursor: pointer;
   font-size: 15px;
   font-weight: 500;
-  color: var(--purple);
+  color: #007481;
   gap: 16px;
   transition: color 0.18s;
 }
@@ -880,7 +888,7 @@
   margin: 0 auto;
   width: 100%;
   border-radius: 28px;
-  background: #1a0f4a;
+  background: linear-gradient(135deg, #007481 0%, #005a68 50%, #242a5a 100%);
   min-height: 360px;
   overflow: hidden;
   position: relative;
@@ -892,7 +900,7 @@
   right: -100px; top: -100px;
   width: 500px; height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,92,252,0.35) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,190,214,0.25) 0%, transparent 70%);
   pointer-events: none;
 }
 .orbi-landing .cta-content {
@@ -987,7 +995,7 @@
 
 /* ── FOOTER ── */
 .orbi-landing .orbi-footer {
-  background: #0d0926;
+  background: #242a5a;
   padding: 60px 24px 36px;
   border-top: 1px solid rgba(255,255,255,0.06);
   text-align: left;
@@ -1134,8 +1142,8 @@
   border-radius: 50%;
   background:
     radial-gradient(ellipse 80% 80% at 50% 50%,
-      rgba(124,92,252,0.22) 0%,
-      rgba(80,50,200,0.10) 45%,
+      rgba(0,116,129,0.25) 0%,
+      rgba(0,116,129,0.12) 45%,
       transparent 70%);
   position: relative;
   overflow: hidden;
@@ -1147,7 +1155,7 @@
   inset: 0;
   border-radius: 50%;
   background-image:
-    radial-gradient(circle, rgba(255,255,255,0.18) 1px, transparent 1px);
+    radial-gradient(circle, rgba(0,190,214,0.22) 1px, transparent 1px);
   background-size: 18px 18px;
   mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 80%);
@@ -1286,7 +1294,7 @@
 
 /* ── WHAT WE DO ── */
 .orbi-landing .what-we-do {
-  background: #f2efff;
+  background: #e8f5f7;
   padding: 44px 0 36px;
   border-bottom: 1px solid rgba(124,92,252,0.18);
   overflow: hidden;
@@ -1297,7 +1305,7 @@
   text-align: center;
   font-size: 11px;
   font-weight: 700;
-  color: var(--purple);
+  color: var(--teal);
   letter-spacing: 2.5px;
   text-transform: uppercase;
   margin-bottom: 28px;
@@ -1310,7 +1318,7 @@
 .orbi-landing .uc-card {
   flex-shrink: 0;
   background: var(--white);
-  border: 1px solid rgba(124,92,252,0.12);
+  border: 1px solid rgba(47,72,193,0.15);
   border-radius: 18px;
   padding: 20px;
   width: 220px;
@@ -1322,8 +1330,8 @@
   cursor: default;
 }
 .orbi-landing .uc-card:hover {
-  box-shadow: 0 8px 28px rgba(124,92,252,0.14);
-  border-color: rgba(124,92,252,0.3);
+  box-shadow: 0 8px 28px rgba(47,72,193,0.15);
+  border-color: rgba(0,190,214,0.35);
   transform: translateY(-3px);
 }
 .orbi-landing .uc-icon-wrap {
@@ -1333,8 +1341,8 @@
 }
 .orbi-landing .uc-buy { background: rgba(124,92,252,0.1);  color: #7c5cfc; }
 .orbi-landing .uc-sell { background: rgba(220,60,60,0.09);  color: #cc4444; }
-.orbi-landing .uc-send { background: rgba(124,92,252,0.10); color: var(--purple); }
-.orbi-landing .uc-receive { background: rgba(124,92,252,0.10); color: var(--purple); }
+.orbi-landing .uc-send { background: rgba(47,72,193,0.10); color: var(--purple); }
+.orbi-landing .uc-receive { background: rgba(0,116,129,0.10); color: var(--teal); }
 .orbi-landing .uc-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
 .orbi-landing .uc-sub { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 .orbi-landing .uc-tokens { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -1346,7 +1354,7 @@
   border: 1px solid;
 }
 .orbi-landing .uc-token-badge img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
-.orbi-landing .pxo-badge { background: rgba(124,92,252,0.07); color: var(--purple); border-color: rgba(124,92,252,0.22); }
+.orbi-landing .pxo-badge { background: rgba(47,72,193,0.08); color: var(--purple); border-color: rgba(47,72,193,0.25); }
 .orbi-landing .usdt-badge { background: rgba(124,92,252,0.07); color: #6040d0; border-color: rgba(124,92,252,0.22); }
 .orbi-landing .usdc-badge { background: rgba(39,117,202,0.07); color: #2775ca; border-color: rgba(39,117,202,0.22); }
 .orbi-landing .uc-stable-card {
@@ -1391,13 +1399,13 @@
   margin-top: 20px;
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255,255,255,0.5);
+  color: rgba(0,190,214,0.85);
 }
 .orbi-landing .trust-sep { opacity: 0.3; }
 
 /* ── STAT STRIP ── */
 .orbi-landing .stat-strip {
-  background: var(--bg);
+  background: #242a5a;
   padding: 36px 24px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
@@ -1418,7 +1426,8 @@
   display: block;
   font-size: clamp(28px, 4vw, 42px);
   font-weight: 800;
-  color: var(--purple-light);
+  color: #00bed6;
+  font-family: 'Bai Jamjuree', sans-serif;
   letter-spacing: -1px;
   line-height: 1;
   margin-bottom: 6px;
@@ -1480,16 +1489,17 @@
 .orbi-landing .how-step-num {
   font-size: 11px;
   font-weight: 800;
-  color: var(--purple);
+  color: #00bed6;
   letter-spacing: 2px;
-  opacity: 0.5;
+  opacity: 0.7;
+  font-family: 'Bai Jamjuree', sans-serif;
 }
 .orbi-landing .how-step-icon {
   width: 64px;
   height: 64px;
   border-radius: 20px;
-  background: var(--off-white);
-  border: 1px solid rgba(124,92,252,0.15);
+  background: rgba(0,190,214,0.1);
+  border: 1px solid rgba(0,190,214,0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1507,7 +1517,7 @@
 }
 .orbi-landing .how-arrow {
   font-size: 22px;
-  color: rgba(124,92,252,0.3);
+  color: rgba(0,190,214,0.45);
   padding: 0 12px;
   margin-top: 52px;
   flex-shrink: 0;
@@ -1521,6 +1531,20 @@
   .orbi-landing .hero-trust-strip { font-size: 11px; gap: 8px; }
 
 }
+
+/* ── PXO BRAND TYPOGRAPHY ── */
+.orbi-landing .hero-title,
+.orbi-landing .section-title,
+.orbi-landing .faq-left h2,
+.orbi-landing .cta-content h2,
+.orbi-landing .how-step-title,
+.orbi-landing .spei-title,
+.orbi-landing .stat-num,
+.orbi-landing .logo-wordmark {
+  font-family: 'Bai Jamjuree', sans-serif;
+}
+.orbi-landing .hero-title { letter-spacing: -0.5px; }
+.orbi-landing .section-title { letter-spacing: -0.5px; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    React port adjustments
