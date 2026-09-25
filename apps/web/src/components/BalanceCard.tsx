@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Plus, ArrowUpRight, Send, Download } from 'lucide-react';
+import { Loader2, ArrowLeftRight, Send, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useActiveAccount, useActiveWalletChain } from 'thirdweb/react';
 import { getBalance } from 'thirdweb/extensions/erc20';
@@ -9,8 +9,6 @@ import useWalletStore from '../store/useWalletStore';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useToast } from './ui/Toast';
 import { SendFundsModal, ReceiveFundsModal } from './crypto';
-import { BuyOptionsModal } from './fiat/BuyOptionsModal';
-import { SellOptionsModal } from './fiat/SellOptionsModal';
 import { PATHS } from '../routes/paths';
 
 const client = getThirdwebClient();
@@ -42,8 +40,6 @@ export function BalanceCard() {
   const [balances, setBalances] = useState<BalanceState>(initialState);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
-  const [showSellModal, setShowSellModal] = useState(false);
 
   const availableTokens = activeChain && activeChain.id in tokens ? tokens[activeChain.id] : [];
 
@@ -114,11 +110,6 @@ export function BalanceCard() {
 
   return (
     <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl shadow-glass overflow-hidden">
-      <div className="border-b border-light-border dark:border-dark-border px-4 py-3 flex items-center gap-2">
-        <img src="/LOGO_DARK.png" alt="PXO" className="h-6 w-auto dark:hidden" />
-        <img src="/LOGO_1.png" alt="PXO" className="h-6 w-auto hidden dark:block" />
-      </div>
-
       <div className="divide-y divide-light-border dark:divide-dark-border">
         {DISPLAY_SYMBOLS.map((symbol) => {
           const state = balances[symbol];
@@ -149,13 +140,14 @@ export function BalanceCard() {
       </div>
 
       <div className="grid grid-cols-4 gap-2 p-3 bg-light-glass/40 dark:bg-dark-glass/40">
-        <button type="button" onClick={() => setShowBuyModal(true)} className={actionButtonClass}>
-          <Plus className="w-4 h-4" />
-          <span>Buy</span>
-        </button>
-        <button type="button" onClick={() => setShowSellModal(true)} className={actionButtonClass}>
-          <ArrowUpRight className="w-4 h-4" />
-          <span>Sell</span>
+        {/* Convert spans the two columns Buy and Sell used to occupy. */}
+        <button
+          type="button"
+          onClick={() => navigate(PATHS.dashboard.exchange)}
+          className={`${actionButtonClass} col-span-2`}
+        >
+          <ArrowLeftRight className="w-4 h-4" />
+          <span>Convert</span>
         </button>
         <button onClick={handleSendClick} className={actionButtonClass}>
           <Send className="w-4 h-4" />
@@ -167,8 +159,6 @@ export function BalanceCard() {
         </button>
       </div>
 
-      <BuyOptionsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} />
-      <SellOptionsModal open={showSellModal} onClose={() => setShowSellModal(false)} />
       <SendFundsModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
       <ReceiveFundsModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} />
     </div>
