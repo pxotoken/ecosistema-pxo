@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Clock } from 'lucide-react';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
 import { getContract } from 'thirdweb/contract';
 import { transfer } from 'thirdweb/extensions/erc20';
@@ -311,6 +312,13 @@ export function RedeemPxoToMxn() {
             <div>Bitso withdrawal: <code>{poll?.bitso_withdrawal_id ?? '—'}</code></div>
             <div>Backend status: <code>{poll?.status ?? 'SPEI_SENT'}</code></div>
             <div>Beneficiary: {beneficiaryName} · CLABE ****{clabe.slice(-4)}</div>
+          </div>
+          <div className="flex items-start gap-2 bg-light-base dark:bg-dark-base border border-light-border dark:border-dark-border p-3 rounded-lg text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              SPEI transfers can take up to 24 hours to settle. The MXN will land in your bank
+              account once your bank completes the transfer.
+            </span>
           </div>
         </div>
       )}

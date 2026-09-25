@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
   FileText,
-  CheckCircle,
   AlertTriangle,
   Save,
   Loader2,
@@ -17,6 +16,14 @@ import { KYCStatus } from '@pxo/shared/types';
 import { Toast } from '../common/Toast';
 import { useToast } from '../../hooks/useToast';
 import api, { getApiError } from '../../lib/api';
+
+/**
+ * The Terms and Conditions block is hidden for now, and with it the acceptance
+ * gate in isFormValid(). The markup and the two state flags are kept so the
+ * section can be restored by flipping this to `true` — nothing about the
+ * checkboxes ever reached the backend, they only gated the submit button.
+ */
+const SHOW_TERMS_SECTION: boolean = false;
 
 const COUNTRY_OPTIONS: Array<{ code: string; label: string }> = [
   { code: 'MX', label: 'Mexico' },
@@ -60,26 +67,6 @@ const ValidationWarning = () => (
         </p>
         <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
           You will not be able to edit your information until your request is approved or rejected by our team.
-        </p>
-      </div>
-    </div>
-  </motion.div>
-);
-
-const ValidationSuccess = () => (
-  <motion.div
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 p-4 mb-6 rounded-r-lg"
-  >
-    <div className="flex items-start">
-      <CheckCircle className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
-      <div>
-        <p className="text-sm font-medium text-green-800 dark:text-green-200">
-          Your KYC has been successfully validated
-        </p>
-        <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-          If you modify your data, you will need to go through the KYC validation process again.
         </p>
       </div>
     </div>
@@ -333,8 +320,7 @@ export const KYCSettings: React.FC = () => {
         formData.documentNumber.trim().length >= 3 &&
         formData.country &&
         hasRequiredDocuments() &&
-        acceptedTerms &&
-        acceptedDisclaimer,
+        (!SHOW_TERMS_SECTION || (acceptedTerms && acceptedDisclaimer)),
     );
 
   const handleInputChange = (field: keyof KYCFormData) => (
@@ -438,7 +424,6 @@ export const KYCSettings: React.FC = () => {
 
       <AnimatePresence>
         {user.KYC_status === KYCStatus.VALIDATING && <ValidationWarning />}
-        {user.KYC_status === KYCStatus.VALIDATED && <ValidationSuccess />}
       </AnimatePresence>
 
       <motion.div
@@ -608,46 +593,48 @@ export const KYCSettings: React.FC = () => {
             )}
           </div>
 
-          {/* Terms */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
-              Terms and Conditions
-            </h3>
+          {/* Terms — hidden; see SHOW_TERMS_SECTION. */}
+          {SHOW_TERMS_SECTION && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">
+                Terms and Conditions
+              </h3>
 
-            <div className="space-y-3">
-              <label className={`flex items-start space-x-3 ${isFormDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  checked={isFormDisabled ? true : acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  disabled={isFormDisabled}
-                  className="mt-1 w-4 h-4 text-pxo-primary border-light-border dark:border-dark-border rounded focus:ring-pxo-primary"
-                />
-                <div className="text-sm text-light-text dark:text-dark-text">
-                  <span className="font-medium">I accept the terms and conditions *</span>
-                  <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                    I have read and accept the platform's terms and conditions of use.
-                  </p>
-                </div>
-              </label>
+              <div className="space-y-3">
+                <label className={`flex items-start space-x-3 ${isFormDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    checked={isFormDisabled ? true : acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    disabled={isFormDisabled}
+                    className="mt-1 w-4 h-4 text-pxo-primary border-light-border dark:border-dark-border rounded focus:ring-pxo-primary"
+                  />
+                  <div className="text-sm text-light-text dark:text-dark-text">
+                    <span className="font-medium">I accept the terms and conditions *</span>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                      I have read and accept the platform's terms and conditions of use.
+                    </p>
+                  </div>
+                </label>
 
-              <label className={`flex items-start space-x-3 ${isFormDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  checked={isFormDisabled ? true : acceptedDisclaimer}
-                  onChange={(e) => setAcceptedDisclaimer(e.target.checked)}
-                  disabled={isFormDisabled}
-                  className="mt-1 w-4 h-4 text-pxo-primary border-light-border dark:border-dark-border rounded focus:ring-pxo-primary"
-                />
-                <div className="text-sm text-light-text dark:text-dark-text">
-                  <span className="font-medium">I accept the disclaimer *</span>
-                  <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                    I understand and accept the risks associated with investments on the platform.
-                  </p>
-                </div>
-              </label>
+                <label className={`flex items-start space-x-3 ${isFormDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    checked={isFormDisabled ? true : acceptedDisclaimer}
+                    onChange={(e) => setAcceptedDisclaimer(e.target.checked)}
+                    disabled={isFormDisabled}
+                    className="mt-1 w-4 h-4 text-pxo-primary border-light-border dark:border-dark-border rounded focus:ring-pxo-primary"
+                  />
+                  <div className="text-sm text-light-text dark:text-dark-text">
+                    <span className="font-medium">I accept the disclaimer *</span>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                      I understand and accept the risks associated with investments on the platform.
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <motion.button
             type="submit"

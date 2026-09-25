@@ -10,7 +10,6 @@ import { PATHS } from '../routes/paths';
 
 interface TopBarProps {
   onToggleMobileMenu?: () => void;
-  showMobileMenuButton?: boolean;
 }
 
 function truncateAddress(addr?: string | null): string {
@@ -27,7 +26,7 @@ const navItemClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-light-text dark:text-dark-text border-transparent hover:text-pxo-primary',
   ].join(' ');
 
-export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu, showMobileMenuButton = false }) => {
+export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -43,15 +42,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu, showMobileMe
     >
       <div className="flex items-center justify-between h-16">
         <div className="flex items-center gap-3">
-          {showMobileMenuButton && (
-            <button
-              onClick={onToggleMobileMenu}
-              aria-label="Toggle menu"
-              className="lg:hidden p-2 rounded-lg hover:bg-light-glass dark:hover:bg-dark-glass transition-colors"
-            >
-              <Menu className="w-6 h-6 text-light-text dark:text-dark-text" />
-            </button>
-          )}
+          {/* Opens the nav drawer; from `lg` up the sidebar is always on screen. */}
+          <button
+            onClick={onToggleMobileMenu}
+            aria-label="Toggle menu"
+            className="lg:hidden p-2 rounded-lg hover:bg-light-glass dark:hover:bg-dark-glass transition-colors"
+          >
+            <Menu className="w-6 h-6 text-light-text dark:text-dark-text" />
+          </button>
           <button
             onClick={() => navigate(PATHS.dashboard.wallet)}
             aria-label="Home"

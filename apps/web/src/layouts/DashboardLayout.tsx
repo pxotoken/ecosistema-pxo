@@ -10,14 +10,6 @@ import { SendFundsModal } from '../components/crypto/SendFundsModal';
 import useWalletStore from '../store/useWalletStore';
 import { PATHS } from '../routes/paths';
 
-const SIDEBAR_ROUTE_PREFIXES = [
-  PATHS.dashboard.settings,
-  PATHS.dashboard.adminKyc,
-  PATHS.dashboard.adminUsers,
-  PATHS.dashboard.adminWalletStatus,
-  PATHS.dashboard.adminPricingRules,
-];
-
 export function DashboardLayout() {
   const { user } = useAuthContext();
   const { setAdminMode } = useWalletStore();
@@ -35,11 +27,8 @@ export function DashboardLayout() {
     setAdminMode(!!isAdmin);
   }, [isAdmin, setAdminMode]);
 
-  // Sidebar is visible only on settings (and admin sub-pages); top nav handles
-  // primary navigation everywhere else.
-  const sidebarApplies = SIDEBAR_ROUTE_PREFIXES.some((prefix) =>
-    location.pathname.startsWith(prefix)
-  );
+  // The sidebar is the primary navigation on every dashboard screen: a drawer
+  // behind the hamburger below `lg`, a persistent rail from `lg` up.
 
   // Close any open mobile drawer when route changes.
   useEffect(() => {
@@ -67,20 +56,15 @@ export function DashboardLayout() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-lime-accent/3 rounded-full blur-3xl" />
       </div>
 
-      <TopBar
-        showMobileMenuButton={sidebarApplies}
-        onToggleMobileMenu={() => setIsMobileMenuOpen((v) => !v)}
-      />
+      <TopBar onToggleMobileMenu={() => setIsMobileMenuOpen((v) => !v)} />
 
       <div className="flex-1 flex min-w-0 relative">
-        {sidebarApplies && (
-          <Sidebar
-            user={user}
-            isMobileMenuOpen={isMobileMenuOpen}
-            onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
-            onTransfersClick={handleTransfersClick}
-          />
-        )}
+        <Sidebar
+          user={user}
+          isMobileMenuOpen={isMobileMenuOpen}
+          onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
+          onTransfersClick={handleTransfersClick}
+        />
 
         <main className="flex-1 min-w-0 w-full overflow-x-hidden">
           <div className="p-4 lg:p-8 max-w-full">
