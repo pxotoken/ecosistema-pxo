@@ -25,7 +25,6 @@ export const OrbiNav: React.FC = () => {
   // No dedicated pages exist yet — these keep the design's placeholders.
   const aboutItems = [
     { label: nav.about_items.privacy, href: '#' },
-    { label: nav.about_items.blog, href: '#' },
     { label: nav.about_items.help, href: `#${SECTIONS.faq}` },
   ];
 

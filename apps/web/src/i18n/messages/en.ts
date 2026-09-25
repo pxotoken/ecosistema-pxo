@@ -32,14 +32,13 @@ export const en: Messages = {
     about_items: {
       terms: 'Terms and conditions',
       privacy: 'Privacy policy',
-      blog: 'Blog',
       help: 'Help center',
     },
   },
 
   cta: {
     startNow: 'Get started',
-    openAccount: 'Open your account',
+    openAccount: 'Sign in',
     connecting: 'Connecting...',
   },
 
@@ -153,12 +152,12 @@ export const en: Messages = {
 
   finalCta: {
     title: 'Get started',
-    sub: 'Open your account in minutes. No crypto knowledge required.',
+    sub: 'Sign in or create your account in minutes. No crypto knowledge required.',
   },
 
   footer: {
     logoSub: 'Mexican Digital Peso',
-    tagline: 'The Mexican digital peso. Backed 1:1 by MXN. Audited monthly.',
+    tagline: 'The Mexican digital peso. Backed 1:1 with MXN. Audited monthly.',
     colIndividual: 'Individual',
     colAbout: 'About',
     links: {
@@ -169,7 +168,7 @@ export const en: Messages = {
       dollars: 'Digital dollars',
     },
     legal:
-      'Intermediation and administration services for the purchase, sale and custody of digital pesos are provided by PXO TOKEN, a company duly incorporated under the laws of the United Mexican States. The vulnerable activities identified are carried out in compliance with the Federal Law for the Prevention and Identification of Operations with Resources of Illicit Origin and other applicable Mexican regulation. PXO Token does not promote financial advisory services. Our activity is limited exclusively to the purchase and sale of virtual assets. We do not guarantee returns nor provide financial recommendations. Each user is responsible for their own decisions and must inform themselves adequately before carrying out any operation.',
+      'Intermediation and administration services for the purchase, sale and custody of digital pesos are provided by PXO TOKEN, a company duly incorporated under the laws of the United Mexican States. The vulnerable activities identified are carried out in compliance with the Federal Law for the Prevention and Identification of Operations with Resources of Illicit Origin and other applicable Mexican regulation. PXO Token does not promote financial advisory services. Our activity is limited exclusively to the purchase and sale of virtual assets. We do not guarantee returns nor provide financial recommendations. Each user is responsible for their own decisions and must inform themselves before carrying out any operation.',
     legalCompany: 'PXO TOKEN',
   },
 
