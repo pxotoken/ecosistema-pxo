@@ -24,7 +24,6 @@ export const OrbiFooter: React.FC = () => {
   // No dedicated pages exist yet — these keep the design's placeholders.
   const aboutLinks = [
     { label: nav.about_items.privacy, href: '#' },
-    { label: nav.about_items.blog, href: '#' },
     { label: nav.about_items.help, href: `#${SECTIONS.faq}` },
   ];
 

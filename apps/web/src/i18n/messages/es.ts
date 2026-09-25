@@ -12,39 +12,38 @@ export const es = {
     items: {
       buySell: {
         title: 'Compra y venta de PXO',
-        sub: 'Convertí entre pesos y PXO al mejor tipo de cambio 24/7.',
+        sub: 'Convierte entre pesos y PXO al mejor tipo de cambio 24/7.',
       },
       account: {
         title: 'Cuenta en pesos digitales',
-        sub: 'Administrá tus pesos digitales con seguridad institucional.',
+        sub: 'Administra tus pesos digitales con seguridad institucional.',
       },
       spei: {
         title: 'Transferencias SPEI',
-        sub: 'Enviá y recibí pesos desde cualquier banco. Sin comisiones, 24/7.',
+        sub: 'Envía y recibe pesos desde cualquier banco. Sin comisiones, 24/7.',
       },
       dollars: {
         title: 'Dólares digitales',
-        sub: 'Convertí tus pesos a dólares digitales en segundos, al mejor tipo de cambio.',
+        sub: 'Convierte tus pesos a dólares digitales en segundos, al mejor tipo de cambio.',
       },
     },
     about_items: {
       terms: 'Términos y condiciones',
       privacy: 'Política de privacidad',
-      blog: 'Blog',
       help: 'Centro de ayuda',
     },
   },
 
   cta: {
     startNow: 'Empezar ahora',
-    openAccount: 'Abrí tu cuenta',
+    openAccount: 'Iniciar Sesión',
     connecting: 'Conectando...',
   },
 
   hero: {
     titleLead: 'Tus pesos, ahora también',
     titleAccent: 'digitales.',
-    sub: 'Convertí, enviá y recibí pesos MXN digitales en segundos desde una sola app.',
+    sub: 'Convierte, envía y recibe pesos MXN digitales en segundos desde una sola app.',
     trust: {
       backed: '✓ Respaldado 1:1 con MXN',
       audits: '✓ Auditorías mensuales',
@@ -79,16 +78,16 @@ export const es = {
     sub: 'Sin conocimientos de cripto. Sin trámites complicados.',
     steps: {
       account: {
-        title: 'Creá tu cuenta',
-        sub: 'Registrate con tu email y verificá tu identidad en minutos.',
+        title: 'Crea tu cuenta',
+        sub: 'Regístrate con tu email y verifica tu identidad en minutos.',
       },
       deposit: {
-        title: 'Depositá vía SPEI',
-        sub: 'Transferí desde cualquier banco mexicano. Sin comisiones, 24/7.',
+        title: 'Deposita vía SPEI',
+        sub: 'Transfiere desde cualquier banco mexicano. Sin comisiones, 24/7.',
       },
       use: {
-        title: 'Usá tus PXO',
-        sub: 'Comprá, vendé, enviá y recibí pesos digitales al instante.',
+        title: 'Usa tus PXO',
+        sub: 'Compra, vende, envía y recibe pesos digitales al instante.',
       },
     },
   },
@@ -111,11 +110,11 @@ export const es = {
   },
 
   spei: {
-    titlePart1: 'Convertí tus',
+    titlePart1: 'Convierte tus',
     titleAccent1: 'pesos digitales',
     titlePart2: 'a',
     titleAccent2: 'pesos',
-    titlePart3: 'y recibilos en tu banco en minutos.',
+    titlePart3: 'y recíbelos en tu banco en minutos.',
     features: {
       transfers: 'Transferencias vía SPEI.',
       always: 'Disponible 24/7',
@@ -136,11 +135,11 @@ export const es = {
       },
       howToGet: {
         q: '¿Cómo puedo obtener PXO Token?',
-        a: 'Es muy sencillo: accedé a PXO Token, creá tu cuenta en minutos y depositá desde cualquier banco mexicano vía SPEI. Tus pesos se convierten automáticamente en PXO y ya podés usarlos para pagar, enviar o cambiarlos a dólares digitales.',
+        a: 'Es muy sencillo: accede a PXO Token, crea tu cuenta en minutos y deposita desde cualquier banco mexicano vía SPEI. Tus pesos se convierten automáticamente en PXO y ya los puedes usar para pagar, enviar o cambiarlos a dólares digitales.',
       },
       usage: {
         q: '¿Para qué puedo usar mis pesos digitales?',
-        a: 'Con PXO podés: depositar y retirar vía SPEI, transferir a otros usuarios sin comisión, convertir tus pesos a dólares digitales al mejor tipo de cambio, y pagar en la economía digital desde una sola app.',
+        a: 'Con PXO puedes: depositar y retirar vía SPEI, transferir a otros usuarios sin comisión, convertir tus pesos a dólares digitales al mejor tipo de cambio, y pagar en la economía digital desde una sola app.',
       },
       safety: {
         q: '¿Mis fondos están seguros?',
@@ -151,12 +150,12 @@ export const es = {
 
   finalCta: {
     title: 'Empezar ahora',
-    sub: 'Abrí tu cuenta en minutos. Sin saber de cripto.',
+    sub: 'Inicia sesión o crea tu cuenta en minutos. Sin saber de cripto.',
   },
 
   footer: {
     logoSub: 'Peso Digital Mexicano',
-    tagline: 'El peso digital mexicano. Respaldado 1:1 por MXN. Auditado mensualmente.',
+    tagline: 'El peso digital mexicano. Respaldado 1:1 con MXN. Auditado mensualmente.',
     colIndividual: 'Individual',
     colAbout: 'Acerca de',
     links: {
@@ -167,7 +166,7 @@ export const es = {
       dollars: 'Dólares digitales',
     },
     legal:
-      'Los servicios de intermediación y administración para la compra, venta y almacenamiento de pesos digitales son ofrecidos por PXO TOKEN, empresa legalmente constituida bajo las leyes de los Estados Unidos Mexicanos. Las actividades vulnerables señaladas se realizan en cumplimiento con la Ley Federal de Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita y demás regulación mexicana aplicable. PXO Token no promueve servicios de asesoría financiera. Nuestra actividad se limita exclusivamente a la compra y venta de activos virtuales. No garantizamos rendimientos ni brindamos recomendaciones financieras. Cada usuario es responsable de sus propias decisiones y debe informarse adecuadamente antes de realizar cualquier operación.',
+      'Los servicios de intermediación y administración para la compra, venta y almacenamiento de pesos digitales son ofrecidos por PXO TOKEN, empresa legalmente constituida bajo las leyes de los Estados Unidos Mexicanos. Las actividades vulnerables señaladas se realizan en cumplimiento con la Ley Federal de Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita y demás regulación mexicana aplicable. PXO Token no promueve servicios de asesoría financiera. Nuestra actividad se limita exclusivamente a la compra y venta de activos virtuales. No garantizamos rendimientos ni brindamos recomendaciones financieras. Cada usuario es responsable de sus propias decisiones y debe informarse antes de realizar cualquier operación.',
     legalCompany: 'PXO TOKEN',
   },
 
@@ -180,7 +179,7 @@ export const es = {
     read: (label: string) => `Leer ${label}`,
     accept: 'Aceptar',
     disagree: 'No acepto',
-    scrollHint: 'Desplazate hasta el final del documento para habilitar',
+    scrollHint: 'Desplázate hasta el final del documento para habilitar',
     consentLine: (party: string) =>
       `${party} — Al marcar esta casilla confirmo que deseo crear una cuenta con ${party} y que he leído y acepto sus términos de servicio y su política de privacidad.`,
     docTitle: (party: string) => `Términos y Condiciones de ${party}`,
