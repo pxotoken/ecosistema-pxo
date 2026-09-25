@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useActiveAccount, useActiveWallet } from 'thirdweb/react';
-import { Copy, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { Copy, Check, AlertTriangle, Clock, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiError } from '../../lib/api';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -358,6 +358,14 @@ export function BuyPxoWithMxn() {
             <span>
               You must send from your registered CLABE (****{intent.sourceClabe.slice(-4)}). SPEI
               from any other account will not be credited and will require manual review.
+            </span>
+          </div>
+
+          <div className="flex items-start gap-2 bg-light-base dark:bg-dark-base border border-light-border dark:border-dark-border p-3 rounded-lg text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              SPEI transfers can take up to 24 hours to settle. Your PXO is credited
+              automatically as soon as the deposit arrives.
             </span>
           </div>
 
