@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Menu, ArrowLeftRight, Plus, User } from 'lucide-react';
+import { Menu, ArrowLeftRight, User } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuthContext } from '../contexts/AuthContext';
-import { BuyOptionsModal } from './fiat/BuyOptionsModal';
 import { NetworkBadge } from './NetworkBadge';
 import { PATHS } from '../routes/paths';
 
@@ -29,7 +28,6 @@ const navItemClass = ({ isActive }: { isActive: boolean }) =>
 export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
   const navigate = useNavigate();
   const { user } = useAuthContext();
-  const [showBuyModal, setShowBuyModal] = useState(false);
 
   const profileLabel = truncateAddress(user?.wallet_address);
 
@@ -73,14 +71,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
             <ArrowLeftRight className="w-4 h-4" />
             <span>Transactions</span>
           </NavLink>
-          <button
-            type="button"
-            onClick={() => setShowBuyModal(true)}
-            className="flex items-center gap-2 px-1 py-2 text-sm transition-colors border-b-2 text-light-text dark:text-dark-text border-transparent hover:text-pxo-primary"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Buy</span>
-          </button>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -103,8 +93,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleMobileMenu }) => {
           </NavLink>
         </div>
       </div>
-
-      <BuyOptionsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} />
     </motion.div>
   );
 };
