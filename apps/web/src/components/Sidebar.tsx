@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut } from 'lucide-react';
+import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut, Plus, ArrowUpRight } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { KYCStatus } from '@pxo/shared/types';
 import { useAuthContext } from '../contexts/AuthContext';
+import { BuyOptionsModal } from './fiat/BuyOptionsModal';
+import { SellOptionsModal } from './fiat/SellOptionsModal';
 import { PATHS } from '../routes/paths';
 import '../styles/customScrollbar.css';
 
@@ -14,11 +17,27 @@ interface SidebarProps {
   onTransfersClick?: () => void;
 }
 
-const navigation = [
+interface NavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  /** null = the entry opens a modal instead of navigating (see handleNavigationClick). */
+  path: string | null;
+  /**
+   * Kept in the list but not rendered. The entries below are parked, not
+   * deleted: their routes and click wiring still work, so re-enabling one is a
+   * matter of dropping this flag.
+   */
+  hidden?: boolean;
+}
+
+const navigation: NavItem[] = [
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: PATHS.dashboard.wallet },
-  { id: 'exchange', label: 'Exchange', icon: TrendingUp, path: PATHS.dashboard.exchange },
-  { id: 'products', label: 'Products', icon: Package, path: PATHS.dashboard.products },
-  { id: 'transfers', label: 'Transfers', icon: Send, path: null },
+  { id: 'buy', label: 'Buy', icon: Plus, path: null },
+  { id: 'sell', label: 'Sell', icon: ArrowUpRight, path: null },
+  { id: 'exchange', label: 'Exchange', icon: TrendingUp, path: PATHS.dashboard.exchange, hidden: true },
+  { id: 'products', label: 'Products', icon: Package, path: PATHS.dashboard.products, hidden: true },
+  { id: 'transfers', label: 'Transfers', icon: Send, path: null, hidden: true },
   { id: 'insights', label: 'History', icon: BarChart3, path: PATHS.dashboard.insights },
   { id: 'settings', label: 'Settings', icon: Settings, path: PATHS.dashboard.settings },
 ];
@@ -37,6 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTransfersClick,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showSellModal, setShowSellModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthContext();
@@ -49,12 +70,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return location.pathname === path;
   };
 
-  const handleNavigationClick = (item: typeof navigation[0]) => {
+  const handleNavigationClick = (item: NavItem) => {
     if (item.id === 'transfers') {
       onTransfersClick?.();
+    } else if (item.id === 'buy') {
+      setShowBuyModal(true);
+    } else if (item.id === 'sell') {
+      setShowSellModal(true);
     } else if (item.path) {
       navigate(item.path);
     }
+    // The chooser modals portal to <body>, so closing the drawer here is safe.
     onCloseMobileMenu?.();
   };
 
@@ -74,30 +100,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         initial={{ width: 280 }}
         animate={{ width: isCollapsed ? 80 : 280 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className={`bg-light-surface dark:bg-dark-surface backdrop-blur-glass border-r border-light-border dark:border-dark-border flex flex-col h-full transition-colors duration-300 fixed lg:relative z-50 ${
+        className={`bg-light-surface dark:bg-dark-surface backdrop-blur-glass border-r border-light-border dark:border-dark-border flex flex-col h-full transition-colors duration-300 fixed inset-y-0 left-0 lg:relative lg:inset-auto z-50 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        {/* Header */}
-        <div className="hidden lg:flex px-4 py-4 border-b border-light-border dark:border-dark-border items-center justify-center relative">
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 flex justify-center"
-            >
-              <div>
-                <img src="/LOGO_DARK.png" alt="PXO Logo" className="h-10 w-auto dark:hidden" />
-                <img src="/LOGO_1.png" alt="PXO Logo" className="h-10 w-auto hidden dark:block" />
-              </div>
-            </motion.div>
-          )}
+        {/* Header — collapse toggle only; the PXO logo lives in the top bar. */}
+        <div
+          className={`hidden lg:flex px-4 py-4 border-b border-light-border dark:border-dark-border items-center ${
+            isCollapsed ? 'justify-center' : 'justify-end'
+          }`}
+        >
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`flex items-center justify-center p-2 rounded-full hover:bg-light-glass dark:hover:bg-dark-glass transition-colors ${
-              isCollapsed ? 'relative' : 'absolute right-4'
-            }`}
+            className="flex items-center justify-center p-2 rounded-full hover:bg-light-glass dark:hover:bg-dark-glass transition-colors"
           >
             {isCollapsed ? (
               <ChevronRight className="w-6 h-6 text-blue-600 dark:text-white" strokeWidth={3} />
@@ -109,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation */}
         <nav className="flex-1 p-4 pt-20 lg:pt-4 space-y-2 custom-scrollbar">
-          {navigation.map((item) => {
+          {navigation.filter((item) => !item.hidden).map((item) => {
             const active = isActive(item.path);
             return (
               <motion.button
@@ -274,6 +289,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </motion.button>
         </div>
       </motion.div>
+
+      <BuyOptionsModal open={showBuyModal} onClose={() => setShowBuyModal(false)} />
+      <SellOptionsModal open={showSellModal} onClose={() => setShowSellModal(false)} />
     </>
   );
 };
