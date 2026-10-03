@@ -50,6 +50,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-017** — Mint PXO when the wallet cannot cover an order (code done; activates itself once `addMinter` runs)
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
+- [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
 
 ---
 
@@ -264,6 +265,7 @@ Three consequences worth reading together:
 - Consider whether admin users should be exempt (they already have `VITE_ENABLE_ADMIN_TESTNET` semantics for chain flexibility)
 - SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
 - The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
+- **2026-10-03:** the `VITE_DEFAULT_CHAIN_ID` approach above was implemented as a *fallback with a hardcoded default*, which Adrian has since ruled against. See [SL-020](#sl-020--chain-id-is-defaulted-in-seven-places-and-the-defaults-disagree) — it carries the inventory and supersedes the approach, not the goal.
 
 ### SL-012 · Patch the request-path CVEs
 **Type:** 🔧 Code
@@ -519,6 +521,48 @@ The preconditions are the whole point — a redeploy done without them is worse 
 If those cannot be met before F&F, **A is better than a rushed D.** An unverified contract with a known owner is a documented weakness; a hastily redeployed one with unreviewed blacklist and fee powers is a new liability that looks like progress.
 
 **Not urgent:** none of this blocks Monday, the beta, or minting. It blocks nothing at all today. It gets more expensive every week.
+
+### SL-020 · Chain id is defaulted in seven places, and the defaults disagree
+**Type:** 🔧 Code
+**Effort:** 2-3 hours
+**Status:** **Deferred by Adrian 2026-10-03.** Recorded now so it is not rediscovered later. Nothing is in flight.
+
+**The rule being adopted (Adrian, 2026-09-24):** *there should be no default network. The net id is set explicitly on each environment. No assumptions.* A silent fallback in a money app is the [SL-001](#sl-001--receiver-address--resolved-2026-09-03) failure mode — the app keeps working while pointing somewhere nobody intended.
+
+**What is actually there.** Seven sites pick a chain id when one is missing, in two different classes, and they do not agree with each other — five say Amoy, two say mainnet. A wallet whose chain is unknown therefore gets *different answers in different parts of the same app*.
+
+Env-driven — the `VITE_DEFAULT_CHAIN_ID` fallback:
+
+| File | Expression |
+|---|---|
+| `apps/web/src/store/useWalletStore.ts:94` | `Number(VITE_DEFAULT_CHAIN_ID) \|\| 80002` |
+| `apps/web/src/components/NetworkBadge.tsx:15` | same expression |
+
+Runtime — guessing when `activeChain` / `getChain()` is undefined. **No env var is involved, so setting `VITE_DEFAULT_CHAIN_ID` fixes none of these:**
+
+| File | Expression | Note |
+|---|---|---|
+| `apps/web/src/components/fiat/BuyPxoWithMxn.tsx:209` | `chainId: chain?.id ?? 80002` | **SPEI deposit, no guard** |
+| `apps/web/src/components/fiat/RedeemPxoToMxn.tsx:118` | `chain?.id ?? 80002` | guarded by `CHAIN_MAP`, which `80002` passes |
+| `apps/web/src/hooks/usePXOSell.ts:158` | `activeChain?.id ?? (FORCE_POLYGON_MAINNET ? 137 : 80002)` | |
+| `apps/web/src/hooks/useTransactionHistory.ts:25` | `activeChain?.id ?? 137` | disagrees with the rest |
+| `apps/web/src/hooks/useBlockchainTransactionHistory.ts:43` | `activeChain?.id \|\| filters.chain?.[0] \|\| 137` | disagrees with the rest |
+
+**The sharp one.** `BuyPxoWithMxn.tsx:209` sends `chainId` to `/api/exchange/buy-pxo-mxn`, which decides where the purchased PXO is credited. If `wallet.getChain()` returns undefined, the client claims a **real MXN SPEI deposit belongs to Amoy testnet**, and unlike the withdrawal path there is no `CHAIN_MAP` check to stop it.
+
+**Unverified, and it sets the priority:** whether `wallet.getChain()` can actually return undefined with thirdweb in practice, or whether these are defensive branches for a case that never occurs. Establish this first — it is the difference between a latent fund-misrouting bug and dead code.
+
+**Why prod is not currently exposed.** Production has `VITE_DEFAULT_CHAIN_ID=80002` (Amoy) and is saved only by `VITE_FORCE_POLYGON_MAINNET=true`, which returns `[polygon]` for every non-admin. Admins with `VITE_ENABLE_ADMIN_TESTNET` still land on Amoy first. So the safety rests on an override rather than on the value being right — unset `FORCE_POLYGON_MAINNET` and prod silently provisions new social wallets on testnet, which `useWalletStore.ts:88-93` notes cannot be switched user-side for thirdweb social wallets.
+
+**Relationship to [SL-011](#sl-011--wallet-chain-mismatch-protection).** SL-011 proposed introducing `VITE_DEFAULT_CHAIN_ID` as the remedy. It was introduced — but *as a fallback with a hardcoded default*, which is the thing now being rejected. SL-011's own note that "the SPEI deposit flow still passes `chainId` to the backend; make sure the guard applies there too" was never acted on and is the bug above. Treat SL-020 as the correction to how SL-011 was implemented; do them together.
+
+**Done when:**
+- No chain id is produced by a hardcoded literal anywhere in `apps/web`
+- A missing `VITE_DEFAULT_CHAIN_ID` fails loudly at startup rather than resolving to a network
+- An unknown wallet chain refuses the operation with a "switch network" message, instead of guessing — the SPEI deposit path included
+- Each environment sets its net id explicitly; production is set to `137` so it is correct by value rather than by override
+
+**Ops follow-up (🔐 Adrian):** set `VITE_DEFAULT_CHAIN_ID=137` on Vercel production. Note this changes which chain admins land on when `VITE_ENABLE_ADMIN_TESTNET` is set.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
