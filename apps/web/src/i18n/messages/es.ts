@@ -184,4 +184,62 @@ export const es = {
       `${party} — Al marcar esta casilla confirmo que deseo crear una cuenta con ${party} y que he leído y acepto sus términos de servicio y su política de privacidad.`,
     docTitle: (party: string) => `Términos y Condiciones de ${party}`,
   },
+  /**
+   * October 2026 landing (see docs/looks/landing_last_version.html). The design
+   * shipped both locales inline; they live here so the ES/EN buttons in the
+   * landing nav drive the same LocaleContext as the rest of the app.
+   */
+  landingV4: {
+    nav: { products: 'Productos', how: 'Cómo funciona', benefits: 'Beneficios', trust: 'Transparencia' },
+    openAccount: 'Abre tu cuenta',
+    hero: {
+      eyebrow: 'El peso mexicano digital',
+      line1: 'Tus pesos,',
+      line2: 'ahora también digitales.',
+      lead: 'Compra, envía y cambia pesos digitales en segundos. Todo en un sólo lugar.',
+      cta: 'Crea tu cuenta',
+      cta2: 'Conoce PXO',
+    },
+    chips: { always: 'Siempre', send: 'Envía en segundos', swap: 'Cambia cuando quieras', hours: 'Sin horarios bancarios' },
+    marquee: { buy: 'Compra', send: 'Envía', swap: 'Cambia', parity: '1 PXO = 1 MXN', always: '24/7', borderless: 'Sin fronteras', tokens: 'USDT · USDC' },
+    products: {
+      eyebrow: 'Productos',
+      heading: 'Compra, transfiere y cambia PXO desde tu celular.',
+      soon: 'Próximamente',
+      buy: { title: 'Compra', text: 'Compra PXO con una transferencia. 1 PXO siempre vale 1 peso.' },
+      transfer: { title: 'Transfiere', text: 'Envía PXO a cualquier parte del mundo, 24/7.' },
+      exchange: { title: 'Cambio', text: 'Cambia PXO por USDT o USDC cuando quieras.' },
+      payLink: { title: 'Link de pago', text: 'Podrás cobrar en PXO en cualquier parte del mundo.' },
+    },
+    screens: {
+      account: { title: 'Mi cuenta', balance: 'Saldo', buy: 'Comprar', send: 'Enviar', swap: 'Cambiar', txBuy: 'Compra por transferencia', txSend: 'Envío', txSwap: 'Cambio a USDT' },
+      swap: { title: 'Cambiar', pay: 'Pagas', get: 'Recibes aprox.', note: 'Sin horarios bancarios', action: 'Cambiar ahora' },
+      send: { title: 'Enviar', ok: 'Enviado con éxito', timeLabel: 'Tiempo', timeValue: 'Segundos', action: 'Listo' },
+      payLink: { title: 'Link de pago', ok: 'Cobro recibido', conceptLabel: 'Concepto', conceptValue: 'Pedido 1042', fromLabel: 'Desde', fromValue: 'Madrid, ES', action: 'Crear link de pago' },
+    },
+    how: {
+      eyebrow: 'Cómo funciona',
+      heading: 'Empieza en tres pasos.',
+      s1: 'Crea tu cuenta', s1p: 'Regístrate en minutos desde tu celular.',
+      s2: 'Envía MXN', s2p: 'Realiza una transferencia desde tu banco.',
+      s3: 'Compra PXO', s3p: 'Tus pesos digitales, listos para usar.',
+    },
+    parity: { eyebrow: 'Así de simple', unit: '1 MXN', text: 'Respaldado 1 a 1 con pesos mexicanos.', convIn: 'Tienes (MXN)', convOut: 'Recibes (PXO)' },
+    benefits: {
+      eyebrow: 'Beneficios PXO',
+      heading: 'Usa PXO y recibe beneficios',
+      text: 'Un programa de beneficios para quienes mantienen y usan PXO.',
+      s1: 'Mantén PXO', s2: 'Paga y envía', s3: 'Cambia a dólares digitales', s4: 'Recibe beneficios',
+    },
+    trust: { backing: 'Respaldo en pesos', hours: 'Opera sin horarios' },
+    cta: { eyebrow: 'Empieza hoy', heading: '¿Listo para usar PXO sin fronteras?', text: 'Crea tu cuenta en minutos.' },
+    footer: {
+      menu: 'Menú',
+      legal: 'Legal',
+      privacy: 'Aviso de privacidad',
+      terms: 'Términos y condiciones',
+      disclaimer: 'PXO es una marca de PXO Token Company. Nada de lo contenido en este sitio debe interpretarse como asesoramiento de inversión. Los activos digitales implican riesgos. Los productos marcados como “Próximamente” aún no están disponibles. PXO no presta servicios en jurisdicciones donde la legislación aplicable lo impida.',
+      rights: 'Todos los derechos reservados.',
+    },
+  },
 } as const;
