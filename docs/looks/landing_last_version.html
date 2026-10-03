@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PXO Peso Digital</title>
+<meta name="description" content="PXO, el peso mexicano digital. Compra, envía y cambia en segundos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: composición centrada y en movimiento; ondas de marca animadas, teléfono protagonista, bandas de degradado teal→azul del manual. */
+:root{
+  color-scheme: light;
+  --navy:#242a5a; --blue:#2f48c1; --teal:#007481; --cyan:#00bed6;
+  --bg:#ffffff; --soft:#f1f5fa; --ink:#242a5a; --muted:#5b6285; --line:#e1e6f0;
+  --grad:linear-gradient(120deg,#007481 0%,#2f48c1 100%);
+  --display:'Bai Jamjuree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Work Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+main{overflow-x:clip}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+p{margin:0}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.02em;text-wrap:balance;line-height:1.05;color:var(--navy)}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:24px}
+.center{text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal)}
+.pill{padding:8px 16px 8px 12px;border-radius:999px;background:#fff;box-shadow:0 6px 20px -8px rgba(36,42,90,.25),inset 0 0 0 1px var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 0 rgba(0,190,214,.6)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:56px;padding:0 30px;border-radius:999px;font-family:var(--display);font-weight:600;font-size:17px;text-decoration:none;border:0;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+.btn.primary{background:var(--navy);color:#fff}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px -10px rgba(36,42,90,.55)}
+.btn.ghost{background:#fff;color:var(--navy);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn.ghost:hover{box-shadow:inset 0 0 0 1.5px var(--navy)}
+.btn.light{background:#fff;color:var(--navy)}
+.btn.light:hover{transform:translateY(-2px);box-shadow:0 14px 30px -10px rgba(0,0,0,.35)}
+.btn svg{transition:transform .2s ease}.btn:hover svg{transform:translateX(3px)}
+:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+section{padding-block:110px;position:relative}
+.sec-h{font-size:clamp(30px,4.2vw,50px);font-weight:700}
+.sec-p{margin:18px auto 0;max-width:46ch;font-size:19px;color:var(--muted)}
+.grad-text{background:linear-gradient(100deg,#007481,#00bed6,#2f48c1,#007481);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* NAV */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(255,255,255,.82);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:90px}
+.logo{display:flex;text-decoration:none}
+.wm{height:60px;width:142px;display:block;fill:var(--navy)}
+@media (max-width:640px){.nav .wm{height:48px;width:114px}}
+.links{display:flex;gap:30px;flex:1;justify-content:center}
+.links a{text-decoration:none;font-weight:500;font-size:15px;color:var(--muted);position:relative;padding-block:6px}
+.links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:var(--grad);transform:scaleX(0);transition:transform .25s ease}
+.links a:hover{color:var(--navy)}.links a:hover::after{transform:scaleX(1)}
+.lang{display:flex;padding:3px;border-radius:999px;background:var(--soft)}
+.lang button{border:0;background:transparent;font:600 13px var(--display);letter-spacing:.06em;color:var(--muted);height:32px;padding:0 12px;border-radius:999px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(36,42,90,.15)}
+.nav .btn{height:44px;padding:0 20px;font-size:15px}
+@media (max-width:860px){.links{display:none}.nav .wrap{justify-content:space-between;gap:12px}.logo{margin-right:auto}}
+@media (max-width:440px){.nav .btn{display:none}}
+
+/* HERO */
+.hero{padding-block:70px 40px;overflow:hidden;isolation:isolate}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;z-index:-2;background:radial-gradient(40% 50% at 20% 30%,rgba(0,190,214,.16),transparent 70%),radial-gradient(40% 50% at 80% 20%,rgba(47,72,193,.14),transparent 70%)}
+.hero .wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:26px}
+.hero h1{font-size:clamp(40px,6.4vw,80px);font-weight:700;max-width:14ch}
+.hero h1 .line{display:block}
+.hero .lead{font-size:clamp(18px,2vw,21px);color:var(--muted);max-width:36ch}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.stage{position:relative;width:min(760px,100%);margin-top:18px;aspect-ratio:760/520;max-width:100%}
+.hp{position:absolute;left:50%;top:50%;width:min(250px,44%);transform:translate(-50%,-50%);will-change:transform;perspective:1400px}
+.hp .phone{width:100%;max-width:none;transform:rotateY(-18deg) rotateX(10deg) rotateZ(5deg);box-shadow:40px 60px 80px -30px rgba(36,42,90,.5),inset 0 0 0 2px #3a4180}
+.hp .screen{font-size:12px;padding-top:48px}
+.coin{position:absolute;display:block;will-change:transform;filter:drop-shadow(0 18px 18px rgba(47,72,193,.28))}
+.coin svg{display:block;width:100%;height:auto}
+.k1{width:110px;left:26%;top:26%}.k2{width:88px;right:22%;top:34%}.k3{width:130px;left:22%;top:56%}.k4{width:74px;right:29%;bottom:0}.k5{width:58px;left:37%;top:-2%}
+@media (max-width:640px){.hp{width:44%}.k1{width:70px;left:8%;top:22%}.k2{width:56px;right:8%;top:38%}.k3{width:84px;left:14%;bottom:18%}.k4{width:46px;right:16%;bottom:20%}.k5{display:none}}
+.chip{position:absolute;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:18px;background:rgba(255,255,255,.92);box-shadow:0 18px 40px -16px rgba(36,42,90,.35),inset 0 0 0 1px var(--line);font:600 15px var(--display);color:var(--navy);white-space:nowrap;will-change:transform}
+.chip i{width:32px;height:32px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#fff;font-style:normal;font-size:14px;flex-shrink:0}
+.chip small{display:block;font:500 12px var(--body);color:var(--muted)}
+.c1{left:0;top:14%}.c2{right:0;top:8%}.c3{left:4%;bottom:10%}.c4{right:2%;bottom:16%}
+@media (max-width:640px){.chip{font-size:13px;padding:9px 12px;border-radius:14px}.chip i{width:26px;height:26px}.chip small{display:none}.c1{top:0;left:0}.c2{top:16%;right:0}.c3{bottom:2%;left:0}.c4{bottom:14%;right:0}}
+
+/* MARQUEE */
+.marquee{background:var(--navy);color:#fff;overflow:hidden;padding-block:20px;position:relative}
+.marquee .track{display:flex;width:max-content;gap:0}
+.marquee span{display:inline-flex;align-items:center;gap:28px;padding-right:28px;font:600 clamp(18px,2.2vw,26px) var(--display);letter-spacing:-.01em;white-space:nowrap}
+.marquee span b{color:var(--cyan);font-weight:600}
+.marquee span::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--grad)}
+
+/* PRODUCTOS */
+.soon{font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:var(--soft);color:var(--blue)}
+.phone{width:300px;max-width:78vw;aspect-ratio:9/18.5;border-radius:46px;background:var(--navy);padding:11px;box-shadow:0 50px 80px -30px rgba(36,42,90,.55),inset 0 0 0 2px #3a4180;position:relative}
+.phone::before{content:"";position:absolute;top:21px;left:50%;transform:translateX(-50%);width:86px;height:22px;border-radius:12px;background:var(--navy);z-index:2}
+.screen{height:100%;border-radius:36px;background:#fff;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:54px 18px 18px;font-size:13px;color:var(--navy)}
+.screen.swap-in>*{animation:scrIn .5s cubic-bezier(.2,.8,.2,1) both}
+.screen.swap-in>*:nth-child(2){animation-delay:.05s}.screen.swap-in>*:nth-child(3){animation-delay:.1s}.screen.swap-in>*:nth-child(4){animation-delay:.15s}.screen.swap-in>*:nth-child(5){animation-delay:.2s}.screen.swap-in>*:nth-child(6){animation-delay:.25s}
+@keyframes scrIn{from{transform:translateY(14px);opacity:.2}to{transform:none;opacity:1}}
+.scr-top{display:flex;justify-content:space-between;align-items:center;font:600 15px var(--display)}
+.scr-top i{width:30px;height:30px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-style:normal;font-size:12px;color:var(--teal)}
+.bal{border-radius:20px;padding:18px;background:var(--grad);color:#fff;display:flex;flex-direction:column;gap:4px}
+.bal small{opacity:.85;font-size:12px}
+.bal b{font:700 30px/1.1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bal span{font-size:12px;opacity:.9}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acts div{display:flex;flex-direction:column;align-items:center;gap:6px;font:600 11px var(--display)}
+.acts div::before{content:"";width:40px;height:40px;border-radius:14px;background:var(--soft);box-shadow:inset 0 0 0 1.5px var(--line)}
+.acts div:first-child::before{background:var(--navy);box-shadow:none}
+.tx{display:flex;flex-direction:column}
+.tx div{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line);font-size:12px}
+.tx div b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tx .in{color:var(--teal)}
+.box{border-radius:16px;background:var(--soft);padding:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.box small{display:block;color:var(--muted);font-size:11px}
+.box b{font:700 22px var(--display);font-variant-numeric:tabular-nums}
+.box em{font-style:normal;font:600 12px var(--display);background:#fff;border-radius:999px;padding:6px 10px}
+.sw{align-self:center;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;margin-block:-22px;position:relative;z-index:1;box-shadow:0 0 0 4px #fff}
+.sbtn{margin-top:auto;height:46px;border-radius:999px;background:var(--navy);color:#fff;display:grid;place-items:center;font:600 14px var(--display)}
+.note{text-align:center;color:var(--muted);font-size:11px}
+.ok{align-self:center;width:84px;height:84px;border-radius:50%;background:var(--grad);display:grid;place-items:center;margin-top:18px}
+.big{text-align:center;font:700 30px var(--display);font-variant-numeric:tabular-nums}
+.mid{text-align:center;color:var(--muted)}
+/* Carrusel de productos */
+.car{position:relative;margin-top:56px;user-select:none;touch-action:pan-y}
+.car-stage{position:relative;height:680px}
+.car-stage::before{content:"";position:absolute;left:50%;top:40%;width:560px;max-width:100%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(0,190,214,.2),rgba(47,72,193,.07) 60%,transparent);pointer-events:none}
+.slide{position:absolute;left:50%;top:0;width:300px;margin-left:-150px;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .7s ease,filter .7s ease;cursor:pointer}
+.slide .phone{width:250px;max-width:none}
+.slide .screen{font-size:12px;padding-top:48px}
+.slide .cap{display:flex;flex-direction:column;align-items:center;gap:8px;transition:opacity .4s}
+.slide .cap h3{font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.slide .cap h3 i{width:38px;height:38px;border-radius:12px;background:var(--grad);color:#fff;display:grid;place-items:center}
+.slide .cap p{color:var(--muted);font-size:16px;max-width:28ch}
+.slide:not(.on) .cap{opacity:0}
+.slide:not(.on){filter:saturate(.7)}
+.car-nav{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:8px}
+.car-nav button.arr{width:52px;height:52px;border-radius:50%;border:0;background:#fff;box-shadow:0 10px 24px -12px rgba(36,42,90,.45),inset 0 0 0 1.5px var(--line);color:var(--navy);display:grid;place-items:center;cursor:pointer;transition:transform .2s,background .2s,color .2s}
+.car-nav button.arr:hover{background:var(--navy);color:#fff;transform:scale(1.06)}
+.dots{display:flex;gap:8px}
+.dots button{width:10px;height:10px;border-radius:999px;border:0;padding:0;background:var(--line);cursor:pointer;transition:width .4s,background .4s;position:relative;overflow:hidden}
+.dots button[aria-current="true"]{width:44px;background:rgba(47,72,193,.18)}
+.dots button[aria-current="true"]::after{content:"";position:absolute;inset:0;background:var(--grad);transform-origin:left;transform:scaleX(0)}
+@media (prefers-reduced-motion:no-preference){.dots button[aria-current="true"]::after{animation:fill var(--dur,4500ms) linear forwards}.car.paused .dots button[aria-current="true"]::after{animation-play-state:paused}}
+@media (max-width:640px){.car-stage{height:620px}.slide .phone{width:220px}.slide{width:260px;margin-left:-130px}}
+
+/* PASOS */
+.steps{margin-top:64px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;position:relative}
+.steps svg.path{position:absolute;left:16%;right:16%;top:44px;width:68%;height:40px;z-index:0;overflow:visible}
+.step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px}
+.step .n{width:88px;height:88px;border-radius:50%;background:#fff;display:grid;place-items:center;font:700 34px var(--display);color:var(--navy);box-shadow:0 20px 40px -18px rgba(36,42,90,.4),inset 0 0 0 1.5px var(--line);position:relative}
+.step .n::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid transparent;background:var(--grad) border-box;-webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.0;transition:opacity .4s}
+.step.on .n::after{opacity:1}
+.step h3{font-size:22px;font-weight:700}
+.step p{color:var(--muted);max-width:24ch}
+@media (max-width:760px){.steps{grid-template-columns:1fr;gap:40px}.steps svg.path{display:none}}
+
+/* 1:1 */
+.parity{background:var(--grad);color:#fff;overflow:hidden;isolation:isolate}
+.parity canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1;opacity:.55}
+.parity .wrap{display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
+.parity .eyebrow{color:#bff4fb}
+.parity h2{color:#fff;font-size:clamp(40px,6vw,76px);font-weight:700;letter-spacing:-.03em}
+.parity p{font-size:19px;color:rgba(255,255,255,.88);max-width:40ch}
+.conv{margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;padding:14px;border-radius:28px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);backdrop-filter:blur(6px)}
+.conv label{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 20px;border-radius:20px;background:#fff;color:var(--navy);min-width:220px}
+.conv label small{font:600 12px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.conv input,.conv output{border:0;outline:none;background:transparent;font:700 32px var(--display);color:var(--navy);width:100%;padding:0;font-variant-numeric:tabular-nums}
+.conv .eq{width:48px;height:48px;border-radius:50%;background:#fff;color:var(--blue);display:grid;place-items:center;font:700 22px var(--display)}
+.conv label.out{background:var(--navy);color:#fff}
+.conv label.out small{color:#9fe9f3}
+.conv label.out output{color:#fff}
+@media (max-width:560px){.conv{border-radius:24px;flex-direction:column}.conv label{min-width:0;width:100%}.conv .eq{transform:rotate(90deg)}}
+
+/* BENEFICIOS */
+.flow{margin:56px auto 0;display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;max-width:980px}
+.fl{display:flex;flex-direction:column;align-items:center;gap:12px;width:180px;text-align:center}
+.fl .ic{width:72px;height:72px;border-radius:24px;background:#fff;display:grid;place-items:center;color:var(--teal);box-shadow:0 18px 36px -18px rgba(36,42,90,.4),inset 0 0 0 1.5px var(--line);transition:transform .3s ease,background .3s,color .3s}
+.fl:hover .ic{transform:translateY(-6px) rotate(-6deg);background:var(--grad);color:#fff}
+.fl b{font:600 17px var(--display);color:var(--navy)}
+.arrow{width:48px;height:2px;background:repeating-linear-gradient(90deg,var(--cyan) 0 6px,transparent 6px 12px);background-size:24px 2px;margin-bottom:36px}
+.bcards{margin:56px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px}
+.bcard{position:relative;border-radius:28px;padding:36px;min-height:220px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;gap:8px;background:var(--soft);overflow:hidden;transition:transform .4s ease}
+.bcard:nth-child(2){background:var(--grad);color:#fff}
+.bcard:nth-child(2) h3{color:#fff}.bcard:nth-child(2) p{color:rgba(255,255,255,.85)}.bcard:nth-child(2) .soon{background:rgba(255,255,255,.18);color:#fff}
+.bcard .soon{position:absolute;top:22px;left:50%;transform:translateX(-50%)}
+.bcard h3{font-size:26px;font-weight:700}
+.bcard p{color:var(--muted)}
+.bcard .glow{position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,190,214,.35),transparent);top:-60px;left:50%;transform:translateX(-50%);pointer-events:none}
+@media (max-width:760px){.arrow{display:none}.fl{width:45%}.bcards{grid-template-columns:1fr}}
+
+/* TRANSPARENCIA */
+.trust .stats{margin:48px auto 0;display:flex;justify-content:center;gap:clamp(24px,8vw,120px);flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;align-items:center;gap:8px}
+.stat b{font:700 clamp(64px,10vw,128px)/1 var(--display);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.stat span{font-size:16px;color:var(--muted)}
+
+/* CTA */
+.cta{padding-block:0 110px}
+.cta .box{position:relative;overflow:hidden;isolation:isolate;border-radius:40px;background:var(--navy);color:#fff;padding:96px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px}
+.cta .box::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(50% 70% at 50% 110%,rgba(0,190,214,.55),transparent 70%),radial-gradient(40% 60% at 10% 0%,rgba(47,72,193,.6),transparent 70%)}
+.cta .eyebrow{color:#9fe9f3}
+.cta h2{color:#fff;font-size:clamp(34px,5vw,62px);font-weight:700;max-width:16ch}
+.cta p{font-size:20px;color:rgba(255,255,255,.85)}
+.cta canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1;opacity:.7}
+@media (max-width:640px){.cta .box{padding:72px 22px;border-radius:28px}}
+
+/* FOOTER */
+footer{background:var(--soft);padding-block:64px 40px;font-size:15px;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:640px}
+.fgrid h4{margin:0 0 14px;font:600 14px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--navy)}
+.fgrid ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.fgrid a{text-decoration:none}.fgrid a:hover{color:var(--navy)}
+.about{display:flex;flex-direction:column;gap:14px;max-width:34ch}
+footer .wm{height:64px;width:151px}
+.legal{margin-top:48px;padding-top:28px;border-top:1px solid var(--line);font-size:13px;line-height:1.6;display:flex;flex-direction:column;gap:14px}
+.legal .row{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:space-between}
+@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}.about{grid-column:1/-1}}
+
+/* MOTION */
+.rv{transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .9s ease}
+.rv.pre{transform:translateY(40px);opacity:.15}
+.rv.pre.zoom{transform:scale(.92);opacity:.15}
+@media (prefers-reduced-motion:no-preference){
+  .dot{animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,190,214,.6)}70%{box-shadow:0 0 0 10px rgba(0,190,214,0)}100%{box-shadow:0 0 0 0 rgba(0,190,214,0)}}
+  .grad-text{animation:sheen 6s linear infinite}
+  @keyframes sheen{to{background-position:-300% 0}}
+  .hero h1 .line,.hero .lead,.hero .ctas,.hero .pill{animation:up .9s cubic-bezier(.2,.8,.2,1) both}
+  .hero h1 .line:nth-child(2){animation-delay:.12s}.hero .lead{animation-delay:.24s}.hero .ctas{animation-delay:.36s}
+  @keyframes up{from{transform:translateY(28px);opacity:.1}to{transform:none;opacity:1}}
+  .chip{animation:bob 5s ease-in-out infinite}
+  .c2{animation-delay:-1.2s}.c3{animation-delay:-2.4s}.c4{animation-delay:-3.6s}
+  @keyframes bob{0%,100%{translate:0 0}50%{translate:0 -12px}}
+  .hp .phone{animation:hfloat 7s ease-in-out infinite}
+  @keyframes hfloat{0%,100%{translate:0 0}50%{translate:0 -12px}}
+  .coin svg{animation:float 6s ease-in-out infinite}.k2 svg{animation-delay:-1.2s}.k3 svg{animation-delay:-2.4s}.k4 svg{animation-delay:-3.6s}.k5 svg{animation-delay:-4.8s}
+  @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.5deg)}}
+  .marquee .track{animation:marq 32s linear infinite}
+  @keyframes marq{to{transform:translateX(-50%)}}
+  .ring{animation:spin 40s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .arrow{animation:dash 1s linear infinite}
+  @keyframes dash{to{background-position:24px 0}}
+  .feat[aria-selected="true"] .bar{animation:fill var(--dur,5s) linear forwards}
+  @keyframes fill{to{transform:scaleX(1)}}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rv.pre{transform:none;opacity:1}}
+</style>
+
+</head>
+<body>
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="PXO Token"><svg class="wm" viewBox="912.1 452.9 449.9 190.7" role="img" aria-label="PXO Token"><path d="M 1226.394531 615.726562 L 1216.539062 615.726562 L 1216.539062 610.449219 L 1242.371094 610.449219 L 1242.371094 615.726562 L 1232.515625 615.726562 L 1232.515625 641.230469 L 1226.394531 641.230469 Z M 1226.394531 615.726562 "/><path d="M 1259.90625 636.21875 C 1261.621094 636.21875 1263.003906 635.601562 1264.058594 634.371094 C 1265.105469 633.140625 1265.632812 631.527344 1265.632812 629.53125 L 1265.632812 622.144531 C 1265.632812 620.152344 1265.105469 618.542969 1264.058594 617.308594 C 1263.003906 616.078125 1261.621094 615.464844 1259.90625 615.464844 L 1255.199219 615.464844 C 1253.484375 615.464844 1252.101562 616.078125 1251.050781 617.308594 C 1250 618.542969 1249.472656 620.152344 1249.472656 622.144531 L 1249.472656 629.53125 C 1249.472656 631.527344 1250 633.140625 1251.050781 634.371094 C 1252.101562 635.601562 1253.484375 636.21875 1255.199219 636.21875 Z M 1249.011719 640.109375 C 1247.21875 639.125 1245.828125 637.75 1244.835938 635.976562 C 1243.847656 634.203125 1243.351562 632.144531 1243.351562 629.796875 L 1243.351562 621.882812 C 1243.351562 619.539062 1243.847656 617.480469 1244.835938 615.707031 C 1245.828125 613.933594 1247.21875 612.554688 1249.011719 611.574219 C 1250.796875 610.589844 1252.863281 610.101562 1255.199219 610.101562 L 1259.90625 610.101562 C 1262.242188 610.101562 1264.308594 610.589844 1266.097656 611.574219 C 1267.886719 612.554688 1269.277344 613.933594 1270.269531 615.707031 C 1271.261719 617.480469 1271.753906 619.539062 1271.753906 621.882812 L 1271.753906 629.796875 C 1271.753906 632.144531 1271.261719 634.203125 1270.269531 635.976562 C 1269.277344 637.75 1267.886719 639.125 1266.097656 640.109375 C 1264.308594 641.089844 1262.242188 641.582031 1259.90625 641.582031 L 1255.199219 641.582031 C 1252.863281 641.582031 1250.796875 641.089844 1249.011719 640.109375 "/><path d="M 1295.726562 641.230469 L 1285.472656 628.304688 L 1282.5 631.46875 L 1282.5 641.230469 L 1276.375 641.230469 L 1276.375 610.449219 L 1282.5 610.449219 L 1282.5 623.730469 L 1294.839844 610.449219 L 1302.386719 610.449219 L 1289.601562 623.949219 L 1303.183594 641.230469 Z M 1295.726562 641.230469 "/><path d="M 1306.957031 640.085938 C 1306.15625 639.324219 1305.757812 638.328125 1305.757812 637.097656 L 1305.757812 610.449219 L 1329.460938 610.449219 L 1329.460938 615.726562 L 1311.882812 615.726562 L 1311.882812 622.851562 L 1328.128906 622.851562 L 1328.128906 628.128906 L 1311.882812 628.128906 L 1311.882812 635.953125 L 1329.460938 635.953125 L 1329.460938 641.230469 L 1310.0625 641.230469 C 1308.792969 641.230469 1307.757812 640.847656 1306.957031 640.085938 "/><path d="M 1333.632812 610.449219 L 1339.09375 610.449219 L 1354.007812 631.378906 L 1354.007812 610.449219 L 1360 610.449219 L 1360 641.230469 L 1354.542969 641.230469 L 1339.625 620.300781 L 1339.625 641.230469 L 1333.632812 641.230469 Z M 1333.632812 610.449219 "/><path d="M 1033.824219 539.886719 C 1033.824219 548.089844 1031.566406 554.707031 1027.003906 559.773438 C 1022.472656 564.859375 1016.460938 567.386719 1008.984375 567.386719 L 978.101562 567.386719 C 977.882812 567.386719 977.664062 567.386719 977.445312 567.371094 L 950.394531 567.371094 C 948.382812 567.371094 946.746094 565.738281 946.746094 563.722656 L 946.746094 486.484375 C 946.746094 484.46875 948.382812 482.835938 950.394531 482.835938 L 976.183594 482.835938 C 976.972656 482.769531 977.796875 482.734375 978.640625 482.734375 L 1009.269531 482.734375 C 1016.746094 482.734375 1022.707031 485.277344 1027.171875 490.347656 C 1031.597656 495.449219 1033.824219 502.066406 1033.824219 510.234375 Z M 1038.59375 461.660156 C 1030.167969 457.234375 1020.402344 454.984375 1009.351562 454.984375 L 977.035156 454.984375 C 975.648438 454.984375 974.292969 455.019531 972.953125 455.089844 L 918.886719 455.089844 C 916.226562 455.089844 914.070312 457.246094 914.070312 459.90625 L 914.070312 482.03125 L 914.105469 482.03125 L 914.105469 568.179688 L 914.070312 568.179688 L 914.070312 595.136719 L 914.105469 595.136719 L 914.105469 622.144531 C 914.105469 624.410156 915.941406 626.246094 918.207031 626.246094 L 942.636719 626.246094 C 944.910156 626.246094 946.746094 624.40625 946.746094 622.136719 L 946.746094 599.101562 C 946.746094 596.914062 948.523438 595.136719 950.710938 595.136719 L 975.730469 595.136719 C 976.074219 595.15625 976.417969 595.15625 976.761719 595.15625 L 1008.800781 595.15625 C 1025.84375 595.15625 1039.503906 590.300781 1049.765625 580.585938 C 1059.992188 570.890625 1065.125 558.054688 1065.125 542.078125 L 1065.125 508.339844 C 1065.125 497.816406 1062.808594 488.515625 1058.191406 480.453125 C 1053.574219 472.351562 1047.019531 466.105469 1038.59375 461.660156 "/><path d="M 1163.65625 523.765625 L 1210.171875 460.519531 C 1211.980469 458.25 1210.351562 454.867188 1207.4375 454.867188 L 1182.707031 454.867188 C 1178.550781 454.867188 1174.652344 456.699219 1172.175781 459.824219 L 1139.957031 500.144531 L 1107.769531 459.824219 C 1105.289062 456.699219 1101.367188 454.867188 1097.210938 454.867188 L 1072.480469 454.867188 C 1069.5625 454.867188 1067.9375 458.25 1069.769531 460.519531 L 1116.289062 523.765625 L 1067.652344 589.539062 C 1065.847656 591.835938 1067.472656 595.195312 1070.390625 595.195312 L 1095.375 595.195312 C 1099.558594 595.195312 1103.484375 593.359375 1105.960938 590.238281 L 1139.957031 547.386719 L 1173.980469 590.238281 C 1176.460938 593.359375 1180.355469 595.195312 1184.539062 595.195312 L 1209.554688 595.195312 C 1212.46875 595.195312 1214.097656 591.835938 1212.265625 589.539062 Z M 1163.65625 523.765625 "/><path d="M 1328.699219 540.171875 C 1328.699219 548.527344 1326.398438 555.273438 1321.746094 560.4375 C 1317.132812 565.621094 1311.003906 568.195312 1303.386719 568.195312 L 1271.914062 568.195312 C 1264.671875 568.195312 1258.769531 565.621094 1254.238281 560.4375 C 1249.691406 555.273438 1247.425781 548.527344 1247.425781 540.171875 L 1247.425781 509.949219 C 1247.425781 501.628906 1249.691406 494.882812 1254.238281 489.683594 C 1258.769531 484.519531 1264.84375 481.929688 1272.460938 481.929688 L 1303.675781 481.929688 C 1311.296875 481.929688 1317.371094 484.519531 1321.917969 489.683594 C 1326.433594 494.882812 1328.699219 501.628906 1328.699219 509.949219 Z M 1353.066406 480.453125 C 1348.449219 472.351562 1341.894531 466.105469 1333.46875 461.660156 C 1325.042969 457.234375 1315.277344 454.984375 1304.226562 454.984375 L 1271.914062 454.984375 C 1260.863281 454.984375 1251.097656 457.234375 1242.671875 461.660156 C 1234.210938 466.105469 1227.6875 472.351562 1223.074219 480.453125 C 1218.441406 488.515625 1216.140625 497.816406 1216.140625 508.339844 L 1216.140625 542.078125 C 1216.140625 558.054688 1221.203125 570.890625 1231.378906 580.585938 C 1241.519531 590.300781 1254.957031 595.15625 1271.640625 595.15625 L 1303.675781 595.15625 C 1320.71875 595.15625 1334.378906 590.300781 1344.640625 580.585938 C 1354.867188 570.890625 1360 558.054688 1360 542.078125 L 1360 508.339844 C 1360 497.816406 1357.683594 488.515625 1353.066406 480.453125 "/></svg></a>
+    <nav class="links" aria-label="Principal">
+      <a href="#productos" data-i18n="nav.products">Productos</a>
+      <a href="#como" data-i18n="nav.how">Cómo funciona</a>
+      <a href="#beneficios" data-i18n="nav.benefits">Beneficios</a>
+      <a href="#transparencia" data-i18n="nav.trust">Transparencia</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma">
+      <button type="button" id="lang-es" aria-pressed="true">ES</button>
+      <button type="button" id="lang-en" aria-pressed="false">EN</button>
+    </div>
+    <a class="btn primary app-link" href="https://pxotoken.com" data-i18n="cta.open">Abre tu cuenta</a>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <canvas id="waves" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <span class="eyebrow pill"><span class="dot"></span><span data-i18n="hero.eyebrow">El peso mexicano digital</span></span>
+      <h1><span class="line" data-i18n="hero.h1">Tus pesos,</span><span class="line grad-text" data-i18n="hero.h2">ahora también digitales.</span></h1>
+      <p class="lead" data-i18n="hero.p">Compra, envía y cambia pesos digitales en segundos. Todo en un sólo lugar.</p>
+      <div class="ctas">
+        <a class="btn primary app-link" href="https://pxotoken.com"><span data-i18n="hero.cta">Crea tu cuenta</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn ghost" href="#productos" data-i18n="hero.cta2">Conoce PXO</a>
+      </div>
+      <div class="stage" id="stage">
+        <div class="hp" id="hp" aria-hidden="true"><div class="phone"><div class="screen" id="heroScreen"></div></div></div>
+        <span class="coin k1" data-depth="-26"></span><span class="coin k2" data-depth="22"></span><span class="coin k3" data-depth="30"></span><span class="coin k4" data-depth="-18"></span><span class="coin k5" data-depth="12"></span>
+        <div class="chip c1" data-depth="18"><i>=</i><div><span>1 PXO = 1 MXN</span><small data-i18n="chip.1">Siempre</small></div></div>
+        <div class="chip c2" data-depth="-14"><i>↗</i><div><span data-i18n="chip.2">Envía en segundos</span></div></div>
+        <div class="chip c3" data-depth="-20"><i>⇄</i><div><span>USDT · USDC</span><small data-i18n="chip.3">Cambia cuando quieras</small></div></div>
+        <div class="chip c4" data-depth="14"><i>24</i><div><span>24/7</span><small data-i18n="chip.4">Sin horarios bancarios</small></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+
+  <!-- PRODUCTOS -->
+  <section id="productos">
+    <div class="wrap">
+      <div class="center rv">
+        <p class="eyebrow" data-i18n="prod.eyebrow">Productos</p>
+        <h2 class="sec-h" style="margin-top:14px" data-i18n="prod.h">Compra, transfiere y cambia PXO desde tu celular.</h2>
+      </div>
+      <div class="car rv" id="car" aria-roledescription="carrusel">
+        <div class="car-stage" id="carStage"></div>
+        <div class="car-nav">
+          <button type="button" class="arr" id="carPrev" aria-label="Anterior"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <div class="dots" id="dots"></div>
+          <button type="button" class="arr" id="carNext" aria-label="Siguiente"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CÓMO FUNCIONA -->
+  <section id="como" style="padding-top:20px">
+    <div class="wrap">
+      <div class="center rv">
+        <p class="eyebrow" data-i18n="how.eyebrow">Cómo funciona</p>
+        <h2 class="sec-h" style="margin-top:14px" data-i18n="how.h">Empieza en tres pasos.</h2>
+      </div>
+      <div class="steps" id="steps">
+        <svg class="path" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="pg" x1="0" x2="1"><stop offset="0" stop-color="#00bed6"/><stop offset="1" stop-color="#2f48c1"/></linearGradient></defs><path id="stepPath" d="M0 20 C 100 -10, 200 50, 300 20 S 500 -10, 600 20" fill="none" stroke="url(#pg)" stroke-width="3" stroke-linecap="round"/></svg>
+        <div class="step rv"><div class="n">1</div><h3 data-i18n="how.s1">Crea tu cuenta</h3><p data-i18n="how.s1p">Regístrate en minutos desde tu celular.</p></div>
+        <div class="step rv"><div class="n">2</div><h3 data-i18n="how.s2">Envía MXN</h3><p data-i18n="how.s2p">Realiza una transferencia desde tu banco.</p></div>
+        <div class="step rv"><div class="n">3</div><h3 data-i18n="how.s3">Compra PXO</h3><p data-i18n="how.s3p">Tus pesos digitales, listos para usar.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 PXO = 1 PESO -->
+  <section class="parity">
+    <canvas id="waves2" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <p class="eyebrow" data-i18n="st.eyebrow">Así de simple</p>
+      <h2 class="rv">1 PXO = <span data-i18n="st.h">1 MXN</span></h2>
+      <p class="rv" data-i18n="st.p">Respaldado 1 a 1 con pesos mexicanos.</p>
+      <div class="conv rv">
+        <label for="mxn"><small data-i18n="conv.in">Tienes (MXN)</small><input id="mxn" type="text" inputmode="decimal" value="5,000" autocomplete="off"></label>
+        <span class="eq" aria-hidden="true">→</span>
+        <label class="out" for="mxn"><small data-i18n="conv.out">Recibes (PXO)</small><output id="pxo">5,000</output></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENEFICIOS -->
+  <section id="beneficios">
+    <div class="wrap">
+      <div class="center rv">
+        <p class="eyebrow" data-i18n="inv.eyebrow">Beneficios PXO</p>
+        <h2 class="sec-h" style="margin-top:14px" data-i18n="inv.h">Usa PXO y recibe beneficios</h2>
+        <p class="sec-p" data-i18n="inv.p">Un programa de beneficios para quienes mantienen y usan PXO.</p>
+      </div>
+      <div class="flow rv">
+        <div class="fl"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2M3 9h15"/></svg></span><b data-i18n="inv.s1">Mantén PXO</b></div>
+        <span class="arrow"></span>
+        <div class="fl"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></span><b data-i18n="inv.s2">Paga y envía</b></div>
+        <span class="arrow"></span>
+        <div class="fl"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4 3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg></span><b data-i18n="inv.s3">Cambia a dólares digitales</b></div>
+        <span class="arrow"></span>
+        <div class="fl"><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M12 9v12M3 13h18M12 9C10 5 6 5 6.5 7.5S12 9 12 9zM12 9c2-4 6-4 5.5-1.5S12 9 12 9z"/></svg></span><b data-i18n="inv.s4">Recibe beneficios</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSPARENCIA -->
+  <section class="trust" id="transparencia" style="padding-top:20px">
+    <div class="wrap center">
+      <div class="stats">
+        <div class="stat rv"><b class="grad-text">1:1</b><span data-i18n="tr.s1">Respaldo en pesos</span></div>
+        <div class="stat rv"><b class="grad-text">24/7</b><span data-i18n="tr.s3">Opera sin horarios</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="wrap">
+      <div class="box rv zoom" id="ctabox">
+        <canvas id="waves3" aria-hidden="true"></canvas>
+        <p class="eyebrow" data-i18n="cta.eyebrow">Empieza hoy</p>
+        <h2 data-i18n="cta.h">¿Listo para usar PXO sin fronteras?</h2>
+        <p data-i18n="cta.p">Crea tu cuenta en minutos.</p>
+        <a class="btn light app-link" href="https://pxotoken.com"><span data-i18n="hero.cta">Crea tu cuenta</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <h4 data-i18n="ft.menu">Menú</h4>
+        <ul>
+          <li><a href="#productos" data-i18n="nav.products">Productos</a></li>
+          <li><a href="#como" data-i18n="nav.how">Cómo funciona</a></li>
+          <li><a href="#beneficios" data-i18n="nav.benefits">Beneficios</a></li>
+          <li><a href="#transparencia" data-i18n="nav.trust">Transparencia</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 data-i18n="ft.legal">Legal</h4>
+        <ul>
+          <li><a href="#top" data-i18n="ft.l1">Aviso de privacidad</a></li>
+          <li><a href="#top" data-i18n="ft.l2">Términos y condiciones</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="legal">
+      <p data-i18n="ft.disc">PXO es una marca de PXO Token Company. Nada de lo contenido en este sitio debe interpretarse como asesoramiento de inversión. Los activos digitales implican riesgos. Los productos marcados como “Próximamente” aún no están disponibles. PXO no presta servicios en jurisdicciones donde la legislación aplicable lo impida.</p>
+      <div class="row"><span>© 2026 PXO. <span data-i18n="ft.rights">Todos los derechos reservados.</span></span><span>pxotoken.com</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Cambia aquí el enlace de la app (registro) */
+const APP_URL = "https://pxotoken.com";
+document.querySelectorAll(".app-link").forEach(a => a.href = APP_URL);
+
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = s => document.querySelector(s);
+
+const T = {
+  es: {
+    "nav.products":"Productos","nav.how":"Cómo funciona","nav.benefits":"Beneficios","nav.trust":"Transparencia","cta.open":"Abre tu cuenta",
+    "hero.eyebrow":"El peso mexicano digital","hero.h1":"Tus pesos,","hero.h2":"ahora también digitales.",
+    "hero.p":"Compra, envía y cambia pesos digitales en segundos. Todo en un sólo lugar.","hero.cta":"Crea tu cuenta","hero.cta2":"Conoce PXO",
+    "chip.1":"Siempre","chip.2":"Envía en segundos","chip.3":"Cambia cuando quieras","chip.4":"Sin horarios bancarios",
+    "prod.eyebrow":"Productos","prod.h":"Compra, transfiere y cambia PXO desde tu celular.",
+    "how.eyebrow":"Cómo funciona","how.h":"Empieza en tres pasos.",
+    "how.s1":"Crea tu cuenta","how.s1p":"Regístrate en minutos desde tu celular.","how.s2":"Envía MXN","how.s2p":"Realiza una transferencia desde tu banco.","how.s3":"Compra PXO","how.s3p":"Tus pesos digitales, listos para usar.",
+    "st.eyebrow":"Así de simple","st.h":"1 MXN","st.p":"Respaldado 1 a 1 con pesos mexicanos.","conv.in":"Tienes (MXN)","conv.out":"Recibes (PXO)",
+    "inv.eyebrow":"Beneficios PXO","inv.h":"Usa PXO y recibe beneficios","inv.p":"Un programa de beneficios para quienes mantienen y usan PXO.",
+    "inv.s1":"Mantén PXO","inv.s2":"Paga y envía","inv.s3":"Cambia a dólares digitales","inv.s4":"Recibe beneficios",
+    "inv.a1":"Por mantener PXO","inv.a1d":"Beneficios según tu saldo","inv.a2":"Por usar PXO","inv.a2d":"Al pagar, enviar y cambiar","soon":"Próximamente",
+    "tr.eyebrow":"Transparencia","tr.h":"Respaldo y transparencia en cada operación","tr.p":"Cada PXO está respaldado por un peso mexicano en reserva.",
+    "tr.s1":"Respaldo en pesos","tr.s3":"Opera sin horarios",
+    "cta.eyebrow":"Empieza hoy","cta.h":"¿Listo para usar PXO sin fronteras?","cta.p":"Crea tu cuenta en minutos.",
+    "ft.about":"El peso mexicano digital. Pagos internacionales y cambio de divisas, más simples.","ft.menu":"Menú","ft.legal":"Legal","ft.l1":"Aviso de privacidad","ft.l2":"Términos y condiciones",
+    "ft.disc":"PXO es una marca de PXO Token Company. Nada de lo contenido en este sitio debe interpretarse como asesoramiento de inversión. Los activos digitales implican riesgos. Los productos marcados como “Próximamente” aún no están disponibles. PXO no presta servicios en jurisdicciones donde la legislación aplicable lo impida.",
+    "ft.rights":"Todos los derechos reservados.",
+    "marquee":["Compra","Envía","Cambia","<b>1 PXO = 1 MXN</b>","24/7","Sin fronteras","USDT · USDC"]
+  },
+  en: {
+    "nav.products":"Products","nav.how":"How it works","nav.benefits":"Benefits","nav.trust":"Transparency","cta.open":"Open an account",
+    "hero.eyebrow":"The digital Mexican peso","hero.h1":"Your pesos,","hero.h2":"now digital too.",
+    "hero.p":"Buy, send and exchange digital pesos in seconds. All in one place.","hero.cta":"Create your account","hero.cta2":"Discover PXO",
+    "chip.1":"Always","chip.2":"Send in seconds","chip.3":"Swap anytime","chip.4":"No banking hours",
+    "prod.eyebrow":"Products","prod.h":"Buy, transfer and swap PXO from your phone.",
+    "how.eyebrow":"How it works","how.h":"Get started in three steps.",
+    "how.s1":"Create your account","how.s1p":"Sign up in minutes from your phone.","how.s2":"Send MXN","how.s2p":"Make a transfer from your bank.","how.s3":"Buy PXO","how.s3p":"Your digital pesos, ready to use.",
+    "st.eyebrow":"That simple","st.h":"1 MXN","st.p":"Backed 1 to 1 by Mexican pesos.","conv.in":"You have (MXN)","conv.out":"You get (PXO)",
+    "inv.eyebrow":"PXO Benefits","inv.h":"Use PXO and get benefits","inv.p":"A benefits program for people who hold and use PXO.",
+    "inv.s1":"Hold PXO","inv.s2":"Pay and send","inv.s3":"Swap to digital dollars","inv.s4":"Get benefits",
+    "inv.a1":"For holding PXO","inv.a1d":"Benefits based on your balance","inv.a2":"For using PXO","inv.a2d":"When you pay, send and swap","soon":"Coming soon",
+    "tr.eyebrow":"Transparency","tr.h":"Backing and transparency in every transaction","tr.p":"Every PXO is backed by one Mexican peso in reserve.",
+    "tr.s1":"Backed in pesos","tr.s3":"Always open",
+    "cta.eyebrow":"Start today","cta.h":"Ready to use PXO without borders?","cta.p":"Create your account in minutes.",
+    "ft.about":"The digital Mexican peso. International payments and currency exchange, made simple.","ft.menu":"Menu","ft.legal":"Legal","ft.l1":"Privacy notice","ft.l2":"Terms and conditions",
+    "ft.disc":"PXO is a brand of PXO Token Company. Nothing on this site should be construed as investment advice. Digital assets involve risk. Products marked “Coming soon” are not yet available. PXO does not provide services in jurisdictions where applicable law prohibits it.",
+    "ft.rights":"All rights reserved.",
+    "marquee":["Buy","Send","Swap","<b>1 PXO = 1 MXN</b>","24/7","Without borders","USDT · USDC"]
+  }
+};
+
+const ICON = {
+  pesos:'<path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2 2.8 5 3.5 5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/>',
+  cambio:'<path d="M7 4v16M7 4 3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/>',
+  envios:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  empresas:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>'
+};
+const PRODUCTS = [
+  { id:"pesos", side:"L", title:{es:"Compra",en:"Buy"}, text:{es:"Compra PXO con una transferencia. 1 PXO siempre vale 1 peso.",en:"Buy PXO with a bank transfer. 1 PXO is always worth 1 peso."} },
+  { id:"envios", side:"L", title:{es:"Transfiere",en:"Transfer"}, text:{es:"Envía PXO a cualquier parte del mundo, 24/7.",en:"Send PXO anywhere in the world, 24/7."} },
+  { id:"cambio", side:"R", title:{es:"Cambio",en:"Exchange"}, text:{es:"Cambia PXO por USDT o USDC cuando quieras.",en:"Swap PXO for USDT or USDC anytime."} },
+  { id:"empresas", side:"R", soon:true, title:{es:"Link de pago",en:"Payment link"}, text:{es:"Podrás cobrar en PXO en cualquier parte del mundo.",en:"You will be able to get paid in PXO anywhere in the world."} }
+];
+const CHECK = '<div class="ok"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
+const SCREENS = {
+  pesos:{
+    es:`<div class="scr-top">Mi cuenta<i>MX</i></div><div class="bal"><small>Saldo</small><b>12,500.00</b><span>PXO · $12,500.00 MXN</span></div><div class="acts"><div>Comprar</div><div>Enviar</div><div>Cambiar</div></div><div class="tx"><div><span>Compra por transferencia</span><b class="in">+5,000 PXO</b></div><div><span>Envío</span><b>−1,200 PXO</b></div><div><span>Cambio a USDT</span><b>−2,000 PXO</b></div></div>`,
+    en:`<div class="scr-top">My account<i>MX</i></div><div class="bal"><small>Balance</small><b>12,500.00</b><span>PXO · $12,500.00 MXN</span></div><div class="acts"><div>Buy</div><div>Send</div><div>Swap</div></div><div class="tx"><div><span>Purchase by bank transfer</span><b class="in">+5,000 PXO</b></div><div><span>Transfer</span><b>−1,200 PXO</b></div><div><span>Swap to USDT</span><b>−2,000 PXO</b></div></div>`},
+  cambio:{
+    es:`<div class="scr-top">Cambiar<i>⇅</i></div><div class="box"><div><small>Pagas</small><b>10,000</b></div><em>PXO</em></div><div class="sw">↓</div><div class="box"><div><small>Recibes aprox.</small><b>540.50</b></div><em>USDT</em></div><p class="note">Sin horarios bancarios</p><div class="sbtn">Cambiar ahora</div>`,
+    en:`<div class="scr-top">Swap<i>⇅</i></div><div class="box"><div><small>You pay</small><b>10,000</b></div><em>PXO</em></div><div class="sw">↓</div><div class="box"><div><small>You get approx.</small><b>540.50</b></div><em>USDT</em></div><p class="note">No banking hours</p><div class="sbtn">Swap now</div>`},
+  envios:{
+    es:`<div class="scr-top">Enviar<i>↗</i></div>${CHECK}<div class="big">2,000 PXO</div><p class="mid">Enviado con éxito</p><div class="tx"><div><span>Tiempo</span><b>Segundos</b></div></div><div class="sbtn">Listo</div>`,
+    en:`<div class="scr-top">Send<i>↗</i></div>${CHECK}<div class="big">2,000 PXO</div><p class="mid">Sent successfully</p><div class="tx"><div><span>Time</span><b>Seconds</b></div></div><div class="sbtn">Done</div>`},
+  empresas:{
+    es:`<div class="scr-top">Link de pago<i>↗</i></div>${CHECK}<div class="big">+8,400 PXO</div><p class="mid">Cobro recibido</p><div class="tx"><div><span>Concepto</span><b>Pedido 1042</b></div><div><span>Desde</span><b>Madrid, ES</b></div></div><div class="sbtn">Crear link de pago</div>`,
+    en:`<div class="scr-top">Payment link<i>↗</i></div>${CHECK}<div class="big">+8,400 PXO</div><p class="mid">Payment received</p><div class="tx"><div><span>Concept</span><b>Order 1042</b></div><div><span>From</span><b>Madrid, ES</b></div></div><div class="sbtn">Create payment link</div>`}
+};
+
+let lang = "es", current = 0, timer = null, paused = false;
+const DUR = 4500;
+
+function renderCarousel(){
+  const st = $("#carStage"), dots = $("#dots"); st.innerHTML = ""; dots.innerHTML = "";
+  PRODUCTS.forEach((p, i) => {
+    const el = document.createElement("article");
+    el.className = "slide"; el.dataset.i = i;
+    el.innerHTML = `<div class="phone" aria-hidden="true"><div class="screen">${SCREENS[p.id][lang]}</div></div>
+      <div class="cap"><h3><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[p.id]}</svg></i>${p.title[lang]}${p.soon ? `<span class="soon">${T[lang].soon}</span>` : ""}</h3><p>${p.text[lang]}</p></div>`;
+    el.addEventListener("click", () => { if (i !== current) go(i); });
+    st.appendChild(el);
+    const d = document.createElement("button"); d.type = "button"; d.setAttribute("aria-label", p.title[lang]);
+    d.style.setProperty("--dur", DUR + "ms"); d.addEventListener("click", () => go(i)); dots.appendChild(d);
+  });
+  layout();
+}
+function layout(){
+  const n = PRODUCTS.length, narrow = innerWidth < 640, gap = narrow ? 200 : 330;
+  document.querySelectorAll(".slide").forEach(el => {
+    let o = (+el.dataset.i - current + n) % n; if (o > n / 2) o -= n;
+    const a = Math.abs(o);
+    el.style.transform = `translateX(${o * gap}px) scale(${1 - a * .2}) rotateY(${o * -8}deg)`;
+    el.style.opacity = a > 1 ? 0 : (a ? .55 : 1);
+    el.style.zIndex = 10 - a; el.classList.toggle("on", a === 0);
+    el.style.pointerEvents = a > 1 ? "none" : "";
+  });
+  document.querySelectorAll("#dots button").forEach((d, i) => {
+    const on = i === current; d.setAttribute("aria-current", on ? "true" : "false");
+    if (on){ d.style.animation = "none"; void d.offsetWidth; d.style.animation = ""; }
+  });
+  const scr = document.querySelector(".slide.on .screen");
+  if (scr && !REDUCED){ scr.classList.remove("swap-in"); void scr.offsetWidth; scr.classList.add("swap-in"); }
+  schedule();
+}
+function go(i){ current = (i + PRODUCTS.length) % PRODUCTS.length; layout(); }
+function schedule(){ clearTimeout(timer); if (!REDUCED && !paused) timer = setTimeout(() => go(current + 1), DUR); }
+$("#carPrev").addEventListener("click", () => go(current - 1));
+$("#carNext").addEventListener("click", () => go(current + 1));
+(function(){
+  const car = $("#car"); let x0 = null;
+  car.addEventListener("pointerenter", e => { if (e.pointerType === "mouse"){ paused = true; car.classList.add("paused"); clearTimeout(timer); } });
+  car.addEventListener("pointerleave", e => { if (e.pointerType === "mouse"){ paused = false; car.classList.remove("paused"); schedule(); } });
+  car.addEventListener("pointerdown", e => { x0 = e.clientX; });
+  car.addEventListener("pointerup", e => { if (x0 === null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 50) go(current + (dx < 0 ? 1 : -1)); });
+  addEventListener("resize", layout);
+})();
+
+function renderMarquee(){
+  const items = T[lang].marquee.map(t => `<span>${t}</span>`).join("");
+  $("#track").innerHTML = items + items + items + items;
+}
+
+function setLang(l){
+  lang = l; document.documentElement.lang = l;
+  document.querySelectorAll("[data-i18n]").forEach(el => { const v = T[l][el.dataset.i18n]; if (typeof v === "string") el.textContent = v; });
+  $("#lang-es").setAttribute("aria-pressed", l === "es"); $("#lang-en").setAttribute("aria-pressed", l === "en");
+  renderCarousel(); renderMarquee(); $("#heroScreen").innerHTML = SCREENS.pesos[l];
+  try { localStorage.setItem("pxo-lang", l); } catch (e) {}
+}
+$("#lang-es").addEventListener("click", () => setLang("es"));
+$("#lang-en").addEventListener("click", () => setLang("en"));
+
+/* Nav con borde al hacer scroll */
+addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 8), { passive:true });
+
+/* Ondas de marca animadas */
+function waves(canvas, opts){
+  const ctx = canvas.getContext("2d"); let w, h, t = 0;
+  function size(){ const r = canvas.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); w = r.width; h = r.height; canvas.width = w * d; canvas.height = h * d; ctx.setTransform(d,0,0,d,0,0); }
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    opts.lines.forEach((ln, k) => {
+      const g = ctx.createLinearGradient(0,0,w,0); g.addColorStop(0, ln[0]); g.addColorStop(1, ln[1]);
+      ctx.strokeStyle = g; ctx.lineWidth = ln[2]; ctx.globalAlpha = ln[3]; ctx.beginPath();
+      for (let x = 0; x <= w; x += 6){
+        const y = h * opts.base + Math.sin(x / (180 + k * 40) + t * (0.6 + k * .15) + k) * (opts.amp + k * 8) + Math.sin(x / 70 + t * 1.3 + k * 2) * 6;
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+  let visible = true;
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(canvas);
+  function loop(){ if (visible){ t += 0.012; draw(); } requestAnimationFrame(loop); }
+  size(); addEventListener("resize", () => { size(); draw(); });
+  REDUCED ? draw() : loop();
+}
+waves($("#waves"), { base:.78, amp:34, lines:[["#00bed6","#2f48c1",2.5,.9],["#007481","#00bed6",1.5,.45],["#2f48c1","#00bed6",1,.3]] });
+waves($("#waves3"), { base:.9, amp:26, lines:[["#00bed6","#2f48c1",2.5,.9],["#2f48c1","#00bed6",1.5,.5],["#00bed6","#ffffff",1,.35]] });
+waves($("#waves2"), { base:.62, amp:46, lines:[["#00bed6","#ffffff",2.5,.8],["#ffffff","#00bed6",1.5,.4],["#00bed6","#ffffff",1,.3]] });
+
+/* Monedas vectoriales con el isotipo */
+const GLYPH = "M 679.839844 469.355469 L 679.839844 456.09375 C 679.839844 454.421875 678.484375 453.066406 676.8125 453.066406 L 670.558594 453.066406 L 670.558594 472.378906 L 676.8125 472.378906 C 678.484375 472.378906 679.839844 471.023438 679.839844 469.355469 M 655.386719 472.378906 L 661.503906 472.378906 L 661.503906 453.066406 L 655.386719 453.066406 C 653.714844 453.066406 652.359375 454.421875 652.359375 456.09375 L 652.359375 469.355469 C 652.359375 471.023438 653.714844 472.378906 655.386719 472.378906 M 676.8125 514.144531 L 670.558594 514.144531 L 670.558594 624.117188 L 676.8125 624.117188 C 678.484375 624.117188 679.839844 622.761719 679.839844 621.09375 L 679.839844 517.171875 C 679.839844 515.5 678.484375 514.144531 676.8125 514.144531 M 652.359375 517.171875 L 652.359375 621.09375 C 652.359375 622.761719 653.714844 624.117188 655.386719 624.117188 L 661.503906 624.117188 L 661.503906 514.144531 L 655.386719 514.144531 C 653.714844 514.144531 652.359375 515.5 652.359375 517.171875 M 625.539062 585.828125 C 625.539062 587.496094 626.894531 588.851562 628.566406 588.851562 L 641.933594 588.851562 C 643.605469 588.851562 644.960938 587.496094 644.960938 585.828125 L 644.960938 579.695312 L 625.539062 579.695312 Z M 641.933594 561.371094 L 628.566406 561.371094 C 626.894531 561.371094 625.539062 562.726562 625.539062 564.398438 L 625.539062 570.496094 L 644.960938 570.496094 L 644.960938 564.398438 C 644.960938 562.726562 643.605469 561.371094 641.933594 561.371094 M 711.820312 561.152344 L 689.925781 561.152344 C 688.253906 561.152344 686.902344 562.507812 686.902344 564.179688 L 686.902344 570.496094 L 714.84375 570.496094 L 714.84375 564.179688 C 714.84375 562.507812 713.488281 561.152344 711.820312 561.152344 M 686.902344 585.605469 C 686.902344 587.277344 688.253906 588.632812 689.925781 588.632812 L 711.820312 588.632812 C 713.488281 588.632812 714.84375 587.277344 714.84375 585.605469 L 714.84375 579.695312 L 686.902344 579.695312 Z M 625.539062 504.269531 C 625.539062 505.9375 626.894531 507.292969 628.566406 507.292969 L 711.820312 507.292969 C 713.488281 507.292969 714.84375 505.9375 714.84375 504.269531 L 714.84375 498.0625 L 625.539062 498.0625 Z M 711.820312 479.816406 L 628.566406 479.816406 C 626.894531 479.816406 625.539062 481.167969 625.539062 482.839844 L 625.539062 488.933594 L 714.84375 488.933594 L 714.84375 482.839844 C 714.84375 481.167969 713.488281 479.816406 711.820312 479.816406 M 764.386719 523.71875 C 760.882812 524.597656 757.328125 522.46875 756.449219 518.964844 C 755.570312 515.460938 757.699219 511.902344 761.203125 511.023438 C 764.707031 510.144531 768.261719 512.273438 769.140625 515.777344 C 770.019531 519.285156 767.890625 522.839844 764.386719 523.71875 M 768.007812 496.015625 C 767.609375 495.527344 767.023438 495.230469 766.394531 495.199219 C 766.359375 495.199219 766.324219 495.199219 766.285156 495.199219 C 765.6875 495.199219 765.132812 495.429688 764.710938 495.851562 L 748.214844 512.34375 C 747.484375 513.078125 747.355469 514.242188 747.910156 515.113281 C 749.59375 517.769531 750.488281 520.804688 750.5 523.894531 L 750.449219 527.835938 C 750.4375 528.425781 750.671875 529.007812 751.089844 529.429688 C 751.503906 529.851562 752.082031 530.089844 752.675781 530.089844 L 775.746094 530.089844 C 776.957031 530.089844 777.957031 529.105469 777.972656 527.894531 L 778.023438 524.007812 C 778.023438 513.839844 774.464844 503.894531 768.007812 496.015625 M 735.761719 488.804688 C 739.265625 487.925781 742.820312 490.054688 743.699219 493.558594 C 744.582031 497.0625 742.453125 500.617188 738.945312 501.496094 C 735.441406 502.375 731.886719 500.246094 731.007812 496.742188 C 730.128906 493.238281 732.257812 489.683594 735.761719 488.804688 M 724.160156 507.34375 L 733.824219 507.34375 C 735.980469 507.34375 738.078125 507.753906 740.054688 508.5625 C 740.875 508.898438 741.84375 508.699219 742.472656 508.078125 L 759.378906 491.171875 C 759.84375 490.703125 760.078125 490.058594 760.023438 489.402344 C 759.964844 488.742188 759.621094 488.148438 759.082031 487.773438 C 751.652344 482.570312 742.921875 479.820312 733.824219 479.820312 L 724.160156 479.820312 C 722.933594 479.820312 721.933594 480.816406 721.933594 482.046875 L 721.933594 505.113281 C 721.933594 506.34375 722.933594 507.34375 724.160156 507.34375 M 764.386719 558.359375 C 760.882812 559.238281 757.328125 557.109375 756.449219 553.605469 C 755.570312 550.101562 757.695312 546.546875 761.203125 545.667969 C 764.707031 544.789062 768.261719 546.917969 769.140625 550.421875 C 770.019531 553.925781 767.890625 557.480469 764.386719 558.359375 M 775.578125 537.167969 L 752.507812 537.167969 C 751.296875 537.167969 750.300781 538.15625 750.28125 539.363281 L 750.203125 544.589844 C 750.203125 547.589844 749.464844 550.410156 748.066406 552.90625 C 747.578125 553.769531 747.730469 554.867188 748.433594 555.570312 L 765.003906 572.140625 C 765.421875 572.554688 765.992188 572.792969 766.582031 572.792969 C 767.347656 572.75 767.941406 572.441406 768.335938 571.9375 C 774.441406 564.144531 777.6875 554.785156 777.726562 544.871094 L 777.804688 539.429688 C 777.8125 538.835938 777.582031 538.253906 777.164062 537.835938 C 776.746094 537.410156 776.167969 537.167969 775.578125 537.167969 M 739.195312 581.507812 C 735.691406 582.386719 732.136719 580.257812 731.257812 576.753906 C 730.378906 573.25 732.507812 569.695312 736.011719 568.816406 C 739.515625 567.9375 743.070312 570.0625 743.949219 573.570312 C 744.828125 577.074219 742.699219 580.628906 739.195312 581.507812 M 743.113281 560.273438 C 742.445312 559.613281 741.425781 559.433594 740.585938 559.835938 C 738.371094 560.886719 735.996094 561.414062 733.53125 561.414062 L 724.160156 561.414062 C 722.933594 561.414062 721.933594 562.414062 721.933594 563.644531 L 721.933594 586.710938 C 721.933594 587.941406 722.933594 588.941406 724.160156 588.941406 L 733.53125 588.941406 C 742.984375 588.941406 752.007812 585.984375 759.621094 580.398438 C 760.144531 580.011719 760.472656 579.417969 760.523438 578.769531 C 760.574219 578.121094 760.335938 577.484375 759.875 577.023438 Z M 743.113281 560.273438";
+(function(){
+  let n = 0;
+  document.querySelectorAll(".coin").forEach(el => {
+    n++;
+    el.innerHTML = `<svg viewBox="0 0 200 150" aria-hidden="true"><defs>
+      <linearGradient id="ct${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00bed6"/><stop offset="1" stop-color="#2f48c1"/></linearGradient>
+      <linearGradient id="cs${n}" x1="0" x2="1"><stop offset="0" stop-color="#007481"/><stop offset=".55" stop-color="#242a5a"/><stop offset="1" stop-color="#2f48c1"/></linearGradient></defs>
+      <path d="M10 62 v22 a90 45 0 0 0 180 0 v-22 z" fill="url(#cs${n})"/>
+      <ellipse cx="100" cy="62" rx="90" ry="45" fill="url(#ct${n})"/>
+      <ellipse cx="100" cy="62" rx="74" ry="37" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2"/>
+      <g transform="translate(100 62) scale(1 .5) scale(.42) translate(-692.6 -540)"><path d="${GLYPH}" fill="#fff"/></g></svg>`;
+  });
+})();
+
+/* Parallax del héroe con el mouse */
+(function(){
+  if (REDUCED) return;
+  const stage = $("#stage"), img = $("#hp"), chips = [...stage.querySelectorAll(".chip,.coin")];
+  stage.parentElement.addEventListener("pointermove", e => {
+    const r = stage.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    img.style.transform = `translate(calc(-50% + ${x * -16}px), calc(-50% + ${y * -12}px))`;
+    chips.forEach(c => { const d = +c.dataset.depth; c.style.transform = `translate(${x * d}px, ${y * d}px)`; });
+  });
+})();
+
+/* Aparición al hacer scroll (visible por defecto) */
+(function(){
+  const els = [...document.querySelectorAll(".rv")];
+  if (REDUCED || !("IntersectionObserver" in window)) return;
+  const vh = innerHeight;
+  els.forEach(el => { if (el.getBoundingClientRect().top > vh * .9) el.classList.add("pre"); });
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting){ const el = e.target, sib = [...el.parentElement.children].filter(c => c.classList.contains("rv")); el.style.transitionDelay = (sib.indexOf(el) * 90) + "ms"; el.classList.remove("pre"); io.unobserve(el); }
+  }), { threshold:.15 });
+  els.forEach(el => io.observe(el));
+  setTimeout(() => els.forEach(el => el.classList.remove("pre")), 6000);
+})();
+
+/* Pasos: dibuja la línea y enciende cada paso */
+(function(){
+  const path = $("#stepPath"), steps = [...document.querySelectorAll(".step")];
+  const len = path.getTotalLength(); path.style.strokeDasharray = len;
+  if (REDUCED){ steps.forEach(s => s.classList.add("on")); return; }
+  path.style.strokeDashoffset = len;
+  new IntersectionObserver((es, o) => { if (es[0].isIntersecting){ o.disconnect();
+    path.style.transition = "stroke-dashoffset 1.8s ease"; path.style.strokeDashoffset = 0;
+    steps.forEach((s, i) => setTimeout(() => s.classList.add("on"), 300 + i * 600)); } }, { threshold:.3 }).observe($("#steps"));
+})();
+
+/* Convertidor 1:1 */
+(function(){
+  const inp = $("#mxn"), out = $("#pxo");
+  let shown = 5000, anim;
+  const fmt = n => n.toLocaleString("es-MX", { maximumFractionDigits:2 });
+  inp.addEventListener("input", () => {
+    const raw = inp.value.replace(/[^0-9.]/g, ""), v = Math.min(parseFloat(raw) || 0, 1e12);
+    cancelAnimationFrame(anim); const from = shown, t0 = performance.now();
+    const step = now => { const k = Math.min((now - t0) / 350, 1); shown = from + (v - from) * (1 - Math.pow(1 - k, 3)); out.textContent = fmt(Math.round(shown * 100) / 100); if (k < 1) anim = requestAnimationFrame(step); else { shown = v; out.textContent = fmt(v); } };
+    REDUCED ? (shown = v, out.textContent = fmt(v)) : (anim = requestAnimationFrame(step));
+  });
+  inp.addEventListener("blur", () => { const v = parseFloat(inp.value.replace(/[^0-9.]/g, "")) || 0; inp.value = fmt(v); });
+})();
+
+/* Tarjetas con inclinación al pasar el mouse */
+document.querySelectorAll(".tilt").forEach(c => {
+  if (REDUCED) return;
+  c.addEventListener("pointermove", e => { const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5; c.style.transform = `perspective(900px) rotateX(${y * -8}deg) rotateY(${x * 10}deg)`; });
+  c.addEventListener("pointerleave", () => c.style.transform = "");
+});
+
+let saved = "es"; try { saved = localStorage.getItem("pxo-lang") || "es"; } catch (e) {}
+setLang(saved === "en" ? "en" : "es");
+</script>
+
+</body>
+</html>
