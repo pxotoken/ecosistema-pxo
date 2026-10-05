@@ -1,6 +1,9 @@
 export const env = {
   PORT: Number(process.env.PORT) || 3004,
-  HOST: process.env.HOST || '0.0.0.0',
+  // '::' rather than '0.0.0.0': Railway's private network is IPv6-only, so a
+  // service bound to IPv4 is unreachable at <service>.railway.internal. Node
+  // binds dual-stack here, so public IPv4 traffic still works. See SL-021.
+  HOST: process.env.HOST || '::',
   NODE_ENV: process.env.NODE_ENV || 'development',
 
   ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS ||
