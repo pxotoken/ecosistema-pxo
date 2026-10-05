@@ -51,6 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
+- [ ] **SL-021** — Backend services are publicly reachable and trust a forgeable identity header; close the bypass (live on prod)
 
 ---
 
@@ -563,6 +564,46 @@ Runtime — guessing when `activeChain` / `getChain()` is undefined. **No env va
 - Each environment sets its net id explicitly; production is set to `137` so it is correct by value rather than by override
 
 **Ops follow-up (🔐 Adrian):** set `VITE_DEFAULT_CHAIN_ID=137` on Vercel production. Note this changes which chain admins land on when `VITE_ENABLE_ADMIN_TESTNET` is set.
+
+### SL-021 · Every backend service is on the public internet and trusts a forgeable identity header
+**Type:** 🔧 Code + 🔐 Ops
+**Effort:** 3-5 hours for the network fix; a day if the identity header is replaced properly
+**Status:** Open, found 2026-10-05 while scoping the partner-API work. **Live on production.**
+
+**What is true today.** `api-orchestrator` verifies the thirdweb JWT, then injects `x-pxo-wallet-address` and proxies on. Every downstream service trusts that header and verifies nothing itself — `api-users`, `api-kyc`, `api-wallet` and `api-exchange` all read it in their `middleware/identity.ts`. The comment in `api-users` states the assumption the design rests on:
+
+> *api-users is internal: it never accepts traffic that did not pass through the gateway.*
+
+Nothing enforces that. There is no shared secret between the gateway and the services, no mTLS, and no private networking. Each service has its own public Railway domain:
+
+```
+pxoapi-users-prod.up.railway.app
+pxoapi-exchange-prod.up.railway.app
+pxoapi-wallet-prod.up.railway.app
+```
+
+**Verified against production on 2026-10-05**, read-only, using the `0x…dEaD` burn address so no real account was touched:
+
+| Request to `pxoapi-users-prod.up.railway.app` | Result |
+|---|---|
+| `GET /health` | 200 — the service is reachable from the internet |
+| `GET /api/users/me`, no identity header | 401 `Missing caller identity` |
+| `GET /api/users/me`, identity header set, **no JWT** | 404 `User not found` |
+
+The 404 is the finding: the request cleared authentication and reached the Supabase lookup, failing only because the burn address is not a registered user. Substituting a real wallet address was deliberately not attempted.
+
+**Why this is Tier 1 rather than hardening.** `requireAdmin` in `api-users` and `api-wallet` reads the *same* header and then grants admin if that wallet's `user_type` matches. Wallet addresses are public on-chain data, not secrets — they are visible in any Polygonscan transaction involving PXO. So the barrier to acting as any user, including an admin, is knowing one public value. prod, QA and dev also still share one Supabase instance ([DEP-011](./runbooks/prod-db-migration.md)), so the blast radius is the production dataset.
+
+**The fix, in order:**
+
+1. **Close the network path.** Either put the services on Railway private networking so only the orchestrator can reach them, or require a secret the gateway holds and the services check. This alone removes the exposure and is the smallest possible change.
+2. **Make the identity claim unforgeable,** so step 1 is not the only thing standing between a header and an admin session. Either the orchestrator mints a short-lived signed token the services verify, or each service verifies the thirdweb JWT itself. Belt and braces: the services should not be safe *only* because of where they sit on the network.
+
+**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works.
+
+**Relationship to the partner-API work.** This is a prerequisite, not part of it. Issuing third-party API keys while the services answer unauthenticated calls directly would be adding a lock to a door that is not attached to a wall. Note also that `api-pagos` already implements a merchant API-key model — `Authorization: Bearer <apiKey>` plus `X-POS-ID`, hashed `api_key_hash`, suspension and KYB gating, and the only rate limiting in the codebase — and that `MerchantService` flags its SHA-256 hashing as needing bcrypt/argon2 with a pepper before production use. Whatever partner authentication gets built should extend that model rather than introduce a second credential system.
+
+**Also worth noting while here:** the orchestrator has no rate limiting of any kind, and there is no OpenAPI/Swagger definition anywhere in the repo.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
