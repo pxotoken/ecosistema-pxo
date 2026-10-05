@@ -51,7 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
-- [ ] **SL-021** — Backend services are publicly reachable and trust a forgeable identity header; close the bypass (live on prod)
+- [ ] **SL-021** — Backend services are publicly reachable and trust a forgeable identity header; close the bypass (live on prod; proven in dev, phase 1 ready, api-exchange/api-pagos need the gateway-secret variant)
 
 ---
 
@@ -594,12 +594,56 @@ The 404 is the finding: the request cleared authentication and reached the Supab
 
 **Why this is Tier 1 rather than hardening.** `requireAdmin` in `api-users` and `api-wallet` reads the *same* header and then grants admin if that wallet's `user_type` matches. Wallet addresses are public on-chain data, not secrets — they are visible in any Polygonscan transaction involving PXO. So the barrier to acting as any user, including an admin, is knowing one public value. prod, QA and dev also still share one Supabase instance ([DEP-011](./runbooks/prod-db-migration.md)), so the blast radius is the production dataset.
 
-**The fix, in order:**
+---
 
-1. **Close the network path.** Either put the services on Railway private networking so only the orchestrator can reach them, or require a secret the gateway holds and the services check. This alone removes the exposure and is the smallest possible change.
-2. **Make the identity claim unforgeable,** so step 1 is not the only thing standing between a header and an admin session. Either the orchestrator mints a short-lived signed token the services verify, or each service verifies the thirdweb JWT itself. Belt and braces: the services should not be safe *only* because of where they sit on the network.
+### Progress and findings, 2026-10-05
 
-**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works.
+**Private networking is proven to work — in the Railway `dev` environment.** `HOST=::` on all eight services, orchestrator upstreams repointed to `http://pxoapi-<svc>.railway.internal:8080`, everything redeployed. `api-users`' public domain was then deleted as a rehearsal, and both halves were measured:
+
+| Check | Before | After |
+|---|---|---|
+| Direct internet → api-users with a forged header | app's `{"error":"User not found"}` (auth cleared) | Railway edge `404 Application not found` |
+| Orchestrator → api-users over internal DNS | — | api-users' own `401 Missing authentication token… x-cron-secret` |
+
+The second row is the proof that matters: that 401 is the *service's* error, so the gateway reached it with no public hostname in play. Proxied canaries (`/api/exchange/tokens`, `/liquidity`, `/prices`) returned byte-identical results to the pre-change baseline.
+
+**Three Railway specifics that cost time:**
+
+1. **The private network is IPv6-only.** Every service was bound to `0.0.0.0` and was therefore unreachable at `*.railway.internal`. Fixed in code by defaulting `HOST` to `::` (dual-stack, so public IPv4 is unaffected) — commit `42ae71b`.
+2. **Railway injects `PORT=8080` at runtime.** The first attempt used the per-service defaults in `config/env.ts` (3001-3008) and every proxied route returned `FST_REPLY_FROM_INTERNAL_SERVER_ERROR`. The service log line `Server listening at http://[::]:8080` is what gives it away. Internal URLs must use `:8080`; those code defaults apply only to local dev.
+3. Setting a variable does not apply it — `serviceInstanceRedeploy` is required, as [enable-minting-and-deposit-matching.md](./runbooks/enable-minting-and-deposit-matching.md) already warns.
+
+**Not every service can lose its public domain, and the reason is not obvious.** Deposits and withdrawals do not share a mechanism:
+
+- **Deposits** are polled. `deposit-matching-worker` pulls recent Bitso fundings on an interval (`DEPOSIT_MATCH_WORKER_ENABLED=true` in prod). Outbound only — unaffected by removing inbound hostnames.
+- **Withdrawals** are pushed. The Bitso webhook (`routes/webhooks/bitso.ts` → `parseBitsoWithdrawalEvent`, keyed on `bitso_withdrawal_id`) is the **only** thing that marks a SPEI payout complete or failed.
+
+So deleting `api-exchange`'s public domain would leave withdrawals stuck in `spei_pending` indefinitely — the state the "up to 24 hours" notice describes.
+
+**The obvious fix for that is a trap.** Re-registering the webhook to the orchestrator and then removing the domain would make every delivery fail *closed*, silently:
+
+```ts
+app.post('/webhooks/bitso', async (req, reply) => {
+  if (!isAllowedBitsoIp(req.ip)) return reply.code(403).send({ error: 'Forbidden' });
+```
+
+`api-exchange` is constructed as `Fastify({ logger: true })` with **no `trustProxy`**, so `req.ip` is the socket peer. Behind the orchestrator that becomes the orchestrator's address, which is not in `BITSO_WEBHOOK_IP_ALLOWLIST`, and the allowlist fails closed. Turning `trustProxy` on without scoping it to our own proxy hop is worse than leaving it off: `x-forwarded-for` is caller-supplied, so the allowlist becomes forgeable.
+
+**Open question, worth answering on its own merits.** The registration script points at `https://pxoapi-exchange-**dev**.up.railway.app/api/exchange/webhooks/bitso`. If that URL is what is registered against the *production* Bitso account, prod withdrawal confirmations have been arriving at the dev service, or nowhere. Prod is configured for webhooks (`BITSO_WEBHOOK_API_BASE_URL`, `BITSO_WEBHOOK_IP_ALLOWLIST` both set) and showed zero webhook log lines since the 2026-10-03 deploy — inconclusive on its own, since the deploy is young and the hook only fires on withdrawals. Settle it either by listing subscriptions through Bitso's v4 API with the prod key, or by checking whether any prod `sell-pxo-mxn` intent ever reached a completed state, which only the webhook sets.
+
+---
+
+**The fix, split in two.** The original "close the network path, then make the identity unforgeable" still holds, but the first part cannot be applied uniformly:
+
+**Phase 1 — the five services with no external callers:** `api-users`, `api-kyc`, `api-wallet`, `api-auth`, `api-email`. Private networking plus removal of their public domains. This is where the user, KYC and wallet data lives, so it is the bulk of the exposure, and the procedure is already rehearsed in `dev`. Land `42ae71b` on `main` first, so the `HOST` default is `::` in code and deleting the Railway variable later cannot silently re-break it.
+
+**Phase 2 — `api-exchange` and `api-pagos`: use the gateway-secret variant instead.** For these two, removing the public domain is the wrong tool. Their public hostnames serve endpoints that are *legitimately* public and already authenticate themselves — the Bitso webhook by RSA signature plus IP allowlist, and `api-pagos` by merchant API key. The exposure on those services is the *other* routes (`buy-pxo`, `sell-pxo`, `orders`, `gas-subsidy`, admin pricing rules) which trust `x-pxo-wallet-address`. Requiring a secret that only the orchestrator holds on everything *except* the self-authenticating routes closes that hole without touching the webhook path, and sidesteps the `trustProxy` problem entirely.
+
+**Phase 3 — make the identity claim unforgeable,** so neither network position nor a single shared secret is the only thing between a header and an admin session. Either the orchestrator mints a short-lived signed token the services verify, or each service verifies the thirdweb JWT itself.
+
+**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works. For `api-exchange`, additionally: a Bitso delivery to the public webhook hostname still verifies and still marks the withdrawal complete.
+
+**Note on reversibility:** deleting a Railway service domain may not return the identical hostname if it is re-created, so anything registered with a third party against those hostnames must be moved first.
 
 **Relationship to the partner-API work.** This is a prerequisite, not part of it. Issuing third-party API keys while the services answer unauthenticated calls directly would be adding a lock to a door that is not attached to a wall. Note also that `api-pagos` already implements a merchant API-key model — `Authorization: Bearer <apiKey>` plus `X-POS-ID`, hashed `api_key_hash`, suspension and KYB gating, and the only rate limiting in the codebase — and that `MerchantService` flags its SHA-256 hashing as needing bcrypt/argon2 with a pepper before production use. Whatever partner authentication gets built should extend that model rather than introduce a second credential system.
 
