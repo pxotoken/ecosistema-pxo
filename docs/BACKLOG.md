@@ -51,7 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
-- [ ] **SL-021** — Backend services are publicly reachable and trust a forgeable identity header; close the bypass (live on prod; proven in dev, phase 1 ready, api-exchange/api-pagos need the gateway-secret variant)
+- [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
 
 ---
 
@@ -568,7 +568,7 @@ Runtime — guessing when `activeChain` / `getChain()` is undefined. **No env va
 ### SL-021 · Every backend service is on the public internet and trusts a forgeable identity header
 **Type:** 🔧 Code + 🔐 Ops
 **Effort:** 3-5 hours for the network fix; a day if the identity header is replaced properly
-**Status:** Open, found 2026-10-05 while scoping the partner-API work. **Live on production.**
+**Status:** **Phase 1 done in production 2026-10-15** — `api-users`, `api-kyc`, `api-wallet`, `api-auth` and `api-email` are now reachable only through the gateway. Phases 2 and 3 are open, so `api-exchange` and `api-pagos` still answer the open internet and the identity header is still a bare claim. Found 2026-10-05 while scoping the partner-API work.
 
 **What is true today.** `api-orchestrator` verifies the thirdweb JWT, then injects `x-pxo-wallet-address` and proxies on. Every downstream service trusts that header and verifies nothing itself — `api-users`, `api-kyc`, `api-wallet` and `api-exchange` all read it in their `middleware/identity.ts`. The comment in `api-users` states the assumption the design rests on:
 
@@ -635,13 +635,36 @@ app.post('/webhooks/bitso', async (req, reply) => {
 
 **The fix, split in two.** The original "close the network path, then make the identity unforgeable" still holds, but the first part cannot be applied uniformly:
 
-**Phase 1 — the five services with no external callers** — step-by-step in [close-service-bypass-phase1.md](./runbooks/close-service-bypass-phase1.md)**:** `api-users`, `api-kyc`, `api-wallet`, `api-auth`, `api-email`. Private networking plus removal of their public domains. This is where the user, KYC and wallet data lives, so it is the bulk of the exposure, and the procedure is already rehearsed in `dev`. Land `42ae71b` on `main` first, so the `HOST` default is `::` in code and deleting the Railway variable later cannot silently re-break it.
+**Phase 1 — ✅ DONE 2026-10-15.** `api-users`, `api-kyc`, `api-wallet`, `api-auth`, `api-email`: private networking plus removal of their public domains. This was the bulk of the exposure, being where the user, KYC and wallet data lives. Procedure and rollback: [close-service-bypass-phase1.md](./runbooks/close-service-bypass-phase1.md). Evidence below.
 
 **Phase 2 — `api-exchange` and `api-pagos`: use the gateway-secret variant instead.** For these two, removing the public domain is the wrong tool. Their public hostnames serve endpoints that are *legitimately* public and already authenticate themselves — the Bitso webhook by RSA signature plus IP allowlist, and `api-pagos` by merchant API key. The exposure on those services is the *other* routes (`buy-pxo`, `sell-pxo`, `orders`, `gas-subsidy`, admin pricing rules) which trust `x-pxo-wallet-address`. Requiring a secret that only the orchestrator holds on everything *except* the self-authenticating routes closes that hole without touching the webhook path, and sidesteps the `trustProxy` problem entirely.
 
 **Phase 3 — make the identity claim unforgeable,** so neither network position nor a single shared secret is the only thing between a header and an admin session. Either the orchestrator mints a short-lived signed token the services verify, or each service verifies the thirdweb JWT itself.
 
-**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works. For `api-exchange`, additionally: a Bitso delivery to the public webhook hostname still verifies and still marks the withdrawal complete.
+---
+
+### Phase 1 in production, 2026-10-15
+
+Ran per the runbook, one service at a time rather than all seven at once: `api-users` was redeployed alone and confirmed rebound before the rest followed, so the IPv6 change was proven in prod on one service instead of seven.
+
+Measured after the five domains were deleted:
+
+| Check | Before | After |
+|---|---|---|
+| Forged `x-pxo-wallet-address`, no JWT, direct to each of the five hostnames | the app's own `{"error":"User not found"}` — authentication cleared, Supabase reached | Railway edge `{"status":"error","code":404,"message":"Application not found"}` — the request never arrives |
+| Gateway → api-users over `pxoapi-users.railway.internal:8080` | — | api-users' **own** `Missing authentication token… x-cron-secret` |
+| Orchestrator canaries, pxotoken.com | 200 / 200 / 200 / 400 | identical |
+
+The first row is the whole point: the app's error means it was reached, Railway's means it was not.
+
+Two notes for whoever runs phase 2:
+
+- **A `200` from `/health` does not mean the redeploy landed.** The old container keeps serving while the new one builds; check the deployment's `status` is `SUCCESS` before reading the `Server listening at http://[::]:8080` line.
+- Railway's **PR checks reported `ERROR` for every service** when `42ae71b` was merged, which looked alarming and was not: Railway reports status for PR branches it does not deploy. The `main` deploy itself succeeded. Earlier PRs showed no Railway checks at all because they only touched `apps/web` and the path filter skipped the services — which also means these services had not actually rebuilt in weeks before that commit.
+
+---
+
+**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works. For `api-exchange`, additionally: a Bitso delivery to the public webhook hostname still verifies and still marks the withdrawal complete. **Met for the phase 1 five; outstanding for `api-exchange` and `api-pagos`.**
 
 **Note on reversibility:** deleting a Railway service domain may not return the identical hostname if it is re-created, so anything registered with a third party against those hostnames must be moved first.
 

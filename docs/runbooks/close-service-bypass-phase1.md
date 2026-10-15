@@ -1,10 +1,16 @@
 # Runbook — close the gateway bypass, phase 1 (five services)
 
-**Status:** Not started. Written 2026-10-10.
+**Status:** **Executed on production 2026-10-15.** Kept as the record of what was
+done, and as the procedure for phase 2 and for any new service added later.
 **Owner:** Adrian (CTO)
 **Tracked as:** [SL-021](../BACKLOG.md) phase 1
-**Rehearsed:** yes — the whole procedure was run end to end in the Railway `dev`
-environment on 2026-10-05, including the domain deletion.
+**Rehearsed:** yes — run end to end in the Railway `dev` environment on
+2026-10-05, including the domain deletion, before production.
+
+**What changed from the written procedure:** step 3 was run one service at a
+time instead of all seven at once — `api-users` alone first, confirmed rebound
+and healthy, then the remaining six, then the gateway. No other deviation. Two
+things worth knowing before re-running it are in the Notes at the bottom.
 
 ---
 
@@ -280,3 +286,10 @@ That reply can only come from the service, so the internal hop worked.
   evidence either way. The `vercel.json` check above is what settles it.
 - After this lands, SL-021's remaining exposure is `api-exchange` and
   `api-pagos` (phase 2) and the forgeable identity header itself (phase 3).
+- **A `200` from `/health` does not mean the redeploy landed.** The old
+  container keeps serving while the new one builds. Confirm the deployment's
+  `status` is `SUCCESS` before trusting the `Server listening` line — reading
+  the bind address too early reports the *previous* container's address.
+- Railway reports check status on PR branches it does not deploy, so a PR
+  touching `apps/api-*` can show `ERROR` for every service while the `main`
+  deploy succeeds. Check the deployment on `main`, not the PR checks.
