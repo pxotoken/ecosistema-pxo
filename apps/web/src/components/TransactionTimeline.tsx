@@ -39,9 +39,9 @@ const TRANSACTION_CATEGORIES = {
   RECEIVE: {
     label: "Receive",
     icon: ArrowDownLeft,
-    bgColor: "bg-lime-accent/20",
-    iconColor: "text-lime-accent dark:text-dark-text",
-    badgeColor: "bg-lime-accent/20 text-lime-accent",
+    bgColor: "bg-brand-accent/20",
+    iconColor: "text-brand-accent dark:text-dark-text",
+    badgeColor: "bg-brand-accent/20 text-brand-accent",
     getDescription: (address: string) => `Received from ${address}`,
   },
   BUY: {
@@ -108,7 +108,7 @@ const getAmountSign = (type: string) => {
 
 const getAmountColor = (type: string) => {
   return type === TRANSACTION_STATUS.RECEIVE || type === TRANSACTION_STATUS.BUY
-    ? "text-lime-accent dark:text-dark-text"
+    ? "text-brand-accent dark:text-dark-text"
     : "text-light-text dark:text-dark-text";
 };
 
@@ -144,7 +144,7 @@ export const TransactionTimeline: React.FC = () => {
       <div className="bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-2xl p-6 shadow-glass transition-colors duration-300">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
           </div>
         ) : allTransactions.length === 0 ? (
           <div className="text-center py-12">
@@ -269,7 +269,7 @@ export const TransactionTimeline: React.FC = () => {
                   <motion.div
                     initial={{ width: 0 }}
                     whileHover={{ width: "100%" }}
-                    className="absolute bottom-0 left-0 h-px bg-lime-accent/30"
+                    className="absolute bottom-0 left-0 h-px bg-brand-accent/30"
                   />
                 </motion.div>
               );
@@ -283,7 +283,7 @@ export const TransactionTimeline: React.FC = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(PATHS.dashboard.insights)}
-            className="w-full mt-6 py-3 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-xl text-light-text dark:text-dark-text hover:border-lime-accent/30 hover:text-lime-accent transition-all font-medium duration-300"
+            className="w-full mt-6 py-3 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-xl text-light-text dark:text-dark-text hover:border-brand-accent/30 hover:text-brand-accent transition-all font-medium duration-300"
           >
             View All Transactions
           </motion.button>
@@ -394,7 +394,7 @@ export const TransactionTimeline: React.FC = () => {
                     href={getExplorerTxUrlFromTx(selectedTx, activeChain?.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-lime-accent hover:text-lime-accent/80 font-mono text-sm break-all block"
+                    className="text-brand-accent hover:text-brand-accent/80 font-mono text-sm break-all block"
                   >
                     {selectedTx.txHash}
                   </a>

@@ -114,7 +114,7 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
                 onChange={(e) => setPair(e.target.value.toUpperCase())}
                 placeholder="BTCUSDT"
                 required
-                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-lime-accent"
+                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-accent"
               />
             </div>
 
@@ -132,7 +132,7 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
                 onChange={(e) => setSpreadBuy(clampSpread(Number.parseFloat(e.target.value)))}
                 placeholder="0.03"
                 required
-                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-lime-accent"
+                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-accent"
               />
               <p className="mt-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 {(spreadBuy * 100).toFixed(2)}%
@@ -153,7 +153,7 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
                 onChange={(e) => setSpreadSell(clampSpread(Number.parseFloat(e.target.value)))}
                 placeholder="0.03"
                 required
-                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-lime-accent"
+                className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-accent"
               />
               <p className="mt-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 {(spreadSell * 100).toFixed(2)}%
@@ -171,7 +171,7 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 px-4 py-2 bg-lime-accent hover:bg-lime-accent/90 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>

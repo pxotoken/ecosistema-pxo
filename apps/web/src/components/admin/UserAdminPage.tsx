@@ -51,7 +51,7 @@ export const UserAdminPage: React.FC = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
       </div>
     );
   }
@@ -123,8 +123,8 @@ export const UserAdminPage: React.FC = () => {
             className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-lg p-4 shadow-glass"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-lime-accent/20 rounded-lg">
-                <Users className="h-6 w-6 text-lime-accent" />
+              <div className="p-3 bg-brand-accent/20 rounded-lg">
+                <Users className="h-6 w-6 text-brand-accent" />
               </div>
               <div>
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
@@ -189,14 +189,14 @@ export const UserAdminPage: React.FC = () => {
                 placeholder="Search by email, name or wallet..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text placeholder-light-text-secondary dark:placeholder-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-lime-accent"
+                className="w-full pl-10 pr-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text placeholder-light-text-secondary dark:placeholder-dark-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-accent"
               />
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={refetch}
-              className="flex items-center gap-2 px-4 py-2 bg-lime-accent hover:bg-lime-accent/90 text-black rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-black rounded-lg font-medium transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh

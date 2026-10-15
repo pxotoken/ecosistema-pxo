@@ -68,7 +68,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, loading, onEditRo
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-accent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-accent"></div>
       </div>
     );
   }
@@ -147,7 +147,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, loading, onEditRo
               </td>
               <td className="px-4 py-4">
                 {user.is_admin ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-lime-accent bg-lime-accent/20">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-brand-accent bg-brand-accent/20">
                     <Shield className="h-3 w-3" />
                     Admin
                   </span>
@@ -167,7 +167,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, loading, onEditRo
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onEditRole(user)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-light-text dark:text-dark-text bg-light-glass dark:bg-dark-glass hover:bg-lime-accent/20 dark:hover:bg-lime-accent/20 border border-light-border dark:border-dark-border rounded-md transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-light-text dark:text-dark-text bg-light-glass dark:bg-dark-glass hover:bg-brand-accent/20 dark:hover:bg-brand-accent/20 border border-light-border dark:border-dark-border rounded-md transition-colors"
                 >
                   <Edit2 className="h-3 w-3" />
                   Edit Role
