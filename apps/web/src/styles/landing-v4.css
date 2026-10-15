@@ -265,3 +265,21 @@
 @keyframes v4-fill{to{transform:scaleX(1)}}}
 @media (prefers-reduced-motion:reduce){.pxo-landing-v4{scroll-behavior:auto}
 .pxo-landing-v4 .rv.pre{transform:none;opacity:1}}
+
+/* ── CONTACT (October 2026) ── */
+.pxo-landing-v4 .contact .card{max-width:760px;margin:48px auto 0;padding:clamp(24px,5vw,48px);border-radius:32px;background:#fff;box-shadow:0 30px 70px -40px rgba(36,42,90,.45),inset 0 0 0 1px var(--line);position:relative;overflow:hidden}
+.pxo-landing-v4 .contact .card::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--grad)}
+.pxo-landing-v4 .cform{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pxo-landing-v4 .cform .full{grid-column:1/-1}
+.pxo-landing-v4 .cform label{display:flex;flex-direction:column;gap:8px;font:600 14px var(--display);color:var(--navy)}
+.pxo-landing-v4 .cform input,.pxo-landing-v4 .cform textarea{font:400 16px var(--body);color:var(--ink);background:var(--soft);border:1.5px solid transparent;border-radius:16px;padding:14px 16px;outline:none;transition:border-color .2s,background .2s}
+.pxo-landing-v4 .cform textarea{min-height:140px;resize:vertical}
+.pxo-landing-v4 .cform input:focus,.pxo-landing-v4 .cform textarea:focus{border-color:var(--blue);background:#fff}
+.pxo-landing-v4 .cform .send{grid-column:1/-1;justify-self:center;margin-top:6px}
+.pxo-landing-v4 .cmsg{grid-column:1/-1;text-align:center;font-size:15px;color:var(--muted);min-height:1.4em}
+.pxo-landing-v4 .cmsg.ok{color:var(--teal);font-weight:600}
+.pxo-landing-v4 .cmsg.err{color:#b42318}
+.pxo-landing-v4 .cdone{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding-block:20px}
+.pxo-landing-v4 .cdone .ok{margin-top:0}
+.pxo-landing-v4 .cdone h3{font-size:26px}
+@media (max-width:560px){.pxo-landing-v4 .cform{grid-template-columns:1fr}}

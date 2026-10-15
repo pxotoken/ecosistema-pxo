@@ -7,6 +7,7 @@ import { Coin } from './Coin';
 import { Wordmark } from './Wordmark';
 import { AccountScreen, Phone } from './PhoneScreens';
 import { ProductsCarousel } from './ProductsCarousel';
+import { ContactForm } from './ContactForm';
 import {
   useAnchorScroll,
   useHeroParallax,
@@ -36,7 +37,7 @@ const CTA_WAVES: WaveOpts = {
   lines: [['#00bed6', '#2f48c1', 2.5, 0.9], ['#2f48c1', '#00bed6', 1.5, 0.5], ['#00bed6', '#ffffff', 1, 0.35]],
 };
 
-const SECTIONS = { products: 'productos', how: 'como', benefits: 'beneficios', trust: 'transparencia' };
+const SECTIONS = { products: 'productos', how: 'como', benefits: 'beneficios', trust: 'transparencia', contact: 'contacto' };
 
 /** The floating coins behind the hero phone, with the design's depths. */
 const COINS: { cls: string; depth: number }[] = [
@@ -135,6 +136,7 @@ export const LandingV4: React.FC = () => {
     { href: `#${SECTIONS.how}`, label: t.nav.how },
     { href: `#${SECTIONS.benefits}`, label: t.nav.benefits },
     { href: `#${SECTIONS.trust}`, label: t.nav.trust },
+    { href: `#${SECTIONS.contact}`, label: t.nav.contact },
   ];
 
   return (
@@ -154,11 +156,11 @@ export const LandingV4: React.FC = () => {
           {/* The design replaced the old locale dropdown with two buttons; they
               drive the app-wide LocaleContext, not a landing-local flag. */}
           <div className="lang" role="group" aria-label="Idioma">
-            <button type="button" aria-pressed={locale === 'es'} onClick={() => setLocale('es')}>
-              ES
-            </button>
             <button type="button" aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>
               EN
+            </button>
+            <button type="button" aria-pressed={locale === 'es'} onClick={() => setLocale('es')}>
+              ES
             </button>
           </div>
           <AccountCta label={t.openAccount} withArrow={false} />
@@ -302,7 +304,6 @@ export const LandingV4: React.FC = () => {
           <div className="wrap">
             <p className="eyebrow">{t.parity.eyebrow}</p>
             <h2 className="rv">1 PXO = {t.parity.unit}</h2>
-            <p className="rv">{t.parity.text}</p>
             <ParityConverter />
           </div>
         </section>
@@ -369,6 +370,19 @@ export const LandingV4: React.FC = () => {
                 <span>{t.trust.hours}</span>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="contact" id={SECTIONS.contact} style={{ paddingTop: 20 }}>
+          <div className="wrap">
+            <div className="center rv">
+              <p className="eyebrow">{t.contact.eyebrow}</p>
+              <h2 className="sec-h" style={{ marginTop: 14 }}>
+                {t.contact.heading}
+              </h2>
+              <p className="sec-p">{t.contact.text}</p>
+            </div>
+            <ContactForm />
           </div>
         </section>
 
