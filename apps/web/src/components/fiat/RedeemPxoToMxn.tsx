@@ -268,7 +268,7 @@ export function RedeemPxoToMxn() {
           <button
             type="button"
             onClick={handleSubmit}
-            className="w-full bg-lime-accent text-light-base dark:text-dark-base px-4 py-3 rounded-lg font-medium hover:shadow-glow transition-all"
+            className="w-full bg-brand-accent text-light-base dark:text-dark-base px-4 py-3 rounded-lg font-medium hover:shadow-glow transition-all"
           >
             Sign and withdraw
           </button>

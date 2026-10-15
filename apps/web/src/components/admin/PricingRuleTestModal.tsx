@@ -79,7 +79,7 @@ export const PricingRuleTestModal: React.FC<PricingRuleTestModalProps> = ({
 
             {testing ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
               </div>
             ) : result ? (
               <div className="space-y-4">
@@ -113,7 +113,7 @@ export const PricingRuleTestModal: React.FC<PricingRuleTestModalProps> = ({
                         <span className="text-base font-semibold text-light-text dark:text-dark-text">
                           Final Price:
                         </span>
-                        <span className="font-mono text-2xl font-bold text-lime-accent">
+                        <span className="font-mono text-2xl font-bold text-brand-accent">
                           ${result.price.toFixed(8)}
                         </span>
                       </div>
@@ -123,7 +123,7 @@ export const PricingRuleTestModal: React.FC<PricingRuleTestModalProps> = ({
 
                 <button
                   onClick={handleTest}
-                  className="w-full px-4 py-2 bg-lime-accent hover:bg-lime-accent/90 text-black rounded-lg font-medium transition-colors"
+                  className="w-full px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-black rounded-lg font-medium transition-colors"
                 >
                   Refresh Test
                 </button>

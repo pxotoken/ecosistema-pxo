@@ -254,7 +254,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="relative p-6 bg-gradient-to-br from-lime-accent/10 to-lime-accent/5">
+            <div className="relative p-6 bg-gradient-to-br from-brand-accent/10 to-brand-accent/5">
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors"
@@ -263,7 +263,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
               </button>
               
               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-lime-accent to-lime-accent/80 rounded-2xl mb-4 flex items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-brand-accent to-brand-accent/80 rounded-2xl mb-4 flex items-center justify-center">
                   <Wallet className="w-8 h-8 text-white" />
                 </div>
                 <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-2">
@@ -277,7 +277,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                         account?.address.slice(-5)}
                   </h2>
                   <button
-                    className="text-light-text-secondary dark:text-dark-text-secondary ml-2 cursor-pointer hover:text-lime-accent dark:hover:text-dark-text transition-colors"
+                    className="text-light-text-secondary dark:text-dark-text-secondary ml-2 cursor-pointer hover:text-brand-accent dark:hover:text-dark-text transition-colors"
                     onClick={copyToClipboard}
                     title="Copy address"
                   >
@@ -293,7 +293,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                 <button
                   key={index}
                   onClick={button.onClick}
-                  className="flex-1 bg-lime-accent text-white text-sm font-medium py-3 px-4 rounded-xl hover:bg-lime-accent/90 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-brand-accent text-white text-sm font-medium py-3 px-4 rounded-xl hover:bg-brand-accent/90 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <span className="flex items-center justify-center">
                     <button.icon size={16} className="mr-2" />

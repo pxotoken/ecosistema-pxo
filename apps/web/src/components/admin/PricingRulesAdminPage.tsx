@@ -73,7 +73,7 @@ export const PricingRulesAdminPage: React.FC = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
       </div>
     );
   }
@@ -142,8 +142,8 @@ export const PricingRulesAdminPage: React.FC = () => {
             className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-lg p-4 shadow-glass"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-lime-accent/20 rounded-lg">
-                <DollarSign className="h-6 w-6 text-lime-accent" />
+              <div className="p-3 bg-brand-accent/20 rounded-lg">
+                <DollarSign className="h-6 w-6 text-brand-accent" />
               </div>
               <div>
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
@@ -209,7 +209,7 @@ export const PricingRulesAdminPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-lime-accent hover:bg-lime-accent/90 text-black rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-black rounded-lg font-medium transition-colors"
             >
               <Plus className="h-4 w-4" />
               New Rule
@@ -234,7 +234,7 @@ export const PricingRulesAdminPage: React.FC = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+              <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -303,7 +303,7 @@ export const PricingRulesAdminPage: React.FC = () => {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleEdit(rule)}
-                              className="p-2 bg-lime-accent/20 hover:bg-lime-accent/30 text-lime-accent rounded-lg transition-colors"
+                              className="p-2 bg-brand-accent/20 hover:bg-brand-accent/30 text-brand-accent rounded-lg transition-colors"
                               title="Edit"
                             >
                               <Edit className="h-4 w-4" />

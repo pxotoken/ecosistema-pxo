@@ -114,8 +114,8 @@ export const TransactionHistory: React.FC = () => {
                 onClick={() => handleFilterChange(filter.value)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                   selectedFilter === filter.value
-                    ? 'bg-lime-accent text-white shadow-lg'
-                    : 'bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:bg-lime-accent/10'
+                    ? 'bg-brand-accent text-white shadow-lg'
+                    : 'bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:bg-brand-accent/10'
                 }`}
               >
                 {filter.label}
@@ -134,7 +134,7 @@ export const TransactionHistory: React.FC = () => {
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-lime-accent"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
             <span className="ml-3 text-light-text dark:text-dark-text">Loading transactions...</span>
           </div>
         ) : filteredTransactions.length === 0 ? (
@@ -206,7 +206,7 @@ export const TransactionHistory: React.FC = () => {
                         href={getExplorerTxUrlFromTx(tx, activeChain?.id)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 bg-light-glass dark:bg-dark-glass rounded-lg hover:bg-lime-accent/10 transition-colors flex items-center justify-center"
+                        className="p-2 bg-light-glass dark:bg-dark-glass rounded-lg hover:bg-brand-accent/10 transition-colors flex items-center justify-center"
                         title="View in explorer"
                       >
                         <Eye className="w-4 h-4 text-light-text-secondary dark:text-dark-text-secondary" />
@@ -217,7 +217,7 @@ export const TransactionHistory: React.FC = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedTx(tx)}
-                      className="px-3 md:px-4 py-2 bg-lime-accent text-white rounded-lg hover:bg-lime-accent/90 transition-colors text-xs md:text-sm font-medium whitespace-nowrap"
+                      className="px-3 md:px-4 py-2 bg-brand-accent text-white rounded-lg hover:bg-brand-accent/90 transition-colors text-xs md:text-sm font-medium whitespace-nowrap"
                     >
                       <span className="md:hidden">Details</span>
                       <span className="hidden md:inline">View details</span>
@@ -294,7 +294,7 @@ export const TransactionHistory: React.FC = () => {
                     href={getExplorerTxUrlFromTx(selectedTx, activeChain?.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-lime-accent hover:text-lime-accent/80 font-mono text-sm break-all"
+                    className="text-brand-accent hover:text-brand-accent/80 font-mono text-sm break-all"
                   >
                     {selectedTx.txHash}
                   </a>

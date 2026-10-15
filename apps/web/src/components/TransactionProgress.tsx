@@ -167,7 +167,7 @@ export const TransactionProgress: React.FC<TransactionProgressProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onClose}
-              className="w-full bg-lime-accent text-light-base dark:text-dark-base px-4 py-2 rounded-lg font-medium hover:shadow-glow transition-all duration-300"
+              className="w-full bg-brand-accent text-light-base dark:text-dark-base px-4 py-2 rounded-lg font-medium hover:shadow-glow transition-all duration-300"
             >
               {hasError ? 'Close' : 'Continue'}
             </motion.button>

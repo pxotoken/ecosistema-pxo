@@ -66,9 +66,9 @@ export function PxoBalanceCard() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-6 sm:p-8 shadow-glass relative overflow-hidden transition-colors duration-300 hover:border-lime-accent/40 hover:shadow-glow"
+        className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-6 sm:p-8 shadow-glass relative overflow-hidden transition-colors duration-300 hover:border-brand-accent/40 hover:shadow-glow"
       >
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-lime-accent/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-48 h-48 bg-brand-accent/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex items-center gap-4 sm:gap-6">
           <div className="flex-shrink-0">
@@ -108,7 +108,7 @@ export function PxoBalanceCard() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(PATHS.dashboard.fiatBuy)}
-            className="flex items-center justify-center gap-2 bg-lime-accent text-light-base dark:text-dark-base px-5 py-3 rounded-xl font-semibold text-base shadow-md hover:shadow-glow transition-all"
+            className="flex items-center justify-center gap-2 bg-brand-accent text-light-base dark:text-dark-base px-5 py-3 rounded-xl font-semibold text-base shadow-md hover:shadow-glow transition-all"
           >
             <Plus className="h-5 w-5" strokeWidth={2.5} />
             <span>Buy with MXN</span>

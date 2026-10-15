@@ -135,7 +135,7 @@ export const WalletOverview: React.FC = () => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-4 sm:p-6 shadow-glass relative overflow-hidden transition-colors duration-300 hover:border-lime-accent/30 hover:shadow-glow"
+        className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-4 sm:p-6 shadow-glass relative overflow-hidden transition-colors duration-300 hover:border-brand-accent/30 hover:shadow-glow"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl" />
         
@@ -202,7 +202,7 @@ export const WalletOverview: React.FC = () => {
              //   disabled={user?.KYC_status !== KYCStatus.VALIDATED}
                 className={`flex-1 flex items-center justify-center gap-1.5 transition-all duration-200 px-3 py-1.5 rounded-lg border text-sm font-medium shadow-md ${
                   user?.KYC_status === KYCStatus.VALIDATED
-                    ? 'bg-lime-accent dark:bg-blue-600/85 border-blue-700/60 dark:border-blue-600/60 text-white cursor-pointer'
+                    ? 'bg-brand-accent dark:bg-blue-600/85 border-blue-700/60 dark:border-blue-600/60 text-white cursor-pointer'
                     : 'bg-gray-400 dark:bg-gray-600 border-gray-500 dark:border-gray-500 text-white opacity-50 cursor-not-allowed'
                 }`}
                 //title={user?.KYC_status !== KYCStatus.VALIDATED ? 'Completa tu KYC para enviar tokens' : ''}
