@@ -6,6 +6,7 @@ import {
   AlertCircle,
   History,
   Coins,
+  ArrowUpDown,
 } from "lucide-react";
 import { useActiveAccount, useActiveWallet, useActiveWalletChain } from "thirdweb/react";
 import { usePXOExchange } from "../hooks/usePXOExchange";
@@ -469,6 +470,37 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
     }
   };
 
+  /**
+   * Swap-direction control. Replaces the old Buy/Sell tabs with one button
+   * sitting between the From and To inputs. Hidden when a wrapper locks the
+   * mode — BuyPxoWithDigitalDollars and friends exist to show a single flow,
+   * so letting the user flip direction there would defeat the wrapper.
+   */
+  const swapDirectionCell = !lockedMode && (
+    <div className="flex justify-center sm:items-end sm:pb-1">
+      <motion.button
+        type="button"
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+        onClick={() => setExchangeMode(exchangeMode === "buy" ? "sell" : "buy")}
+        aria-label={exchangeMode === "buy" ? "Switch to selling PXO" : "Switch to buying PXO"}
+        title={exchangeMode === "buy" ? "Switch to selling PXO" : "Switch to buying PXO"}
+        className="w-11 h-11 rounded-xl bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border text-light-text dark:text-dark-text flex items-center justify-center hover:border-lime-accent/50 hover:text-lime-accent transition-colors"
+      >
+        <ArrowUpDown className="w-5 h-5" />
+      </motion.button>
+    </div>
+  );
+
+  // The swap control takes a column of its own, so the grid gains one track
+  // (and the action button one span) unless the mode is locked.
+  const exchangeGridClass = lockedMode
+    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6"
+    : "grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] lg:grid-cols-[1fr_auto_1fr_1fr] gap-4 sm:gap-5 lg:gap-6";
+  const exchangeActionClass = lockedMode
+    ? "w-full sm:col-span-2 lg:col-span-1 flex items-end"
+    : "w-full sm:col-span-3 lg:col-span-1 flex items-end";
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -622,40 +654,6 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
         transition={{ duration: 0.5, delay: 0.4 }}
         className="bg-gradient-to-r from-light-surface/80 to-light-glass dark:from-dark-surface/80 dark:to-dark-glass border border-light-border dark:border-dark-border rounded-2xl p-4 sm:p-6 lg:p-8 shadow-glass transition-colors duration-300"
       >
-        {!lockedMode && (
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-light-text dark:text-dark-text font-editorial mb-4 sm:mb-6">
-            Quick Exchange
-          </h3>
-        )}
-
-        {/* Buy / Sell tabs — hidden when a wrapper locks the mode. */}
-        {!lockedMode && (
-          <div className="flex gap-2 mb-4 sm:mb-6">
-            <button
-              type="button"
-              onClick={() => setExchangeMode("buy")}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
-                exchangeMode === "buy"
-                  ? "bg-lime-accent text-white shadow-glow"
-                  : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
-              }`}
-            >
-              Buy
-            </button>
-            <button
-              type="button"
-              onClick={() => setExchangeMode("sell")}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-colors ${
-                exchangeMode === "sell"
-                  ? "bg-lime-accent text-white shadow-glow"
-                  : "bg-light-glass dark:bg-dark-glass text-light-text dark:text-dark-text hover:border-lime-accent/30 border border-transparent"
-              }`}
-            >
-              Sell
-            </button>
-          </div>
-        )}
-
         {(exchangeMode === "buy" ? error : sellError) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -670,7 +668,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
         )}
 
         {exchangeMode === "buy" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+          <div className={exchangeGridClass}>
             <div className="w-full">
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs sm:text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
@@ -725,6 +723,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 <p className="mt-1 text-xs text-red-500 dark:text-red-400">{balanceError}</p>
               )}
             </div>
+            {swapDirectionCell}
             <div className="w-full">
               <label className="block text-xs sm:text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
                 To
@@ -745,7 +744,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 />
               </div>
             </div>
-            <div className="w-full sm:col-span-2 lg:col-span-1 flex items-end">
+            <div className={exchangeActionClass}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -765,7 +764,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
+          <div className={exchangeGridClass}>
             <div className="w-full">
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-xs sm:text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
@@ -825,6 +824,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 <p className="mt-1 text-xs text-red-500 dark:text-red-400">{sellBalanceError}</p>
               )}
             </div>
+            {swapDirectionCell}
             <div className="w-full">
               <label className="block text-xs sm:text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
                 To
@@ -845,7 +845,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 />
               </div>
             </div>
-            <div className="w-full sm:col-span-2 lg:col-span-1 flex items-end">
+            <div className={exchangeActionClass}>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
