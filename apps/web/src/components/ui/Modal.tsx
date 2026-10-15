@@ -75,7 +75,7 @@ export const Modal: React.FC<ModalProps> = ({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onClose}
-                    className="p-2 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-lime-accent/10 transition-colors duration-300"
+                    className="p-2 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-brand-accent/10 transition-colors duration-300"
                   >
                     <X className="w-5 h-5 text-light-text dark:text-dark-text" />
                   </motion.button>
@@ -130,7 +130,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       default:
         return {
           icon: 'ℹ️',
-          confirmButton: 'bg-lime-accent hover:bg-lime-accent/90 text-light-base dark:text-dark-base',
+          confirmButton: 'bg-brand-accent hover:bg-brand-accent/90 text-light-base dark:text-dark-base',
         };
     }
   };

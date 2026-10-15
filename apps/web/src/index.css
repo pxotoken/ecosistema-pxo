@@ -12,7 +12,7 @@
   --color-light-text-secondary: #475569;
   --color-dark-text: #E8E8E8;
   --color-dark-text-secondary: #A0A0A0;
-  --color-lime-accent: #1e3a8a;
+  --color-brand-accent: #1e3a8a;
 }
 
 /* Custom Swiper Navigation and Pagination Styles */
@@ -65,7 +65,7 @@
 }
 
 .swiper-pagination-bullet-active {
-  background: var(--color-lime-accent) !important; /* Accent color for active bullet */
+  background: var(--color-brand-accent) !important; /* Accent color for active bullet */
   opacity: 1 !important;
 }
 
@@ -74,7 +74,7 @@
 }
 
 .dark .swiper-pagination-bullet-active {
-  background: var(--color-lime-accent) !important; /* Accent color for active bullet in dark mode */
+  background: var(--color-brand-accent) !important; /* Accent color for active bullet in dark mode */
 }
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {

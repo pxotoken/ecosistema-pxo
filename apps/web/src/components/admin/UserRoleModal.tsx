@@ -84,8 +84,8 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
             <div className="flex items-center gap-2 mt-1">
               {isCurrentlyAdmin ? (
                 <>
-                  <Shield className="h-5 w-5 text-lime-accent" />
-                  <span className="font-semibold text-lime-accent">Administrator</span>
+                  <Shield className="h-5 w-5 text-brand-accent" />
+                  <span className="font-semibold text-brand-accent">Administrator</span>
                 </>
               ) : (
                 <>
@@ -127,7 +127,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
             <button
               onClick={() => handleRoleChange('grant_admin')}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-lime-accent hover:bg-lime-accent/90 disabled:bg-gray-400 text-black rounded-lg font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-gray-400 text-black rounded-lg font-medium transition-colors"
             >
               {loading ? (
                 <>

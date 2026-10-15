@@ -183,7 +183,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
         </label>
         <button
           onClick={() => setScreen('token-selector')}
-          className="w-full flex items-center justify-between p-3 bg-light-glass dark:bg-dark-glass rounded-xl border border-light-border dark:border-dark-border hover:border-lime-accent/50 transition-colors"
+          className="w-full flex items-center justify-between p-3 bg-light-glass dark:bg-dark-glass rounded-xl border border-light-border dark:border-dark-border hover:border-brand-accent/50 transition-colors"
         >
           <div className="flex items-center space-x-3">
             {selectedToken && (
@@ -219,7 +219,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
           placeholder="0x..."
           value={receiverAddress}
           onChange={(e) => setReceiverAddress(e.target.value)}
-          className={`w-full p-3 bg-light-glass dark:bg-dark-glass rounded-xl border transition-colors text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-lime-accent ${
+          className={`w-full p-3 bg-light-glass dark:bg-dark-glass rounded-xl border transition-colors text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-brand-accent ${
             receiverAddress && !isValidAddress
               ? 'border-red-500'
               : 'border-light-border dark:border-dark-border'
@@ -239,7 +239,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
           {balance !== null && (
             <button
               onClick={handleSetMax}
-              className="text-xs text-lime-accent hover:text-lime-accent/80 transition-colors font-medium"
+              className="text-xs text-brand-accent hover:text-brand-accent/80 transition-colors font-medium"
             >
               MAX
             </button>
@@ -253,7 +253,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
             onChange={(e) => setAmount(e.target.value)}
             min="0"
             step="any"
-            className={`w-full p-3 pr-20 bg-light-glass dark:bg-dark-glass rounded-xl border transition-colors text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 text-sm focus:outline-none focus:ring-1 focus:ring-lime-accent ${
+            className={`w-full p-3 pr-20 bg-light-glass dark:bg-dark-glass rounded-xl border transition-colors text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 text-sm focus:outline-none focus:ring-1 focus:ring-brand-accent ${
               hasInsufficientBalance
                 ? 'border-red-500'
                 : 'border-light-border dark:border-dark-border'
@@ -274,7 +274,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
         disabled={!canSend}
         className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium text-sm transition-all duration-200 ${
           canSend
-            ? 'bg-lime-accent text-white hover:bg-lime-accent/90 shadow-lg hover:shadow-xl'
+            ? 'bg-brand-accent text-white hover:bg-brand-accent/90 shadow-lg hover:shadow-xl'
             : 'bg-light-glass dark:bg-dark-glass text-light-text-secondary dark:text-dark-text-secondary cursor-not-allowed'
         }`}
       >
@@ -311,7 +311,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
             placeholder="Search token..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 bg-light-glass dark:bg-dark-glass rounded-xl border border-light-border dark:border-dark-border text-sm text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 focus:outline-none focus:ring-1 focus:ring-lime-accent"
+            className="w-full pl-9 pr-3 py-2.5 bg-light-glass dark:bg-dark-glass rounded-xl border border-light-border dark:border-dark-border text-sm text-light-text dark:text-dark-text placeholder-light-text-secondary/50 dark:placeholder-dark-text-secondary/50 focus:outline-none focus:ring-1 focus:ring-brand-accent"
           />
         </div>
       </div>
@@ -349,7 +349,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
           href={getExplorerUrl(txHash)}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-lime-accent hover:underline font-mono"
+          className="text-xs text-brand-accent hover:underline font-mono"
         >
           View on Explorer
         </a>
@@ -363,7 +363,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
         </button>
         <button
           onClick={onClose}
-          className="flex-1 py-2.5 px-4 rounded-xl bg-lime-accent text-white text-sm font-medium hover:bg-lime-accent/90 transition-colors"
+          className="flex-1 py-2.5 px-4 rounded-xl bg-brand-accent text-white text-sm font-medium hover:bg-brand-accent/90 transition-colors"
         >
           Done
         </button>
@@ -384,7 +384,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
       </p>
       <button
         onClick={handleRestart}
-        className="w-full py-2.5 px-4 rounded-xl bg-lime-accent text-white text-sm font-medium hover:bg-lime-accent/90 transition-colors"
+        className="w-full py-2.5 px-4 rounded-xl bg-brand-accent text-white text-sm font-medium hover:bg-brand-accent/90 transition-colors"
       >
         Try Again
       </button>
@@ -427,7 +427,7 @@ export const SendFundsModal: React.FC<SendFundsModalProps> = ({ isOpen, onClose 
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-light-border dark:border-dark-border bg-gradient-to-br from-lime-accent/10 to-lime-accent/5">
+            <div className="flex items-center justify-between p-4 border-b border-light-border dark:border-dark-border bg-gradient-to-br from-brand-accent/10 to-brand-accent/5">
               <div className="flex items-center space-x-3">
                 <button
                   onClick={handleBack}
@@ -507,7 +507,7 @@ const TokenRow: React.FC<TokenRowProps> = ({ token, isSelected, onClick }) => {
       onClick={onClick}
       className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-150 ${
         isSelected
-          ? 'bg-lime-accent/10 border border-lime-accent/30'
+          ? 'bg-brand-accent/10 border border-brand-accent/30'
           : 'hover:bg-light-glass dark:hover:bg-dark-glass border border-transparent'
       }`}
     >

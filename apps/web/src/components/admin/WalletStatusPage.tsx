@@ -79,7 +79,7 @@ export const WalletStatusPage: React.FC = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
       </div>
     );
   }
@@ -151,7 +151,7 @@ export const WalletStatusPage: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             onClick={fetchWalletStatus}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-lime-accent hover:bg-lime-accent/90 text-black rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-black rounded-lg font-medium transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -170,7 +170,7 @@ export const WalletStatusPage: React.FC = () => {
 
         {loading && !data ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-lime-accent" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-accent" />
           </div>
         ) : data ? (
           <div className="space-y-6">
@@ -182,8 +182,8 @@ export const WalletStatusPage: React.FC = () => {
                 className="bg-gradient-to-br from-light-surface to-light-glass dark:from-dark-surface dark:to-dark-glass border border-light-border dark:border-dark-border rounded-lg p-6 shadow-glass"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-lime-accent/20 rounded-lg">
-                    <Shield className="h-6 w-6 text-lime-accent" />
+                  <div className="p-3 bg-brand-accent/20 rounded-lg">
+                    <Shield className="h-6 w-6 text-brand-accent" />
                   </div>
                   <h2 className="text-xl font-bold text-light-text dark:text-dark-text">
                     Private Key Status

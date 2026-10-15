@@ -30,7 +30,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`h-full flex flex-col relative bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-2xl overflow-hidden shadow-glass transition-all duration-300 hover:shadow-glow hover:border-lime-accent/30`}
+      className={`h-full flex flex-col relative bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-2xl overflow-hidden shadow-glass transition-all duration-300 hover:shadow-glow hover:border-brand-accent/30`}
     >
       <div className="relative aspect-[2/1] overflow-hidden">
         <img
@@ -65,7 +65,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             >
               <ArrowRight
                 size={16}
-                className="mr-2 text-lime-accent dark:text-dark-text"
+                className="mr-2 text-brand-accent dark:text-dark-text"
               />
               {feature}
             </li>
@@ -76,7 +76,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onLearnMore}
-          className="self-center sm:self-start bg-lime-accent text-white px-6 py-3 rounded-xl font-medium hover:bg-lime-accent/90 transition-colors duration-300 mb-8 sm:mb-0"
+          className="self-center sm:self-start bg-brand-accent text-white px-6 py-3 rounded-xl font-medium hover:bg-brand-accent/90 transition-colors duration-300 mb-8 sm:mb-0"
         >
           Learn More
         </motion.button>
