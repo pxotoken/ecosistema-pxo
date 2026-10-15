@@ -39,6 +39,23 @@ interface ExchangeRatesProps {
   title?: string;
 }
 
+/**
+ * Format a balance for display by TRUNCATING, never rounding.
+ *
+ * toFixed rounds half-up, so a true balance of 1.1789 renders as "1.18" — and
+ * the form then rejects 1.18 as exceeding the balance, i.e. it refuses the
+ * exact number it just told the user they had. Truncating keeps the displayed
+ * figure at or below what the wallet actually holds, so it is always spendable.
+ *
+ * Works on the raw decimal string rather than via Math.floor on a float, since
+ * 1.18 * 100 is 117.99999999999999 and would wrongly truncate to 1.17.
+ */
+const truncateBalance = (raw: string, decimals: number): string => {
+  const [whole, frac = ''] = (raw || '0').split('.');
+  if (decimals === 0) return whole;
+  return `${whole}.${(frac + '0'.repeat(decimals)).slice(0, decimals)}`;
+};
+
 export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title }) => {
   // Precedence for initial mode: locked prop (from wrapper) > URL query > 'buy'.
   const [searchParams] = useSearchParams();
@@ -111,14 +128,14 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
   const walletToken = availableTokens.find((t) => t.symbol === tokenSymbol);
   const pxoWalletToken = availableTokens.find((t) => t.symbol === "PXO");
 
-  const { balance: userBalance, loading: balanceLoading } = useTokenBalance({
+  const { balance: userBalance, displayBalance: userBalanceRaw, loading: balanceLoading } = useTokenBalance({
     tokenAddress: walletToken?.address,
     tokenSymbol: tokenSymbol,
     pollingInterval: 5000,
     enabled: !!walletToken?.address,
   });
 
-  const { balance: pxoBalance, loading: pxoBalanceLoading } = useTokenBalance({
+  const { balance: pxoBalance, displayBalance: pxoBalanceRaw, loading: pxoBalanceLoading } = useTokenBalance({
     tokenAddress: pxoWalletToken?.address,
     tokenSymbol: "PXO",
     pollingInterval: 5000,
@@ -463,12 +480,37 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
     if (!Number.isNaN(numValue) && numValue >= 0) {
       setAmount(numValue);
       if (numValue > userBalance) {
-        setBalanceError(`Amount exceeds available balance (${userBalance.toFixed(2)} ${tokenSymbol})`);
+        setBalanceError(
+          `Amount exceeds available balance (${truncateBalance(userBalanceRaw, 2)} ${tokenSymbol})`,
+        );
       } else {
         setBalanceError("");
       }
     }
   };
+
+  /**
+   * "Max" fills the input with the FULL-PRECISION balance, not the truncated
+   * figure shown in the label. The label is deliberately rounded down for
+   * readability, so using it here would leave dust behind; the raw value is
+   * exactly what the balance check compares against, so it always passes.
+   */
+  const handleMaxBuy = () => {
+    const raw = userBalanceRaw || '0';
+    setInputValue(raw);
+    setAmount(Number.parseFloat(raw) || 0);
+    setBalanceError('');
+  };
+
+  const handleMaxSell = () => {
+    const raw = pxoBalanceRaw || '0';
+    setSellInputValue(raw);
+    setSellPxoAmount(Number.parseFloat(raw) || 0);
+    setSellBalanceError('');
+  };
+
+  const maxLinkClass =
+    'mt-1 text-xs font-medium text-lime-accent hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline';
 
   /**
    * Swap-direction control. Replaces the old Buy/Sell tabs with one button
@@ -676,7 +718,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 </label>
                 {!balanceLoading && account && (
                   <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    Balance: {userBalance.toFixed(2)} {tokenSymbol}
+                    Balance: {truncateBalance(userBalanceRaw, 2)} {tokenSymbol}
                   </span>
                 )}
               </div>
@@ -719,6 +761,14 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+              <button
+                type="button"
+                onClick={handleMaxBuy}
+                disabled={tokensLoading || balanceLoading || userBalance <= 0}
+                className={maxLinkClass}
+              >
+                Max
+              </button>
               {balanceError && (
                 <p className="mt-1 text-xs text-red-500 dark:text-red-400">{balanceError}</p>
               )}
@@ -772,7 +822,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 </label>
                 {!pxoBalanceLoading && account && (
                   <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    Balance: {pxoBalance.toFixed(4)} PXO
+                    Balance: {truncateBalance(pxoBalanceRaw, 4)} PXO
                   </span>
                 )}
               </div>
@@ -803,7 +853,9 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                     if (!Number.isNaN(num) && num >= 0) {
                       setSellPxoAmount(num);
                       setSellBalanceError(
-                        num > pxoBalance ? `Amount exceeds balance (${pxoBalance.toFixed(4)} PXO)` : ""
+                        num > pxoBalance
+                          ? `Amount exceeds balance (${truncateBalance(pxoBalanceRaw, 4)} PXO)`
+                          : ""
                       );
                     }
                   }}
@@ -820,6 +872,14 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+              <button
+                type="button"
+                onClick={handleMaxSell}
+                disabled={pxoBalanceLoading || pxoBalance <= 0}
+                className={maxLinkClass}
+              >
+                Max
+              </button>
               {sellBalanceError && (
                 <p className="mt-1 text-xs text-red-500 dark:text-red-400">{sellBalanceError}</p>
               )}
