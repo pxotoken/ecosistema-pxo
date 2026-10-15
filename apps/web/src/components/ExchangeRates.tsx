@@ -509,8 +509,15 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
     setSellBalanceError('');
   };
 
+  /**
+   * Deliberately NOT text-lime-accent: despite the name that token is #1e3a8a,
+   * a dark navy, which on the dashboard's near-black surface is invisible —
+   * more so at the dimmed opacity it carries while there is nothing to spend.
+   * The palette has no bright accent, so this follows the body text in each
+   * theme and leans on the underline to read as an action.
+   */
   const maxLinkClass =
-    'mt-1 text-xs font-medium text-lime-accent hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline';
+    'mt-1 text-xs font-semibold underline underline-offset-2 text-light-text dark:text-dark-text hover:opacity-75 disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed';
 
   /**
    * Swap-direction control. Replaces the old Buy/Sell tabs with one button
