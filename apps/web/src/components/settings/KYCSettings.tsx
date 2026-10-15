@@ -37,6 +37,34 @@ const COUNTRY_OPTIONS: Array<{ code: string; label: string }> = [
   { code: 'BR', label: 'Brazil' },
 ];
 
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  dni: 'ID Card / INE',
+  passport: 'Passport',
+};
+
+/** YYYY-MM-DD -> a readable date, without letting a bad value throw. */
+const formatDateOfBirth = (value: string): string => {
+  if (!value) return '';
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return value;
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+};
+
+/** One "Label  Value" line of the validated read-only summary. */
+const SummaryRow = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 border-b border-light-border dark:border-dark-border last:border-b-0">
+    <span className="w-32 shrink-0 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
+      {label}
+    </span>
+    <span className="text-sm text-light-text dark:text-dark-text break-words">
+      {value || '—'}
+    </span>
+  </div>
+);
+
 interface KYCFormData {
   firstName: string;
   lastName: string;
@@ -125,6 +153,14 @@ export const KYCSettings: React.FC = () => {
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const isFormDisabled = user?.KYC_status === KYCStatus.VALIDATING;
+  /**
+   * Once KYC is validated the record is settled, so the card shows a compact
+   * read-only summary instead of the submission form: one line per field, the
+   * name joined, and the identity collapsed to type + number. The document
+   * uploads are dropped entirely — their labels only make sense while
+   * something is still being asked of the user.
+   */
+  const isValidated = user?.KYC_status === KYCStatus.VALIDATED;
 
   const [formData, setFormData] = useState<KYCFormData>({
     firstName: '',
@@ -431,6 +467,25 @@ export const KYCSettings: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-light-surface dark:bg-dark-surface rounded-xl p-6 border border-light-border dark:border-dark-border"
       >
+        {isValidated ? (
+          <div className="divide-y-0">
+            <SummaryRow
+              label="Name"
+              value={`${formData.firstName} ${formData.lastName}`.trim()}
+            />
+            <SummaryRow label="Email" value={formData.email} />
+            <SummaryRow label="Phone" value={formData.phone} />
+            <SummaryRow label="Date of Birth" value={formatDateOfBirth(formData.dateOfBirth)} />
+            <SummaryRow
+              label="Country"
+              value={COUNTRY_OPTIONS.find((c) => c.code === formData.country)?.label ?? formData.country}
+            />
+            <SummaryRow
+              label="Identity"
+              value={`${DOCUMENT_TYPE_LABELS[formData.documentType] ?? formData.documentType} ${formData.documentNumber}`.trim()}
+            />
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal information */}
           <div className="space-y-4">
@@ -672,6 +727,7 @@ export const KYCSettings: React.FC = () => {
             </motion.div>
           )}
         </form>
+        )}
       </motion.div>
 
       {/* Bank Account — independent from the KYC form; PATCHes api-users/me. */}
