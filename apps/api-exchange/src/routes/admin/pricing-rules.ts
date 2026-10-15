@@ -1,6 +1,17 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { getServerSupabase } from '../../lib/supabase.js';
 import { requireAdmin } from '../../middleware/admin.js';
+import { MAX_PRICING_SPREAD } from '@pxo/shared/consts';
+
+/** Reject a spread that is negative or implausibly large (see MAX_PRICING_SPREAD). */
+const spreadError = (field: string, value: number): string | null => {
+  if (!Number.isFinite(value)) return `${field} must be a number`;
+  if (value < 0) return `${field} must be non-negative`;
+  if (value > MAX_PRICING_SPREAD) {
+    return `${field} must be at most ${MAX_PRICING_SPREAD} (${MAX_PRICING_SPREAD * 100}%). Spreads are fractions, so 0.03 is 3%.`;
+  }
+  return null;
+};
 
 interface GetQuery {
   pair?: string;
@@ -65,8 +76,9 @@ export const pricingRulesRoutes: FastifyPluginAsync = async (app: FastifyInstanc
         });
       }
 
-      if (spread_buy < 0 || spread_sell < 0) {
-        return reply.code(400).send({ error: 'Spread values must be non-negative' });
+      const createError = spreadError('spread_buy', spread_buy) ?? spreadError('spread_sell', spread_sell);
+      if (createError) {
+        return reply.code(400).send({ error: createError });
       }
 
       const { data, error } = await supabase
@@ -111,15 +123,13 @@ export const pricingRulesRoutes: FastifyPluginAsync = async (app: FastifyInstanc
       const updateData: Record<string, unknown> = {};
       if (pair !== undefined) updateData.pair = pair.toUpperCase();
       if (spread_buy !== undefined) {
-        if (spread_buy < 0) {
-          return reply.code(400).send({ error: 'spread_buy must be non-negative' });
-        }
+        const err = spreadError('spread_buy', spread_buy);
+        if (err) return reply.code(400).send({ error: err });
         updateData.spread_buy = spread_buy;
       }
       if (spread_sell !== undefined) {
-        if (spread_sell < 0) {
-          return reply.code(400).send({ error: 'spread_sell must be non-negative' });
-        }
+        const err = spreadError('spread_sell', spread_sell);
+        if (err) return reply.code(400).send({ error: err });
         updateData.spread_sell = spread_sell;
       }
       updateData.updated_at = new Date().toISOString();
