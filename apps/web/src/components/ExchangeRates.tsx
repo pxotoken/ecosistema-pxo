@@ -510,7 +510,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
   };
 
   /**
-   * Deliberately NOT text-lime-accent: despite the name that token is #1e3a8a,
+   * Deliberately NOT text-brand-accent: despite the name that token is #1e3a8a,
    * a dark navy, which on the dashboard's near-black surface is invisible —
    * more so at the dimmed opacity it carries while there is nothing to spend.
    * The palette has no bright accent, so this follows the body text in each
@@ -534,7 +534,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
         onClick={() => setExchangeMode(exchangeMode === "buy" ? "sell" : "buy")}
         aria-label={exchangeMode === "buy" ? "Switch to selling PXO" : "Switch to buying PXO"}
         title={exchangeMode === "buy" ? "Switch to selling PXO" : "Switch to buying PXO"}
-        className="w-11 h-11 rounded-xl bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border text-light-text dark:text-dark-text flex items-center justify-center hover:border-lime-accent/50 hover:text-lime-accent transition-colors"
+        className="w-11 h-11 rounded-xl bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border text-light-text dark:text-dark-text flex items-center justify-center hover:border-brand-accent/50 hover:text-brand-accent transition-colors"
       >
         <ArrowUpDown className="w-5 h-5" />
       </motion.button>
@@ -573,7 +573,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowHistory(true)}
-            className="p-3 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-lime-accent/10 transition-colors duration-300 flex items-center space-x-2"
+            className="p-3 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-brand-accent/10 transition-colors duration-300 flex items-center space-x-2"
           >
             <History className="w-4 h-4 text-light-text dark:text-dark-text" />
             <span className="text-sm font-medium text-light-text dark:text-dark-text">
@@ -585,7 +585,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
             whileTap={{ scale: 0.95 }}
             onClick={handleRefresh}
             disabled={tokensLoading}
-            className="p-3 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-lime-accent/10 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-3 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-brand-accent/10 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw
               className={`w-5 h-5 text-light-text dark:text-dark-text ${
@@ -605,7 +605,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
             className="w-full md:w-1/2 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl p-6 flex items-center justify-center"
           >
             <div className="flex items-center space-x-3">
-              <Loader2 className="w-6 h-6 animate-spin text-lime-accent" />
+              <Loader2 className="w-6 h-6 animate-spin text-brand-accent" />
               <span className="text-light-text dark:text-dark-text">
                 Loading exchange rates...
               </span>
@@ -619,16 +619,16 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               whileHover={{ scale: 1.02 }}
-              className="w-full md:w-1/2 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl p-6 hover:border-lime-accent/30 transition-all hover:shadow-glow duration-300"
+              className="w-full md:w-1/2 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl p-6 hover:border-brand-accent/30 transition-all hover:shadow-glow duration-300"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <motion.div
-                    className="p-2 bg-gradient-to-br from-lime-accent/20 to-lime-accent/10 rounded-lg"
+                    className="p-2 bg-gradient-to-br from-brand-accent/20 to-brand-accent/10 rounded-lg"
                     whileHover={{ rotate: [0, -10, 10, 0] }}
                     transition={{ duration: 0.5 }}
                   >
-                    <Coins className="w-5 h-5 text-lime-accent" />
+                    <Coins className="w-5 h-5 text-brand-accent" />
                   </motion.div>
                   <div>
                     <h3 className="text-xl font-bold text-light-text dark:text-dark-text font-editorial">
@@ -638,7 +638,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                       <motion.div
                         animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                         transition={{ duration: 2, repeat: Infinity }}
-                        className="w-2 h-2 bg-lime-accent rounded-full"
+                        className="w-2 h-2 bg-brand-accent rounded-full"
                       />
                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                         Last update: {lastUpdate.toLocaleTimeString()}
@@ -662,12 +662,12 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 0.8, delay: 0.3 }}
-                    className="h-1 bg-lime-accent rounded-full mt-1"
+                    className="h-1 bg-brand-accent rounded-full mt-1"
                   />
                 </div>
               </div>
 
-              {/* <div className={`flex items-center space-x-1 ${rate.change >= 0 ? 'text-lime-accent' : 'text-red-400'}`}>
+              {/* <div className={`flex items-center space-x-1 ${rate.change >= 0 ? 'text-brand-accent' : 'text-red-400'}`}>
                 {rate.change >= 0 ? (
                   <TrendingUp className="w-5 h-5" />
                 ) : (
@@ -676,7 +676,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 <span className="font-medium">{rate.changePercent > 0 ? '+' : ''}{rate.changePercent}%</span>
               </div> */}
 
-              {/* <span className={`text-sm ${rate.change >= 0 ? 'text-lime-accent dark:text-dark-text' : 'text-red-400'}`}>
+              {/* <span className={`text-sm ${rate.change >= 0 ? 'text-brand-accent dark:text-dark-text' : 'text-red-400'}`}>
                   {rate.change > 0 ? '+' : ''}{rate.change.toFixed(4)}
                 </span> */}
 
@@ -741,7 +741,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                     setBalanceError("");
                   }}
                   disabled={loading}
-                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="USDC">USDC</option>
                   <option value="USDT">USDT</option>
@@ -765,7 +765,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   }}
                   min="0.01"
                   step="any"
-                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
               <button
@@ -787,7 +787,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
               </label>
               <div className="flex w-full">
                 <select
-                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
+                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
                   disabled
                 >
                   <option>PXO</option>
@@ -797,7 +797,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   placeholder="PXO equivalent"
                   value={pxoAmount || ""}
                   readOnly
-                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300"
+                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 flex-1 min-w-0 transition-colors duration-300"
                 />
               </div>
             </div>
@@ -807,7 +807,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 whileTap={{ scale: 0.98 }}
                 onClick={handleExchange}
                 disabled={initialLoading || loading || amount <= 0 || amount > userBalance}
-                className="w-full bg-lime-accent text-white px-6 py-3 sm:py-3.5 rounded-xl font-medium text-sm sm:text-base hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full bg-brand-accent text-white px-6 py-3 sm:py-3.5 rounded-xl font-medium text-sm sm:text-base hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {loading ? (
                   <>
@@ -835,7 +835,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
               </div>
               <div className="flex w-full">
                 <select
-                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
+                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
                   disabled
                 >
                   <option>PXO</option>
@@ -876,7 +876,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   }}
                   min="0.0001"
                   step="any"
-                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 flex-1 min-w-0 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
               <button
@@ -898,7 +898,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
               </label>
               <div className="flex w-full">
                 <select
-                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
+                  className="bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-l-xl px-2 sm:px-3 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 transition-colors duration-300 min-w-[70px] sm:min-w-[80px]"
                   disabled
                 >
                   <option>{sellTokenSymbol}</option>
@@ -908,7 +908,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                   placeholder="You'll receive"
                   value={sellUsdcAmount || ""}
                   readOnly
-                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 flex-1 min-w-0 transition-colors duration-300"
+                  className="bg-light-glass dark:bg-dark-glass border border-l-0 border-light-border dark:border-dark-border rounded-r-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 flex-1 min-w-0 transition-colors duration-300"
                 />
               </div>
             </div>
@@ -918,7 +918,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSellExchange}
                 disabled={sellLoading || sellPxoAmount <= 0 || sellPxoAmount > pxoBalance}
-                className="w-full bg-lime-accent text-white px-6 py-3 sm:py-3.5 rounded-xl font-medium text-sm sm:text-base hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full bg-brand-accent text-white px-6 py-3 sm:py-3.5 rounded-xl font-medium text-sm sm:text-base hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
                 {sellLoading ? (
                   <>
@@ -956,7 +956,7 @@ export const ExchangeRates: React.FC<ExchangeRatesProps> = ({ lockedMode, title 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowHistory(false)}
-                className="absolute top-4 right-4 z-10 p-2 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-lime-accent/10 transition-colors duration-300"
+                className="absolute top-4 right-4 z-10 p-2 bg-light-glass dark:bg-dark-glass rounded-full hover:bg-brand-accent/10 transition-colors duration-300"
               >
                 <span className="text-2xl text-light-text dark:text-dark-text">
                   ×

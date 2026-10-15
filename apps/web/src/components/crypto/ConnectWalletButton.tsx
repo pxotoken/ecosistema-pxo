@@ -23,8 +23,8 @@ export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
   const baseClasses = "px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
 
   const variantClasses = {
-    primary: "bg-lime-accent hover:bg-lime-accent/90 text-white focus:ring-lime-accent/50",
-    secondary: "bg-transparent border-2 border-lime-accent text-lime-accent dark:text-dark-text hover:bg-lime-accent hover:text-white focus:ring-lime-accent/50"
+    primary: "bg-brand-accent hover:bg-brand-accent/90 text-white focus:ring-brand-accent/50",
+    secondary: "bg-transparent border-2 border-brand-accent text-brand-accent dark:text-dark-text hover:bg-brand-accent hover:text-white focus:ring-brand-accent/50"
   };
 
   if (isAuthenticated) {

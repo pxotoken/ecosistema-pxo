@@ -147,7 +147,7 @@ export const ViewAssetsModal: React.FC<ViewAssetsModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="relative p-6 bg-gradient-to-br from-lime-accent/10 to-lime-accent/5 border-b border-light-border dark:border-dark-border">
+            <div className="relative p-6 bg-gradient-to-br from-brand-accent/10 to-brand-accent/5 border-b border-light-border dark:border-dark-border">
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors"
@@ -178,7 +178,7 @@ export const ViewAssetsModal: React.FC<ViewAssetsModalProps> = ({
                     </p>
                     <button
                       onClick={() => copyToClipboard(account.address)}
-                      className="text-light-text-secondary dark:text-dark-text-secondary hover:text-lime-accent dark:hover:text-dark-text transition-colors"
+                      className="text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-accent dark:hover:text-dark-text transition-colors"
                     >
                       <Copy size={16} />
                     </button>
@@ -186,7 +186,7 @@ export const ViewAssetsModal: React.FC<ViewAssetsModalProps> = ({
                       href={getExplorerUrl(account.address)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-light-text-secondary dark:text-dark-text-secondary hover:text-lime-accent dark:hover:text-dark-text transition-colors"
+                      className="text-light-text-secondary dark:text-dark-text-secondary hover:text-brand-accent dark:hover:text-dark-text transition-colors"
                     >
                       <ExternalLink size={16} />
                     </a>
@@ -199,7 +199,7 @@ export const ViewAssetsModal: React.FC<ViewAssetsModalProps> = ({
             <div className="p-6">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-lime-accent"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
                   <span className="ml-3 text-light-text dark:text-dark-text">Loading balances...</span>
                 </div>
               ) : balances.length === 0 ? (

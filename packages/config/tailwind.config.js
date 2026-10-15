@@ -29,8 +29,8 @@ export default {
         'light-border': 'rgba(30, 58, 138, 0.1)',
         'light-text': '#1e293b',
         'light-text-secondary': '#475569',
-        'lime-accent': '#1e3a8a',
-        'lime-glow': 'rgba(30, 58, 138, 0.2)',
+        'brand-accent': '#1e3a8a',
+        'brand-glow': 'rgba(30, 58, 138, 0.2)',
         'pxo': {
           'primary': '#143C72',
           'secondary': '#0F2D57',

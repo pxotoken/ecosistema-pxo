@@ -85,8 +85,8 @@ export const SessionRenewalModal: React.FC<SessionRenewalModalProps> = ({
           >
             <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-2xl p-8 w-full max-w-md">
               {isCriticalActivity && (
-                <div className="mb-6 p-4 bg-lime-accent/10 border border-lime-accent/30 rounded-lg">
-                  <div className="flex items-center gap-3 text-lime-accent">
+                <div className="mb-6 p-4 bg-brand-accent/10 border border-brand-accent/30 rounded-lg">
+                  <div className="flex items-center gap-3 text-brand-accent">
                     <Activity className="w-5 h-5 animate-pulse" />
                     <div>
                       <p className="font-semibold text-sm">
@@ -139,7 +139,7 @@ export const SessionRenewalModal: React.FC<SessionRenewalModalProps> = ({
                       whileTap={{ scale: 0.98 }}
                       onClick={onRenew}
                       disabled={isRenewing}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-lime-accent hover:bg-lime-accent/90 text-white rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       <RefreshCw className={`w-5 h-5 ${isRenewing ? 'animate-spin' : ''}`} />
                       {isRenewing ? 'Renewing...' : 'Renew session'}
@@ -158,7 +158,7 @@ export const SessionRenewalModal: React.FC<SessionRenewalModalProps> = ({
                 </>
               ) : (
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 text-lime-accent mb-4">
+                  <div className="flex items-center justify-center gap-2 text-brand-accent mb-4">
                     <RefreshCw className="w-5 h-5 animate-spin" />
                     <span className="font-medium">
                       Auto-renewal enabled

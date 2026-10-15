@@ -93,7 +93,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="flex items-center justify-between p-4 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl shadow-glass transition-all duration-300 cursor-pointer hover:shadow-glow hover:border-lime-accent/30"
+              className="flex items-center justify-between p-4 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl shadow-glass transition-all duration-300 cursor-pointer hover:shadow-glow hover:border-brand-accent/30"
               onClick={() => handleViewSubProduct(subProduct)}
             >
               <div>
@@ -164,7 +164,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           </p>
         </div>
 
-        <div className="p-6 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl hover:border-lime-accent/30 transition-all hover:shadow-glow duration-300">
+        <div className="p-6 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl hover:border-brand-accent/30 transition-all hover:shadow-glow duration-300">
           <p className="text-light-text-secondary dark:text-dark-text-secondary text-base mb-4">
             {selectedSubProduct?.description ?? 'No description available.'}
           </p>
@@ -172,11 +172,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <h3 className="text-xl font-bold text-light-text dark:text-dark-text font-editorial mb-3">Investment Details</h3>
           <ul className="space-y-2 mb-6">
             <li className="flex items-center text-light-text dark:text-dark-text text-sm">
-              <ArrowRight size={16} className="mr-2 text-lime-accent dark:text-dark-text" />
+              <ArrowRight size={16} className="mr-2 text-brand-accent dark:text-dark-text" />
               Minimum Investment: ${selectedSubProduct?.minInvestment ?? 'N/A'}
             </li>
             <li className="flex items-center text-light-text dark:text-dark-text text-sm">
-              <ArrowRight size={16} className="mr-2 text-lime-accent dark:text-dark-text" />
+              <ArrowRight size={16} className="mr-2 text-brand-accent dark:text-dark-text" />
               Expected Return: {selectedSubProduct?.expectedReturn ?? 'N/A'}
             </li>
           </ul>
@@ -189,13 +189,13 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 value={investmentAmount}
                 onChange={handleInvestmentChange}
                 placeholder={`Min. ${selectedSubProduct?.minInvestment ?? 'N/A'}`}
-                className="flex-1 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg px-4 py-2 text-light-text dark:text-dark-text focus:outline-none focus:border-lime-accent/50 transition-colors duration-300"
+                className="flex-1 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg px-4 py-2 text-light-text dark:text-dark-text focus:outline-none focus:border-brand-accent/50 transition-colors duration-300"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleInvestNow}
-                className="bg-lime-accent text-white px-6 py-2 rounded-lg font-medium hover:bg-lime-accent/90 transition-colors duration-300"
+                className="bg-brand-accent text-white px-6 py-2 rounded-lg font-medium hover:bg-brand-accent/90 transition-colors duration-300"
               >
                 Invest Now
               </motion.button>
@@ -209,7 +209,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 {relatedSubProducts.map((relatedSp) => (
                   <div
                     key={relatedSp.id}
-                    className="flex items-center justify-between p-4 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl shadow-glass transition-all duration-300 cursor-pointer hover:shadow-glow hover:border-lime-accent/30"
+                    className="flex items-center justify-between p-4 bg-light-surface/50 dark:bg-dark-surface/50 backdrop-blur-sm border border-light-border dark:border-dark-border rounded-xl shadow-glass transition-all duration-300 cursor-pointer hover:shadow-glow hover:border-brand-accent/30"
                     onClick={() => handleViewSubProduct(relatedSp)}
                   >
                     <div>
