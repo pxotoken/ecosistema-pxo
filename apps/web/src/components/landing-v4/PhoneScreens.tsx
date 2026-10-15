@@ -28,7 +28,9 @@ export const AccountScreen: React.FC = () => {
       <div className="bal">
         <small>{s.balance}</small>
         <b>12,500.00</b>
-        <span>PXO · $12,500.00 MXN</span>
+        {/* The MXN equivalence was removed from the balance line in the
+            October 2026 copy pass; see the backing/reserve rewording. */}
+        <span>PXO</span>
       </div>
       <div className="acts">
         <div>{s.buy}</div>
