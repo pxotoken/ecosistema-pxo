@@ -217,6 +217,22 @@ export const KYCSettings: React.FC = () => {
   const savedClabe = user?.CLABE ?? null;
   const clabeChanged = clabeInput !== '' && clabeInput !== (savedClabe ?? '');
   const clabeInputValid = /^\d{18}$/.test(clabeInput);
+  /**
+   * A registered CLABE is shown read-only behind an Edit button. The field is
+   * seeded with the live value, so leaving it open means a stray keystroke
+   * both hides the "currently registered" reference (it is gated on
+   * !clabeChanged) and leaves the input showing something that is not actually
+   * registered. Nothing can persist without clicking Update, but the display
+   * should not drift from the stored value either.
+   */
+  const [isEditingClabe, setIsEditingClabe] = useState(false);
+  const clabeLocked = Boolean(savedClabe) && !isEditingClabe;
+
+  const cancelClabeEdit = () => {
+    setClabeInput(savedClabe ?? '');
+    setClabeError(null);
+    setIsEditingClabe(false);
+  };
 
   const toDateInputValue = (raw: string | undefined): string => {
     if (!raw) return '';
@@ -312,6 +328,8 @@ export const KYCSettings: React.FC = () => {
         updateUser({ ...user!, CLABE: data.user.CLABE });
       }
       showToast('CLABE saved successfully', 'success');
+      // Back to the locked view; the field has served its purpose.
+      setIsEditingClabe(false);
     } catch (err) {
       if (
         typeof err === 'object' &&
@@ -785,15 +803,48 @@ export const KYCSettings: React.FC = () => {
         className="bg-light-surface dark:bg-dark-surface rounded-xl p-6 border border-light-border dark:border-dark-border"
       >
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
-            <Landmark className="w-5 h-5" />
-            Bank Account (SPEI)
-          </h3>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+              <Landmark className="w-5 h-5" />
+              Bank Account (SPEI)
+            </h3>
+            {savedClabe && (
+              isEditingClabe ? (
+                <button
+                  type="button"
+                  onClick={cancelClabeEdit}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-glass dark:hover:bg-dark-glass transition-colors shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingClabe(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-pxo-primary hover:bg-pxo-primary/10 transition-colors shrink-0"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit
+                </button>
+              )
+            )}
+          </div>
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
             Register your CLABE (18-digit bank account) to enable MXN deposits via SPEI. All
             SPEI deposits used to buy PXO must originate from this account.
           </p>
 
+          {clabeLocked ? (
+            <div>
+              <span className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                CLABE
+              </span>
+              <span className="text-sm font-mono tracking-wider text-light-text dark:text-dark-text">
+                ****{savedClabe?.slice(-4)}
+              </span>
+            </div>
+          ) : (
           <div>
             <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
               CLABE *
@@ -823,7 +874,9 @@ export const KYCSettings: React.FC = () => {
               <p className="text-sm text-red-500 mt-1">{clabeError}</p>
             )}
           </div>
+          )}
 
+          {!clabeLocked && (
           <motion.button
             type="button"
             onClick={handleSaveClabe}
@@ -848,6 +901,7 @@ export const KYCSettings: React.FC = () => {
               </>
             )}
           </motion.button>
+          )}
         </div>
       </motion.div>
 
