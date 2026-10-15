@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -7,6 +7,8 @@ import {
   Save,
   Loader2,
   Landmark,
+  Pencil,
+  X,
 } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { KYCStatusBadge } from './KYCStatusBadge';
@@ -161,6 +163,28 @@ export const KYCSettings: React.FC = () => {
    * something is still being asked of the user.
    */
   const isValidated = user?.KYC_status === KYCStatus.VALIDATED;
+
+  /**
+   * Escape hatch from that summary. The warning about re-validation stays on
+   * submit, where the consequence actually is — entering edit mode costs
+   * nothing, so gating it behind a dialog would only be noise.
+   */
+  const [isEditing, setIsEditing] = useState(false);
+  const preEditSnapshot = useRef<KYCFormData | null>(null);
+
+  const startEditing = () => {
+    preEditSnapshot.current = formData;
+    setIsEditing(true);
+  };
+
+  // Restore the snapshot, so abandoning an edit cannot leave the summary
+  // showing values that were never submitted.
+  const cancelEditing = () => {
+    if (preEditSnapshot.current) setFormData(preEditSnapshot.current);
+    preEditSnapshot.current = null;
+    setFormErrors({});
+    setIsEditing(false);
+  };
 
   const [formData, setFormData] = useState<KYCFormData>({
     firstName: '',
@@ -467,7 +491,31 @@ export const KYCSettings: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-light-surface dark:bg-dark-surface rounded-xl p-6 border border-light-border dark:border-dark-border"
       >
-        {isValidated ? (
+        {isValidated && (
+          <div className="flex justify-end mb-2">
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-glass dark:hover:bg-dark-glass transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={startEditing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-pxo-primary hover:bg-pxo-primary/10 transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </button>
+            )}
+          </div>
+        )}
+
+        {isValidated && !isEditing ? (
           <div className="divide-y-0">
             <SummaryRow
               label="Name"
