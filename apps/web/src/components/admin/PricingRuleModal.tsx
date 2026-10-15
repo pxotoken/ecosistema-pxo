@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PricingRule } from '../../hooks/usePricingRules';
 import { X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MAX_PRICING_SPREAD } from '@pxo/shared/consts';
 
 interface PricingRuleModalProps {
   rule: PricingRule | null;
@@ -9,6 +10,16 @@ interface PricingRuleModalProps {
   onClose: () => void;
   onSave: (ruleData: Omit<PricingRule, 'id' | 'updated_at'> | Partial<PricingRule> & { id: string }) => Promise<void>;
 }
+
+/**
+ * A number input's `max` only blocks native form validation; it does not stop
+ * React from storing whatever was typed or pasted. Clamp here so a slipped
+ * decimal (0.58 instead of 0.058) cannot reach the request at all.
+ */
+const clampSpread = (value: number): number => {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.min(value, MAX_PRICING_SPREAD);
+};
 
 export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
   rule,
@@ -109,16 +120,16 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
 
             <div>
               <label htmlFor="spread-buy-input" className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
-                Spread Buy (e.g.: 0.03 = 3%)
+                {`Spread Buy (e.g.: 0.03 = 3%, max ${MAX_PRICING_SPREAD})`}
               </label>
               <input
                 id="spread-buy-input"
                 type="number"
                 step="0.0001"
                 min="0"
-                max="1"
+                max={MAX_PRICING_SPREAD}
                 value={spreadBuy}
-                onChange={(e) => setSpreadBuy(Number.parseFloat(e.target.value) || 0)}
+                onChange={(e) => setSpreadBuy(clampSpread(Number.parseFloat(e.target.value)))}
                 placeholder="0.03"
                 required
                 className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-lime-accent"
@@ -130,16 +141,16 @@ export const PricingRuleModal: React.FC<PricingRuleModalProps> = ({
 
             <div>
               <label htmlFor="spread-sell-input" className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">
-                Spread Sell (e.g.: 0.03 = 3%)
+                {`Spread Sell (e.g.: 0.03 = 3%, max ${MAX_PRICING_SPREAD})`}
               </label>
               <input
                 id="spread-sell-input"
                 type="number"
                 step="0.0001"
                 min="0"
-                max="1"
+                max={MAX_PRICING_SPREAD}
                 value={spreadSell}
-                onChange={(e) => setSpreadSell(Number.parseFloat(e.target.value) || 0)}
+                onChange={(e) => setSpreadSell(clampSpread(Number.parseFloat(e.target.value)))}
                 placeholder="0.03"
                 required
                 className="w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-lime-accent"
