@@ -51,6 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
+- [ ] **SL-022** — No production withdrawal has ever completed; nine of ten die at `AWAITING_PXO` (measured 2026-10-15)
 - [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
 
 ---
@@ -616,9 +617,11 @@ The second row is the proof that matters: that 401 is the *service's* error, so 
 **Not every service can lose its public domain, and the reason is not obvious.** Deposits and withdrawals do not share a mechanism:
 
 - **Deposits** are polled. `deposit-matching-worker` pulls recent Bitso fundings on an interval (`DEPOSIT_MATCH_WORKER_ENABLED=true` in prod). Outbound only — unaffected by removing inbound hostnames.
-- **Withdrawals** are pushed. The Bitso webhook (`routes/webhooks/bitso.ts` → `parseBitsoWithdrawalEvent`, keyed on `bitso_withdrawal_id`) is the **only** thing that marks a SPEI payout complete or failed.
+- **Withdrawals** are pushed, but not exclusively. The Bitso webhook (`routes/webhooks/bitso.ts` → `parseBitsoWithdrawalEvent`, keyed on `bitso_withdrawal_id`) marks a SPEI payout complete or failed — and so does the status endpoint the frontend polls, `GET /sell-pxo-mxn/:id`, which calls `bitsoGetWithdrawalStatus` whenever it finds an intent at `SPEI_SENT` and updates it with a conditional write that races the webhook safely. **Corrected 2026-10-15:** this entry previously said the webhook was the only such path. It is not. The comment above that endpoint says it was built for exactly this reason — "to make the demo work without a configured Bitso webhook".
 
-So deleting `api-exchange`'s public domain would leave withdrawals stuck in `spei_pending` indefinitely — the state the "up to 24 hours" notice describes.
+So deleting `api-exchange`'s public domain degrades withdrawals rather than stranding them: they would be confirmed only while a user has the page open and polling. Close the tab and the intent sits at `SPEI_SENT` until someone returns to it. Still a reason to keep the webhook reachable, but a weaker constraint than first recorded.
+
+**Measured in production on 2026-10-15, and it changes the urgency.** No withdrawal has ever reached the SPEI stage: of ten `redemption_intents` ever created, nine sit at `AWAITING_PXO` and one `FAILED` before any payout — zero at `SPEI_SENT`, zero `COMPLETED`. The webhook has never had anything to confirm, so nothing is stuck and no money is affected. Deposits, by contrast, work: 18 intents, 4 completed. The gap is latent and would bite on the first real withdrawal. The drop-off those nine represent is [SL-022](#sl-022--nine-of-ten-production-withdrawals-never-get-past-awaiting_pxo).
 
 **The obvious fix for that is a trap.** Re-registering the webhook to the orchestrator and then removing the domain would make every delivery fail *closed*, silently:
 
@@ -671,6 +674,37 @@ Two notes for whoever runs phase 2:
 **Relationship to the partner-API work.** This is a prerequisite, not part of it. Issuing third-party API keys while the services answer unauthenticated calls directly would be adding a lock to a door that is not attached to a wall. Note also that `api-pagos` already implements a merchant API-key model — `Authorization: Bearer <apiKey>` plus `X-POS-ID`, hashed `api_key_hash`, suspension and KYB gating, and the only rate limiting in the codebase — and that `MerchantService` flags its SHA-256 hashing as needing bcrypt/argon2 with a pepper before production use. Whatever partner authentication gets built should extend that model rather than introduce a second credential system.
 
 **Also worth noting while here:** the orchestrator has no rate limiting of any kind, and there is no OpenAPI/Swagger definition anywhere in the repo.
+
+### SL-022 · Nine of ten production withdrawals never get past AWAITING_PXO
+**Type:** 🔍 Discovery → 🔧 Code
+**Effort:** a couple of hours to establish the cause; unknown to fix until then
+**Status:** Open, measured 2026-10-15 while checking whether the Bitso webhook was live.
+
+**What the data says.** Every `redemption_intents` row ever created in production:
+
+| Status | Count | Meaning |
+|---|---|---|
+| `AWAITING_PXO` | 9 | Intent created, the user's PXO never arrived at treasury |
+| `FAILED` | 1 | 2026-08-04, no `bitso_withdrawal_id` — failed before any payout |
+| `SPEI_SENT` | 0 | |
+| `COMPLETED` | 0 | |
+
+**No withdrawal has ever completed in production.** Deposits work — 18 intents, 4 completed — so money goes in and has never come out. Nothing is stuck and no funds are at risk, because nothing reached the payout stage; the failure is that users start a withdrawal and abandon it.
+
+**Where they stop.** `AWAITING_PXO` is set when the intent is created and before the on-chain transfer lands. The user must then sign a PXO transfer to treasury from their wallet (`RedeemPxoToMxn` → `sendTransaction`). Nine people got an intent created and never produced a confirmed transfer. Candidate causes, none yet checked:
+
+- the wallet signature prompt is never completed (declined, missed, or the session dropped)
+- the transfer is signed but fails on-chain — gas, or the fixed `TOKEN_TRANSFER_GAS_LIMIT` path
+- the transfer confirms but the backend confirmation call fails, leaving the row behind the chain
+- the flow was only ever exercised in testing and the rows are abandoned experiments
+
+The last one matters: with a beta of roughly six users, nine intents may be the same person retrying, not nine separate people giving up. **Establish that first** — group the rows by `user_id` and check whether any has a matching on-chain transfer to the treasury address. A single tester retrying is a different problem from a systematic drop-off, and the fix differs.
+
+**Why it is worth doing before the retail-adopter work.** A redemption path that has never once completed end to end in production is not a path anyone should be invited onto. It also decides the real urgency of the Bitso webhook: the webhook only matters once intents actually reach `SPEI_SENT`, which has never happened.
+
+**Done when:** the cause of the nine is named, with evidence; if it is a product defect, fixed; and at least one withdrawal has gone `AWAITING_PXO` → `PXO_RECEIVED` → `SPEI_SENT` → `COMPLETED` in production.
+
+**Related:** [SL-021](#sl-021--every-backend-service-is-on-the-public-internet-and-trusts-a-forgeable-identity-header) records the webhook's confirmation paths; the measurement above came out of that work.
 
 ## 🟧 Tier 2 — Pre-official-launch
 

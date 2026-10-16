@@ -28,9 +28,12 @@ reads the same header.
 **`api-exchange` and `api-pagos` are deliberately excluded.** Their public
 hostnames serve endpoints that are legitimately public and authenticate
 themselves — the Bitso withdrawal webhook by RSA signature plus IP allowlist,
-and `api-pagos` by merchant API key. Removing those domains would strand SPEI
-withdrawals in `spei_pending`, because the webhook is the only thing that marks
-a payout complete. See SL-021 phase 2: those two need the gateway-secret
+and `api-pagos` by merchant API key. Removing those domains would degrade SPEI
+withdrawal confirmation: the webhook is the push path, and the only other one
+is `GET /sell-pxo-mxn/:id`, which confirms against Bitso while the user's page
+is polling — so a user who closes the tab leaves the intent at `SPEI_SENT`
+until they return. (Corrected 2026-10-15; this said the webhook was the only
+path, which is wrong.) See SL-021 phase 2: those two need the gateway-secret
 variant, not domain removal.
 
 The orchestrator keeps its public domain. That is the front door.
