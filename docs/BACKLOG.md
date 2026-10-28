@@ -51,6 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
+- [ ] **SL-023** — Identity documents (passports, INE) are served from a public bucket with no expiry; make it private + signed URLs
 - [ ] **SL-022** — No production withdrawal has ever completed; nine of ten die at `AWAITING_PXO` (measured 2026-10-15)
 - [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
 
@@ -705,6 +706,42 @@ The last one matters: with a beta of roughly six users, nine intents may be the 
 **Done when:** the cause of the nine is named, with evidence; if it is a product defect, fixed; and at least one withdrawal has gone `AWAITING_PXO` → `PXO_RECEIVED` → `SPEI_SENT` → `COMPLETED` in production.
 
 **Related:** [SL-021](#sl-021--every-backend-service-is-on-the-public-internet-and-trusts-a-forgeable-identity-header) records the webhook's confirmation paths; the measurement above came out of that work.
+
+### SL-023 · ID documents are served from a public bucket, with no expiry
+**Type:** 🔧 Code + 🔐 Ops
+**Effort:** 2-3 hours for the code; the bucket flip and a backfill check are Adrian's
+**Status:** Open, found 2026-10-20 while establishing whether a KYC vendor was in use. Re-verified 2026-10-28.
+
+**What is true today.** `apps/api-kyc/src/lib/kyc-storage.ts` uploads passports and INE photos to the Supabase bucket `pxos-files` and returns `getPublicUrl(...)`. The bucket is public, so every uploaded identity document is readable over unauthenticated HTTP by anyone holding the URL, forever — no signature, no expiry, no revocation.
+
+Confirmed without touching a real document, by comparing error shapes on a path that cannot exist:
+
+```
+pxos-files/identification-photos/0000…0000.jpg  →  {"error":"not_found","code":"NoSuchKey"}
+definitely-not-a-bucket-xyz/a.jpg               →  {"error":"Bucket not found","code":"NoSuchBucket"}
+```
+
+`NoSuchKey` rather than a permission error is the bucket saying the object is missing from a bucket it was willing to read.
+
+**Why the UUID filenames are not the control.** Names are `randomUUID()`, so the set is not enumerable — but the URLs are stored in `kyc_submissions.documents`, rendered in the admin review modal, and sit in the browser history of every reviewer and every applicant. Anyone who obtains one keeps access indefinitely. That is obscurity, not access control, and it fails the moment a URL is pasted into a ticket, a chat, or a screenshot.
+
+**Why this is Tier 1.** The documents are government identity papers belonging to real users. The public landing page states compliance with the Ley Federal de Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita; serving the identity evidence for that process over anonymous HTTP is hard to square with it. This also sits directly in front of the retail-adopter work, which will multiply the number of documents held.
+
+**The fix is contained, because the database stores the path and not the URL.** `kyc_repository.ts` persists `documents[].path`; the public URL is reconstructed at render time in exactly three places:
+
+| Site | What it does |
+|---|---|
+| `api-kyc/src/lib/kyc-storage.ts:40` | returns `getPublicUrl` on upload |
+| `web/src/components/kyc/KycDetailsModal.tsx:14-19` | builds the URL for the admin reviewer |
+| `web/src/components/settings/KYCSettings.tsx:260` | builds the URL for the applicant's own view |
+
+So: make the bucket private, add a short-lived signed-URL endpoint in `api-kyc` behind the existing `requireCaller` / `requireAdmin` guards, and have both front-ends ask for a signed URL instead of composing one. Note that the two front-end call sites compose the URL from `VITE_SUPABASE_URL` client-side — they do not go through `api-kyc` at all today, so this is the part that actually changes shape.
+
+**Done when:** the bucket rejects unauthenticated reads (`NoSuchKey` becomes a permission error for a path-shaped request), both the applicant view and the admin review modal still display documents, and a signed URL stops working after its TTL.
+
+**Also worth deciding, not blocking:** whether documents should be retained indefinitely at all once a submission is approved, and what the deletion policy is. Nothing deletes them today.
+
+**Context, not part of this item.** KYC is entirely in-house: `api-kyc` depends only on Fastify, `@fastify/multipart` and Supabase, makes no outbound HTTP calls, and approval is one admin clicking approve or reject, gated by `KYC_ADMIN_WALLETS`. There is no OCR, liveness, face match, document authenticity check, or sanctions/PEP screening. Whether that is sufficient is a compliance decision Adrian is raising with management (2026-10-28); this entry is only about the storage exposure, which is wrong regardless of how that decision lands.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
