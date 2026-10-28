@@ -52,7 +52,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
 - [ ] **SL-023** — Identity documents (passports, INE) are served from a public bucket with no expiry; make it private + signed URLs
-- [ ] **SL-022** — No production withdrawal has ever completed; nine of ten die at `AWAITING_PXO` (measured 2026-10-15)
+- [ ] **SL-022** — The MXN withdrawal path has never been exercised end to end; run one supervised before inviting anyone onto it
 - [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
 
 ---
@@ -622,7 +622,7 @@ The second row is the proof that matters: that 401 is the *service's* error, so 
 
 So deleting `api-exchange`'s public domain degrades withdrawals rather than stranding them: they would be confirmed only while a user has the page open and polling. Close the tab and the intent sits at `SPEI_SENT` until someone returns to it. Still a reason to keep the webhook reachable, but a weaker constraint than first recorded.
 
-**Measured in production on 2026-10-15, and it changes the urgency.** No withdrawal has ever reached the SPEI stage: of ten `redemption_intents` ever created, nine sit at `AWAITING_PXO` and one `FAILED` before any payout — zero at `SPEI_SENT`, zero `COMPLETED`. The webhook has never had anything to confirm, so nothing is stuck and no money is affected. Deposits, by contrast, work: 18 intents, 4 completed. The gap is latent and would bite on the first real withdrawal. The drop-off those nine represent is [SL-022](#sl-022--nine-of-ten-production-withdrawals-never-get-past-awaiting_pxo).
+**Measured in production on 2026-10-15, and it changes the urgency.** No withdrawal has ever reached the SPEI stage: of ten `redemption_intents` ever created, nine sit at `AWAITING_PXO` and one `FAILED` before any payout — zero at `SPEI_SENT`, zero `COMPLETED`. The webhook has never had anything to confirm, so nothing is stuck and no money is affected. Deposits, by contrast, work: 18 intents, 4 completed. The gap is latent and would bite on the first real withdrawal. Those nine rows are abandoned test attempts, not users dropping off — the path has never been exercised end to end: [SL-022](#sl-022--the-mxn-withdrawal-path-has-never-been-exercised-end-to-end).
 
 **The obvious fix for that is a trap.** Re-registering the webhook to the orchestrator and then removing the domain would make every delivery fail *closed*, silently:
 
@@ -676,10 +676,12 @@ Two notes for whoever runs phase 2:
 
 **Also worth noting while here:** the orchestrator has no rate limiting of any kind, and there is no OpenAPI/Swagger definition anywhere in the repo.
 
-### SL-022 · Nine of ten production withdrawals never get past AWAITING_PXO
-**Type:** 🔍 Discovery → 🔧 Code
-**Effort:** a couple of hours to establish the cause; unknown to fix until then
-**Status:** Open, measured 2026-10-15 while checking whether the Bitso webhook was live.
+### SL-022 · The MXN withdrawal path has never been exercised end to end
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** half a day for a supervised end-to-end run; unknown beyond that until it is attempted
+**Status:** Open, measured 2026-10-15 while checking whether the Bitso webhook was live. **Reframed 2026-10-28:** Adrian confirms the feature was never actually tested — the last attempt was 2026-08-04 and no feedback on it was ever received. The nine stalled rows are abandoned trials, not users giving up on a working feature.
+
+**This is an untested path, not a reported defect.** The title previously read as a drop-off problem; it is not. Nobody has ever completed a withdrawal in production, and nobody has tried since August. Supporting the same reading from the code: the backend route `sell-pxo-mxn.ts` has had no functional change since 2026-06-18 (every commit touching it since is a UI or theme pass), so the behaviour of the nine rows is the behaviour of a path that was built, deployed and then left alone. The flow is still reachable — Sidebar → Sell → SPEI → `RedeemPxoPage` — so nothing structurally blocks it.
 
 **What the data says.** Every `redemption_intents` row ever created in production:
 
@@ -692,6 +694,8 @@ Two notes for whoever runs phase 2:
 
 **No withdrawal has ever completed in production.** Deposits work — 18 intents, 4 completed — so money goes in and has never come out. Nothing is stuck and no funds are at risk, because nothing reached the payout stage; the failure is that users start a withdrawal and abandon it.
 
+**What to do first: run one, deliberately, and watch it.** The open question is no longer "why are users dropping off" but "does this work at all". A supervised withdrawal of a trivial amount, followed through every state, either completes — in which case the nine rows are explained and the item narrows to whatever friction shows up — or it stops somewhere, and that stopping point is the actual bug, observed rather than inferred. Doing this also produces the first `SPEI_SENT` row in production, which is what makes the Bitso webhook question answerable at all (see SL-021): it cannot matter until an intent reaches that state.
+
 **Where they stop.** `AWAITING_PXO` is set when the intent is created and before the on-chain transfer lands. The user must then sign a PXO transfer to treasury from their wallet (`RedeemPxoToMxn` → `sendTransaction`). Nine people got an intent created and never produced a confirmed transfer. Candidate causes, none yet checked:
 
 - the wallet signature prompt is never completed (declined, missed, or the session dropped)
@@ -699,11 +703,11 @@ Two notes for whoever runs phase 2:
 - the transfer confirms but the backend confirmation call fails, leaving the row behind the chain
 - the flow was only ever exercised in testing and the rows are abandoned experiments
 
-The last one matters: with a beta of roughly six users, nine intents may be the same person retrying, not nine separate people giving up. **Establish that first** — group the rows by `user_id` and check whether any has a matching on-chain transfer to the treasury address. A single tester retrying is a different problem from a systematic drop-off, and the fix differs.
+**Confirmed 2026-10-28:** the last of these candidates is the right one. These are abandoned test attempts, so the others are hypotheses about a path nobody has driven to completion rather than explanations of observed user behaviour. Grouping the rows by `user_id` is still worth a minute, to see whether any attempt produced a confirmed on-chain transfer before stalling — that would narrow where the first supervised run is likely to stop.
 
 **Why it is worth doing before the retail-adopter work.** A redemption path that has never once completed end to end in production is not a path anyone should be invited onto. It also decides the real urgency of the Bitso webhook: the webhook only matters once intents actually reach `SPEI_SENT`, which has never happened.
 
-**Done when:** the cause of the nine is named, with evidence; if it is a product defect, fixed; and at least one withdrawal has gone `AWAITING_PXO` → `PXO_RECEIVED` → `SPEI_SENT` → `COMPLETED` in production.
+**Done when:** at least one withdrawal has gone `AWAITING_PXO` → `PXO_RECEIVED` → `SPEI_SENT` → `COMPLETED` in production, observed rather than assumed; and anything that blocked it along the way is either fixed or filed.
 
 **Related:** [SL-021](#sl-021--every-backend-service-is-on-the-public-internet-and-trusts-a-forgeable-identity-header) records the webhook's confirmation paths; the measurement above came out of that work.
 
