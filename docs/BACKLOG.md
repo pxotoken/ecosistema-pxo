@@ -47,6 +47,13 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-014** — Reconcile production env vars in Railway and Vercel (see DEP-009)
 - [ ] **SL-015** — Public FAQ claims monthly published audits, 1:1 custody and regulatory compliance; none verified
 - [ ] **SL-016** — Deposit matcher pairs fundings to intents on CLABE alone; no amount or date check (worker disabled as mitigation)
+- [ ] **SL-017** — Mint PXO when the wallet cannot cover an order (code done; activates itself once `addMinter` runs)
+- [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
+- [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
+- [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
+- [ ] **SL-023** — Identity documents (passports, INE) are served from a public bucket with no expiry; make it private + signed URLs
+- [ ] **SL-022** — The MXN withdrawal path has never been exercised end to end; run one supervised before inviting anyone onto it
+- [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
 
 ---
 
@@ -158,6 +165,45 @@ What was real: production depended on a literal committed years ago rather than 
 **Why:** Lawyers are reviewing contract claims now and have no blockchain expertise — verification responsibility sits with CTO. Source has been "assured" to live in the `qa` branch of ecosistema-pxo; trust-but-verify. If the source diverges from what's on-chain, every downstream claim (audit, repo publication, legal disclosure) is built on sand.
 **Deployed contract:** `0xd6f9c21A585E2D77b62Ec8C65ab9beC70e2b77d7` (Polygon mainnet, per `useWalletStore.ts:47`).
 
+**Source-vs-bytecode: answered 2026-09-04, and the answer is that they do not match.**
+
+`docs/contracts/pxo.sol` (identical to `apps/contracts/pxo.sol`, committed by Miguel Troncoso 2026-05-12) is **not** the source of the deployed mainnet contract. It is a later revision of the same contract.
+
+*Evidence it is the right lineage.* The constructor arguments recovered from the creation bytecode match its constructor signature exactly:
+
+```
+constructor(uint256 _initialSupply, string _name, string _symbol, uint8 _decimals, address initialOwner)
+
+_initialSupply  50000000000000   = 50,000,000 × 10^6
+_name           "PXO Token"
+_symbol         "PXO"
+_decimals       6
+initialOwner    0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17
+```
+
+So the owner has held the contract since deployment; it was never transferred.
+
+*Evidence it is a different revision.* The file declares `burnFrom(address,uint256)`, `addBurner`, `isBurner` and an `onlyBurner` modifier. **None of those selectors exist in the deployed bytecode.** `mint`, `addMinter`, `isMinter`, `removeMinter` and `burn(uint256)` exist in both. The file also carries fee parameters (`setParams`, `basisPointsRate`, `maximumFee`) and a dirty-funds burn that would need checking against the deployment separately.
+
+The file also **cannot compile as written**: it imports `@openzeppelin/contracts/security/Pausable.sol`, which exists only in OZ v4, while calling `Ownable(initialOwner)`, which exists only in OZ v5. Confirmed against the v4.9.6 and v5.0.2 tags.
+
+*Build facts recovered from the bytecode metadata:*
+
+| | mainnet `0xd6f9c21a…7d7` | Amoy `0xeda62cd0…46c` |
+|---|---|---|
+| compiler | **solc 0.8.30** | **solc 0.5.17** |
+| size | 16,627 bytes | 11,050 bytes |
+| metadata | IPFS | bzzr / experimental |
+| `mint` / `addMinter` / `isMinter` | present | **absent** |
+
+**The Amoy token is a different contract entirely**, not the same source deployed twice — which is also why its decimals are 8 and mainnet's are 6 (SL-013). Nothing in this repo is its source, and `pxo.sol` could not be: `pragma ^0.8.0` cannot compile under 0.5.17.
+
+*Consequences:*
+- **Polygonscan verification is not currently possible** on either network. Mainnet needs the exact pre-burner-role revision; Amoy needs source nobody has. The contract is unverified on Polygonscan, Blockscout, Routescan and Sourcify — checked.
+- **`addMinter` does not need verification** — Route B in [runbooks/grant-minter-role.md](./runbooks/grant-minter-role.md) works on an unverified contract.
+- **What to ask the previous team for is now precise:** the revision of `pxo.sol` *without* the burner role, plus the OpenZeppelin version and optimizer settings, compiled with **solc 0.8.30**. That is a much narrower request than "send us the source".
+- Minting cannot be tested on Amoy, because that contract has no `mint`. SL-017's `hasMinterRole` fails closed there, so `auto` correctly degrades to transfer-only.
+
 **Partially answered on-chain (2026-09-02).** Read directly from the deployed bytecode, so this is fact rather than assurance — it does not replace the source-vs-bytecode comparison below, but it settles the role question:
 
 | Property | Value |
@@ -222,6 +268,7 @@ Three consequences worth reading together:
 - Consider whether admin users should be exempt (they already have `VITE_ENABLE_ADMIN_TESTNET` semantics for chain flexibility)
 - SPEI deposit flow (`buy-pxo-mxn`) still passes `chainId` to the backend; make sure the guard applies there too
 - The `WalletStatusPage` admin view showing Amoy despite user being on mainnet is a related-but-separate UX issue; document but don't fix in this task
+- **2026-10-03:** the `VITE_DEFAULT_CHAIN_ID` approach above was implemented as a *fallback with a hardcoded default*, which Adrian has since ruled against. See [SL-020](#sl-020--chain-id-is-defaulted-in-seven-places-and-the-defaults-disagree) — it carries the inventory and supersedes the approach, not the goal.
 
 ### SL-012 · Patch the request-path CVEs
 **Type:** 🔧 Code
@@ -324,17 +371,381 @@ So any unconsumed funding from a matching CLABE satisfies any intent, of any siz
 
 The account has had no funding since 2026-03-27, and the worker reads the **last 50** fundings, so these nine sit in the scan window permanently — they never age out. If anyone registers one of those five CLABEs and creates a pending intent, they receive PXO without paying for it. `****6209`'s pattern (four large transfers plus a 0.01 test) reads like a company or treasury account, which is exactly the kind someone on the team might register while testing.
 
-**Mitigated 2026-09-03** by setting `DEPOSIT_MATCH_WORKER_ENABLED=false` on api-exchange prod. That disables the SPEI on-ramp, which is acceptable only while the beta is crypto-only. **Re-enabling the worker without fixing the matcher re-arms this.**
+**Mitigated 2026-09-03** by setting `DEPOSIT_MATCH_WORKER_ENABLED=false` on api-exchange prod.
+
+**Fixed in code 2026-09-04.** A funding now settles an intent only when *all* of these hold:
+
+- the sender's CLABE is registered to a user;
+- that user has a `PENDING` intent with a matching `source_clabe`;
+- **the intent was created before the money arrived** (`created_at <= funding.created_at`);
+- **the amounts are equal to the cent** (compared as integer cents, so no float slack).
+
+The chronology condition is what defuses the specific exposure: a deposit cannot pay for an intent that did not exist when it landed, so the nine historical fundings can never match anything, by construction, no matter who registers those CLABEs later.
+
+Anything failing a condition is written once to the new `unmatched_fundings` table with a reason — `clabe_missing`, `clabe_not_registered`, `no_pending_intent`, `funding_predates_intent`, `amount_mismatch` — instead of being re-logged every 30 seconds and forgotten. `no_pending_intent` and `funding_predates_intent` are recorded separately because they mean different things to whoever reconciles. Migration: `apps/api-exchange/migrations/003_unmatched_fundings.sql`.
+
+**Before re-enabling the worker:**
+1. Apply migration 003. Without the table the matcher still behaves correctly, but unmatched fundings are only warned about, not recorded.
+2. Set `DEPOSIT_MATCH_WORKER_ENABLED=true` **and force a redeploy** — on this project a stored variable does not apply itself.
+3. Confirm the nine historical fundings land in `unmatched_fundings` as `clabe_not_registered` and that nothing is fulfilled.
 
 **Steps:**
-1. Require the funding amount to satisfy the intent: compare `funding.amount` against `intent.mxn_amount`. Decide the policy deliberately — exact match, or a tolerance, or "at least the intent amount". SPEI transfers arrive for the exact amount requested, so exact-with-small-tolerance is the natural default; whatever is chosen, an underpayment must never fulfil.
-2. Ignore fundings that predate the intent. A deposit cannot pay for an intent that did not exist when it arrived.
-3. Bound the scan window by age as well as count, so a dormant account cannot keep stale fundings permanently in scope.
-4. Decide what to do with a funding that matches a registered CLABE but no intent, or matches on CLABE but not amount. Today it is silently skipped; it should probably be surfaced for manual reconciliation rather than left to be matched by whatever intent appears next.
-5. Establish what the nine existing fundings are and reconcile them out of the window — they are real money that arrived and is currently unaccounted for in this system, independent of the matching bug.
+1. ~~Require the funding amount to satisfy the intent.~~ **Done** — exact match, to the cent.
+2. ~~Ignore fundings that predate the intent.~~ **Done.**
+3. Bound the scan window by age as well as count. **Not done** — the chronology rule makes stale fundings unmatchable, so this is now housekeeping rather than safety: it would stop the worker re-evaluating nine dead fundings every tick.
+4. ~~Decide what to do with a funding that matches a registered CLABE but no intent.~~ **Done** — `unmatched_fundings`.
+5. Establish what the nine existing fundings are and reconcile them. **Still open, and worth doing on its own account:** 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it. Sent to the team 2026-09-04.
 6. Only then set `DEPOSIT_MATCH_WORKER_ENABLED=true` again.
 **Done when:** A funding fulfils an intent only when amount and chronology both agree, and the nine historical fundings are reconciled or explicitly excluded.
 **Note:** Step 5 is worth doing regardless of the code fix. 1.78M MXN arrived in the treasury's Bitso account and nothing in this system accounts for it.
+
+### SL-017 · Mint PXO on demand when the operational wallet cannot cover an order
+**Type:** 🔧 Code + 📞 External
+**Effort:** code done 2026-09-04; blocked on one transaction by the contract owner
+**Status:** **Implemented and merged to `dev`. Nothing to enable** — it activates itself when the minter role is granted.
+
+**Why:** the operational wallet held 9.44 PXO on 2026-09-04. Any purchase beyond that failed, which is the only thing standing between a deployed app and a usable one. The owner holds 49,999,979 PXO, so the shortfall was never a supply problem — but a transfer needs somebody to act each time, and minting does not.
+
+**How it works.** `sendPXOToUser()` — the single path used by both the crypto buy and the SPEI buy — chooses between moving balance and creating supply:
+
+| `PXO_ISSUANCE_MODE` | behaviour |
+|---|---|
+| unset / `auto` | transfer if the wallet covers the whole order, else mint, else refuse |
+| `transfer` | move balance only; never create supply |
+| `mint` | always create |
+
+Two deliberate properties:
+
+- **The minter role is read from the chain, not from config** (`isMinter()`, cached 60s). So `addMinter` takes effect on its own, with no deploy and no env change. There is nothing to switch on afterwards.
+- **`auto` degrades rather than failing.** Without the role, orders the wallet can cover behave exactly as before; only oversized orders are refused, with a message naming the shortfall *and* the missing role.
+
+`auto` mints the **whole** order rather than topping up the difference — one transaction, and no partial-fill state where the transfer lands and the mint does not.
+
+Decision matrix tested 17/17 (`decideIssuance` is a pure function): every mode against covered / exactly-covered / short balances, with and without the role, plus mode parsing and rejection of an unrecognised value rather than defaulting to one that moves money.
+
+**Remaining:** the owner calls `addMinter(0x9f0f2EAc…8382)` — see [runbooks/grant-minter-role.md](./runbooks/grant-minter-role.md). Verification and rollback: [runbooks/enable-minting-and-deposit-matching.md](./runbooks/enable-minting-and-deposit-matching.md).
+
+**How the backing works (answered 2026-09-04).** A USDC/USDT purchase creates PXO backed, at that instant, by the stablecoin received. The **CFO converts it**: selling the USDC/USDT on Bitso for MXN, so the reserve ends up in pesos. Manual for now, and owned by the CFO along with reconciling `unmatched_fundings`. Automating both is [PL-008](#pl-008--automate-the-cfo-treasury-loop).
+
+**What that leaves open, and it is worth naming:**
+
+1. **The conversion is not instantaneous, so the treasury carries FX exposure between the mint and the sale.** PXO is minted against an MXN price quoted at purchase time, but the pesos are only realised when the CFO sells. If USDC/MXN moves in between, the MXN actually raised differs from the MXN the token was issued against — the reserve ends up slightly over- or under-funded per trade. Negligible at beta volumes, material at scale, and it compounds silently because nothing measures it. Worth deciding: is there a conversion cadence (same-day? per-threshold?) and who watches the gap.
+2. **Supply only grows.** There is no burn-on-redemption, and the contract has no `burnFrom` — redemption must be transfer-to-treasury then `burn(uint256)`. Until that exists every mint is permanent, and the CFO conversion does not address it: it fixes what backs the supply, not that the supply keeps rising.
+
+### SL-019 · A single private key owns the PXO contract
+**Type:** 🔐 Ops + 📞 External
+**Effort:** an hour of setup, one transaction — but the transaction is irreversible
+**Independent of SL-018.** This does **not** require redeploying. The deployed contract exposes `transferOwnership(address)`.
+
+**Why:** `owner()` is `0xdaac7fce2f01a0f30da83b85ce987e0906ff6d17`, a plain EOA with 7 outbound transactions. That one key:
+
+- holds **49,999,979 of the 50,000,000** PXO supply;
+- can `mint` without limit;
+- can `pause` the token, halting every transfer including the app's;
+- grants and revokes the minter role the product now depends on (SL-017);
+- can `renounceOwnership()`, orphaning the contract permanently.
+
+There is no multisig, no recovery path and no succession. Losing that key means nobody can ever mint, pause or grant a minter role again. Compromising it means an attacker can mint unlimited PXO against a reserve that does not exist. Neither has a mitigation today beyond one person's care.
+
+This is a governance risk that exists independently of every other item in this backlog, and it is the single largest one.
+
+**What good looks like:** ownership held by a Safe (Gnosis Safe) with a threshold of at least 2, signers on separate devices and ideally separate people.
+
+**One property makes this cheap to adopt:** day-to-day operation does **not** go through the owner. Minting is done by the operational wallet under the minter role, so routine buys never need a multisig signature. The Safe would hold only the owner powers — grant/revoke minter, pause, and any future capability change — which are exactly the actions that *should* be slow and deliberate.
+
+**The risk is in the transfer itself, and it is sharp.** The contract uses plain `Ownable`, not `Ownable2Step` — `acceptOwnership()` and `pendingOwner()` are absent from the bytecode. So `transferOwnership` is **one-way with no acceptance step**. Sending it to an address that cannot act — a typo, a Safe on the wrong chain, a Safe whose signers are unreachable — **permanently destroys all owner powers**. There is no undo, and it would be discovered only the next time someone tried to mint.
+
+**Steps:**
+1. Decide signers and threshold. This is a business decision about who can halt the token, not an engineering one.
+2. Create the Safe **on Polygon mainnet** and record its address.
+3. **Rehearse before transferring.** Have the Safe send a trivial transaction — a few POL to itself — proving the signers can actually reach the threshold and execute on Polygon. A Safe that cannot transact is indistinguishable from a correct address until it is too late.
+4. Have the current owner call `transferOwnership(<safe>)`, with the address checked character by character by two people.
+5. Confirm `owner()` returns the Safe, then confirm the Safe can exercise a real owner power — `addMinter` on a throwaway address, then `removeMinter` — before considering it done.
+6. Document the Safe, its signers and the recovery expectations in `TREASURY.md` (SL-006).
+**Done when:** `owner()` is a multisig that has demonstrably executed an owner-only function, and the arrangement is written down.
+**Watch for:** `renounceOwnership()` remains callable by whoever is owner. A Safe makes an accidental call far less likely, but the function does not go away.
+**Sequencing note:** if SL-018 concludes in favour of redeploying soon, doing this first is still not wasted — it removes the single-key risk in the meantime, and the new contract can be deployed owned by the same Safe.
+
+### SL-018 · Decide the contract strategy: keep the unverifiable deployment, or redeploy
+**Type:** 🔍 Discovery + 📞 External
+**Effort:** the decision is hours; executing a redeploy is days
+**Status:** thinking exercise, 2026-09-04. **Not scheduled.** Recorded so the reasoning survives.
+
+**The situation.** The deployed mainnet contract cannot be verified: nobody has the source revision that produced it, and the person who does is not someone we want to depend on (SL-009). So today the token that underwrites the product is a black box we can describe from its bytecode but cannot publish. Lawyers are reviewing contract claims against that.
+
+**The window is closing, and that is the real argument.** Holders of mainnet PXO today: the owner (49,999,979), the operational wallet (9.44), and a handful of test accounts. A migration now is an afternoon of airdrops. After friends-and-family it becomes a user-visible event requiring comms, a swap contract, and support. **This is the cheapest this decision will ever be**, and the cost curve is steep.
+
+---
+
+#### What redeploying would buy
+
+1. **A verified contract whose source lives in this repo.** Publishable, auditable, defensible to lawyers and investors, and independent of the previous team — permanently.
+2. ~~The chance to fix the ownership model.~~ **Corrected 2026-09-04: this is not a reason to redeploy.** The deployed contract exposes `transferOwnership(address)`, so ownership can move to a multisig today, on the existing contract, in one transaction. Tracked separately as **SL-019**. A redeploy would let the multisig be the owner *from genesis* rather than from a handover, which is tidier but not worth days of work on its own.
+3. **`burnFrom`, which redemption needs.** The deployed contract has only `burn(uint256)` — self-burn. Redemption therefore has to be transfer-to-treasury-then-burn (SL-017). The newer source has a burner role.
+4. **Alignment.** The repo would describe the thing that is deployed. Today `docs/contracts/pxo.sol` describes something else, which is how this was discovered.
+
+#### What it would cost, and the part that needs the most thought
+
+**The current source is a Tether clone, and it carries powers the deployed contract does not have.** Present in the file, absent from the deployment:
+
+| capability | what it allows |
+|---|---|
+| `basisPointsRate` / `maximumFee` / `setParams` | a transfer fee, up to 20 bps, set by a `feeSetter` role |
+| `addBlackList` / `removeBlackList` (+ batch) | freezing any address |
+| `DestroyedBlackFunds` | **destroying a blacklisted holder's balance** |
+| `deprecated` / `upgradedAddress` / `transferByLegacy` | Tether's upgrade-pointer pattern |
+| burner, blacklister, feeSetter roles | three more privileged roles beyond minter |
+
+None of that is inherently wrong — freeze capability is often a regulatory requirement for a fiat-backed token, and Tether is a reasonable model to copy. But **redeploying this source would be a material expansion of what the issuer can do to a holder's balance, and it would happen by inheritance rather than by decision.** With Ley Fintech / CNBV / Banxico claims already in the public FAQ (SL-015) and lawyers mid-review, that has to be an explicit, documented, legally-reviewed choice — including whether a fee mechanism belongs in a peso stablecoin at all, and who may hold `feeSetter`.
+
+Other costs: the source **does not compile as written** (OZ v4 import path, v5 `Ownable` constructor — SL-009) so it needs repair and review before it is deployable; new code is new bug surface, and this one has never been audited; every address reference in Railway, Vercel and the frontends changes; and the old contract must be paused and deprecated so it cannot be traded in parallel.
+
+---
+
+#### Options
+
+| | Effort | Verified? | Ownership fixed? | Notes |
+|---|---|---|---|---|
+| **A. Keep as-is** | none | no | no | Cheapest today. The black box, the single-key owner and the missing `burnFrom` all persist indefinitely. |
+| **B. Recover the source** | unknown | yes | no | Needs the previous team, which is the thing being avoided. Also fixes nothing else. |
+| **C. Reconstruct the source** | days, uncertain | maybe | no | Strip the burner role from the file, compile on solc 0.8.30, iterate until bytecode matches. Might never match. Fixes nothing else either. |
+| **D. Redeploy** | days | yes | **yes** | The only option that also fixes ownership, `burnFrom` and repo/chain alignment. Requires the capability decisions above. |
+
+#### Recommendation
+
+**D, before friends-and-family, subject to three preconditions**, because the migration window is open now and closes permanently. Note this is a weaker case than first drafted: the ownership fix — the strongest-sounding argument — turns out not to need a redeploy at all (SL-019), which leaves verification, `burnFrom` and repo/chain alignment as the real benefits. Those are worth doing, but they are worth less than "we cannot fix governance without it" implied.
+
+The preconditions are the whole point — a redeploy done without them is worse than the status quo:
+
+1. **The capability set is decided deliberately**, in writing, with legal input: fee mechanism in or out, blacklist in or out, fund destruction in or out, and who holds each role.
+2. **Ownership goes to a multisig at deploy**, not to an EOA with a promise to migrate later.
+3. **The source compiles, is reviewed, and its build is reproducible** — pinned compiler, pinned OpenZeppelin, optimizer settings recorded, verified on Polygonscan as the last step of deployment rather than a later chore.
+
+If those cannot be met before F&F, **A is better than a rushed D.** An unverified contract with a known owner is a documented weakness; a hastily redeployed one with unreviewed blacklist and fee powers is a new liability that looks like progress.
+
+**Not urgent:** none of this blocks Monday, the beta, or minting. It blocks nothing at all today. It gets more expensive every week.
+
+### SL-020 · Chain id is defaulted in seven places, and the defaults disagree
+**Type:** 🔧 Code
+**Effort:** 2-3 hours
+**Status:** **Deferred by Adrian 2026-10-03.** Recorded now so it is not rediscovered later. Nothing is in flight.
+
+**The rule being adopted (Adrian, 2026-09-24):** *there should be no default network. The net id is set explicitly on each environment. No assumptions.* A silent fallback in a money app is the [SL-001](#sl-001--receiver-address--resolved-2026-09-03) failure mode — the app keeps working while pointing somewhere nobody intended.
+
+**What is actually there.** Seven sites pick a chain id when one is missing, in two different classes, and they do not agree with each other — five say Amoy, two say mainnet. A wallet whose chain is unknown therefore gets *different answers in different parts of the same app*.
+
+Env-driven — the `VITE_DEFAULT_CHAIN_ID` fallback:
+
+| File | Expression |
+|---|---|
+| `apps/web/src/store/useWalletStore.ts:94` | `Number(VITE_DEFAULT_CHAIN_ID) \|\| 80002` |
+| `apps/web/src/components/NetworkBadge.tsx:15` | same expression |
+
+Runtime — guessing when `activeChain` / `getChain()` is undefined. **No env var is involved, so setting `VITE_DEFAULT_CHAIN_ID` fixes none of these:**
+
+| File | Expression | Note |
+|---|---|---|
+| `apps/web/src/components/fiat/BuyPxoWithMxn.tsx:209` | `chainId: chain?.id ?? 80002` | **SPEI deposit, no guard** |
+| `apps/web/src/components/fiat/RedeemPxoToMxn.tsx:118` | `chain?.id ?? 80002` | guarded by `CHAIN_MAP`, which `80002` passes |
+| `apps/web/src/hooks/usePXOSell.ts:158` | `activeChain?.id ?? (FORCE_POLYGON_MAINNET ? 137 : 80002)` | |
+| `apps/web/src/hooks/useTransactionHistory.ts:25` | `activeChain?.id ?? 137` | disagrees with the rest |
+| `apps/web/src/hooks/useBlockchainTransactionHistory.ts:43` | `activeChain?.id \|\| filters.chain?.[0] \|\| 137` | disagrees with the rest |
+
+**The sharp one.** `BuyPxoWithMxn.tsx:209` sends `chainId` to `/api/exchange/buy-pxo-mxn`, which decides where the purchased PXO is credited. If `wallet.getChain()` returns undefined, the client claims a **real MXN SPEI deposit belongs to Amoy testnet**, and unlike the withdrawal path there is no `CHAIN_MAP` check to stop it.
+
+**Unverified, and it sets the priority:** whether `wallet.getChain()` can actually return undefined with thirdweb in practice, or whether these are defensive branches for a case that never occurs. Establish this first — it is the difference between a latent fund-misrouting bug and dead code.
+
+**Why prod is not currently exposed.** Production has `VITE_DEFAULT_CHAIN_ID=80002` (Amoy) and is saved only by `VITE_FORCE_POLYGON_MAINNET=true`, which returns `[polygon]` for every non-admin. Admins with `VITE_ENABLE_ADMIN_TESTNET` still land on Amoy first. So the safety rests on an override rather than on the value being right — unset `FORCE_POLYGON_MAINNET` and prod silently provisions new social wallets on testnet, which `useWalletStore.ts:88-93` notes cannot be switched user-side for thirdweb social wallets.
+
+**Relationship to [SL-011](#sl-011--wallet-chain-mismatch-protection).** SL-011 proposed introducing `VITE_DEFAULT_CHAIN_ID` as the remedy. It was introduced — but *as a fallback with a hardcoded default*, which is the thing now being rejected. SL-011's own note that "the SPEI deposit flow still passes `chainId` to the backend; make sure the guard applies there too" was never acted on and is the bug above. Treat SL-020 as the correction to how SL-011 was implemented; do them together.
+
+**Done when:**
+- No chain id is produced by a hardcoded literal anywhere in `apps/web`
+- A missing `VITE_DEFAULT_CHAIN_ID` fails loudly at startup rather than resolving to a network
+- An unknown wallet chain refuses the operation with a "switch network" message, instead of guessing — the SPEI deposit path included
+- Each environment sets its net id explicitly; production is set to `137` so it is correct by value rather than by override
+
+**Ops follow-up (🔐 Adrian):** set `VITE_DEFAULT_CHAIN_ID=137` on Vercel production. Note this changes which chain admins land on when `VITE_ENABLE_ADMIN_TESTNET` is set.
+
+### SL-021 · Every backend service is on the public internet and trusts a forgeable identity header
+**Type:** 🔧 Code + 🔐 Ops
+**Effort:** 3-5 hours for the network fix; a day if the identity header is replaced properly
+**Status:** **Phase 1 done in production 2026-10-15** — `api-users`, `api-kyc`, `api-wallet`, `api-auth` and `api-email` are now reachable only through the gateway. Phases 2 and 3 are open, so `api-exchange` and `api-pagos` still answer the open internet and the identity header is still a bare claim. Found 2026-10-05 while scoping the partner-API work.
+
+**What is true today.** `api-orchestrator` verifies the thirdweb JWT, then injects `x-pxo-wallet-address` and proxies on. Every downstream service trusts that header and verifies nothing itself — `api-users`, `api-kyc`, `api-wallet` and `api-exchange` all read it in their `middleware/identity.ts`. The comment in `api-users` states the assumption the design rests on:
+
+> *api-users is internal: it never accepts traffic that did not pass through the gateway.*
+
+Nothing enforces that. There is no shared secret between the gateway and the services, no mTLS, and no private networking. Each service has its own public Railway domain:
+
+```
+pxoapi-users-prod.up.railway.app
+pxoapi-exchange-prod.up.railway.app
+pxoapi-wallet-prod.up.railway.app
+```
+
+**Verified against production on 2026-10-05**, read-only, using the `0x…dEaD` burn address so no real account was touched:
+
+| Request to `pxoapi-users-prod.up.railway.app` | Result |
+|---|---|
+| `GET /health` | 200 — the service is reachable from the internet |
+| `GET /api/users/me`, no identity header | 401 `Missing caller identity` |
+| `GET /api/users/me`, identity header set, **no JWT** | 404 `User not found` |
+
+The 404 is the finding: the request cleared authentication and reached the Supabase lookup, failing only because the burn address is not a registered user. Substituting a real wallet address was deliberately not attempted.
+
+**Why this is Tier 1 rather than hardening.** `requireAdmin` in `api-users` and `api-wallet` reads the *same* header and then grants admin if that wallet's `user_type` matches. Wallet addresses are public on-chain data, not secrets — they are visible in any Polygonscan transaction involving PXO. So the barrier to acting as any user, including an admin, is knowing one public value. prod, QA and dev also still share one Supabase instance ([DEP-011](./runbooks/prod-db-migration.md)), so the blast radius is the production dataset.
+
+---
+
+### Progress and findings, 2026-10-05
+
+**Private networking is proven to work — in the Railway `dev` environment.** `HOST=::` on all eight services, orchestrator upstreams repointed to `http://pxoapi-<svc>.railway.internal:8080`, everything redeployed. `api-users`' public domain was then deleted as a rehearsal, and both halves were measured:
+
+| Check | Before | After |
+|---|---|---|
+| Direct internet → api-users with a forged header | app's `{"error":"User not found"}` (auth cleared) | Railway edge `404 Application not found` |
+| Orchestrator → api-users over internal DNS | — | api-users' own `401 Missing authentication token… x-cron-secret` |
+
+The second row is the proof that matters: that 401 is the *service's* error, so the gateway reached it with no public hostname in play. Proxied canaries (`/api/exchange/tokens`, `/liquidity`, `/prices`) returned byte-identical results to the pre-change baseline.
+
+**Three Railway specifics that cost time:**
+
+1. **The private network is IPv6-only.** Every service was bound to `0.0.0.0` and was therefore unreachable at `*.railway.internal`. Fixed in code by defaulting `HOST` to `::` (dual-stack, so public IPv4 is unaffected) — commit `42ae71b`.
+2. **Railway injects `PORT=8080` at runtime.** The first attempt used the per-service defaults in `config/env.ts` (3001-3008) and every proxied route returned `FST_REPLY_FROM_INTERNAL_SERVER_ERROR`. The service log line `Server listening at http://[::]:8080` is what gives it away. Internal URLs must use `:8080`; those code defaults apply only to local dev.
+3. Setting a variable does not apply it — `serviceInstanceRedeploy` is required, as [enable-minting-and-deposit-matching.md](./runbooks/enable-minting-and-deposit-matching.md) already warns.
+
+**Not every service can lose its public domain, and the reason is not obvious.** Deposits and withdrawals do not share a mechanism:
+
+- **Deposits** are polled. `deposit-matching-worker` pulls recent Bitso fundings on an interval (`DEPOSIT_MATCH_WORKER_ENABLED=true` in prod). Outbound only — unaffected by removing inbound hostnames.
+- **Withdrawals** are pushed, but not exclusively. The Bitso webhook (`routes/webhooks/bitso.ts` → `parseBitsoWithdrawalEvent`, keyed on `bitso_withdrawal_id`) marks a SPEI payout complete or failed — and so does the status endpoint the frontend polls, `GET /sell-pxo-mxn/:id`, which calls `bitsoGetWithdrawalStatus` whenever it finds an intent at `SPEI_SENT` and updates it with a conditional write that races the webhook safely. **Corrected 2026-10-15:** this entry previously said the webhook was the only such path. It is not. The comment above that endpoint says it was built for exactly this reason — "to make the demo work without a configured Bitso webhook".
+
+So deleting `api-exchange`'s public domain degrades withdrawals rather than stranding them: they would be confirmed only while a user has the page open and polling. Close the tab and the intent sits at `SPEI_SENT` until someone returns to it. Still a reason to keep the webhook reachable, but a weaker constraint than first recorded.
+
+**Measured in production on 2026-10-15, and it changes the urgency.** No withdrawal has ever reached the SPEI stage: of ten `redemption_intents` ever created, nine sit at `AWAITING_PXO` and one `FAILED` before any payout — zero at `SPEI_SENT`, zero `COMPLETED`. The webhook has never had anything to confirm, so nothing is stuck and no money is affected. Deposits, by contrast, work: 18 intents, 4 completed. The gap is latent and would bite on the first real withdrawal. Those nine rows are abandoned test attempts, not users dropping off — the path has never been exercised end to end: [SL-022](#sl-022--the-mxn-withdrawal-path-has-never-been-exercised-end-to-end).
+
+**The obvious fix for that is a trap.** Re-registering the webhook to the orchestrator and then removing the domain would make every delivery fail *closed*, silently:
+
+```ts
+app.post('/webhooks/bitso', async (req, reply) => {
+  if (!isAllowedBitsoIp(req.ip)) return reply.code(403).send({ error: 'Forbidden' });
+```
+
+`api-exchange` is constructed as `Fastify({ logger: true })` with **no `trustProxy`**, so `req.ip` is the socket peer. Behind the orchestrator that becomes the orchestrator's address, which is not in `BITSO_WEBHOOK_IP_ALLOWLIST`, and the allowlist fails closed. Turning `trustProxy` on without scoping it to our own proxy hop is worse than leaving it off: `x-forwarded-for` is caller-supplied, so the allowlist becomes forgeable.
+
+**Open question, worth answering on its own merits.** The registration script points at `https://pxoapi-exchange-**dev**.up.railway.app/api/exchange/webhooks/bitso`. If that URL is what is registered against the *production* Bitso account, prod withdrawal confirmations have been arriving at the dev service, or nowhere. Prod is configured for webhooks (`BITSO_WEBHOOK_API_BASE_URL`, `BITSO_WEBHOOK_IP_ALLOWLIST` both set) and showed zero webhook log lines since the 2026-10-03 deploy — inconclusive on its own, since the deploy is young and the hook only fires on withdrawals. Settle it either by listing subscriptions through Bitso's v4 API with the prod key, or by checking whether any prod `sell-pxo-mxn` intent ever reached a completed state, which only the webhook sets.
+
+---
+
+**The fix, split in two.** The original "close the network path, then make the identity unforgeable" still holds, but the first part cannot be applied uniformly:
+
+**Phase 1 — ✅ DONE 2026-10-15.** `api-users`, `api-kyc`, `api-wallet`, `api-auth`, `api-email`: private networking plus removal of their public domains. This was the bulk of the exposure, being where the user, KYC and wallet data lives. Procedure and rollback: [close-service-bypass-phase1.md](./runbooks/close-service-bypass-phase1.md). Evidence below.
+
+**Phase 2 — `api-exchange` and `api-pagos`: use the gateway-secret variant instead.** For these two, removing the public domain is the wrong tool. Their public hostnames serve endpoints that are *legitimately* public and already authenticate themselves — the Bitso webhook by RSA signature plus IP allowlist, and `api-pagos` by merchant API key. The exposure on those services is the *other* routes (`buy-pxo`, `sell-pxo`, `orders`, `gas-subsidy`, admin pricing rules) which trust `x-pxo-wallet-address`. Requiring a secret that only the orchestrator holds on everything *except* the self-authenticating routes closes that hole without touching the webhook path, and sidesteps the `trustProxy` problem entirely.
+
+**Phase 3 — make the identity claim unforgeable,** so neither network position nor a single shared secret is the only thing between a header and an admin session. Either the orchestrator mints a short-lived signed token the services verify, or each service verifies the thirdweb JWT itself.
+
+---
+
+### Phase 1 in production, 2026-10-15
+
+Ran per the runbook, one service at a time rather than all seven at once: `api-users` was redeployed alone and confirmed rebound before the rest followed, so the IPv6 change was proven in prod on one service instead of seven.
+
+Measured after the five domains were deleted:
+
+| Check | Before | After |
+|---|---|---|
+| Forged `x-pxo-wallet-address`, no JWT, direct to each of the five hostnames | the app's own `{"error":"User not found"}` — authentication cleared, Supabase reached | Railway edge `{"status":"error","code":404,"message":"Application not found"}` — the request never arrives |
+| Gateway → api-users over `pxoapi-users.railway.internal:8080` | — | api-users' **own** `Missing authentication token… x-cron-secret` |
+| Orchestrator canaries, pxotoken.com | 200 / 200 / 200 / 400 | identical |
+
+The first row is the whole point: the app's error means it was reached, Railway's means it was not.
+
+Two notes for whoever runs phase 2:
+
+- **A `200` from `/health` does not mean the redeploy landed.** The old container keeps serving while the new one builds; check the deployment's `status` is `SUCCESS` before reading the `Server listening at http://[::]:8080` line.
+- Railway's **PR checks reported `ERROR` for every service** when `42ae71b` was merged, which looked alarming and was not: Railway reports status for PR branches it does not deploy. The `main` deploy itself succeeded. Earlier PRs showed no Railway checks at all because they only touched `apps/web` and the path filter skipped the services — which also means these services had not actually rebuilt in weeks before that commit.
+
+---
+
+**Done when:** a request carrying `x-pxo-wallet-address` and no JWT, sent directly to a service's public hostname, is refused — and the same request through the orchestrator still works. For `api-exchange`, additionally: a Bitso delivery to the public webhook hostname still verifies and still marks the withdrawal complete. **Met for the phase 1 five; outstanding for `api-exchange` and `api-pagos`.**
+
+**Note on reversibility:** deleting a Railway service domain may not return the identical hostname if it is re-created, so anything registered with a third party against those hostnames must be moved first.
+
+**Relationship to the partner-API work.** This is a prerequisite, not part of it. Issuing third-party API keys while the services answer unauthenticated calls directly would be adding a lock to a door that is not attached to a wall. Note also that `api-pagos` already implements a merchant API-key model — `Authorization: Bearer <apiKey>` plus `X-POS-ID`, hashed `api_key_hash`, suspension and KYB gating, and the only rate limiting in the codebase — and that `MerchantService` flags its SHA-256 hashing as needing bcrypt/argon2 with a pepper before production use. Whatever partner authentication gets built should extend that model rather than introduce a second credential system.
+
+**Also worth noting while here:** the orchestrator has no rate limiting of any kind, and there is no OpenAPI/Swagger definition anywhere in the repo.
+
+### SL-022 · The MXN withdrawal path has never been exercised end to end
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** half a day for a supervised end-to-end run; unknown beyond that until it is attempted
+**Status:** Open, measured 2026-10-15 while checking whether the Bitso webhook was live. **Reframed 2026-10-28:** Adrian confirms the feature was never actually tested — the last attempt was 2026-08-04 and no feedback on it was ever received. The nine stalled rows are abandoned trials, not users giving up on a working feature.
+
+**This is an untested path, not a reported defect.** The title previously read as a drop-off problem; it is not. Nobody has ever completed a withdrawal in production, and nobody has tried since August. Supporting the same reading from the code: the backend route `sell-pxo-mxn.ts` has had no functional change since 2026-06-18 (every commit touching it since is a UI or theme pass), so the behaviour of the nine rows is the behaviour of a path that was built, deployed and then left alone. The flow is still reachable — Sidebar → Sell → SPEI → `RedeemPxoPage` — so nothing structurally blocks it.
+
+**What the data says.** Every `redemption_intents` row ever created in production:
+
+| Status | Count | Meaning |
+|---|---|---|
+| `AWAITING_PXO` | 9 | Intent created, the user's PXO never arrived at treasury |
+| `FAILED` | 1 | 2026-08-04, no `bitso_withdrawal_id` — failed before any payout |
+| `SPEI_SENT` | 0 | |
+| `COMPLETED` | 0 | |
+
+**No withdrawal has ever completed in production.** Deposits work — 18 intents, 4 completed — so money goes in and has never come out. Nothing is stuck and no funds are at risk, because nothing reached the payout stage; the failure is that users start a withdrawal and abandon it.
+
+**What to do first: run one, deliberately, and watch it.** The open question is no longer "why are users dropping off" but "does this work at all". A supervised withdrawal of a trivial amount, followed through every state, either completes — in which case the nine rows are explained and the item narrows to whatever friction shows up — or it stops somewhere, and that stopping point is the actual bug, observed rather than inferred. Doing this also produces the first `SPEI_SENT` row in production, which is what makes the Bitso webhook question answerable at all (see SL-021): it cannot matter until an intent reaches that state.
+
+**Where they stop.** `AWAITING_PXO` is set when the intent is created and before the on-chain transfer lands. The user must then sign a PXO transfer to treasury from their wallet (`RedeemPxoToMxn` → `sendTransaction`). Nine people got an intent created and never produced a confirmed transfer. Candidate causes, none yet checked:
+
+- the wallet signature prompt is never completed (declined, missed, or the session dropped)
+- the transfer is signed but fails on-chain — gas, or the fixed `TOKEN_TRANSFER_GAS_LIMIT` path
+- the transfer confirms but the backend confirmation call fails, leaving the row behind the chain
+- the flow was only ever exercised in testing and the rows are abandoned experiments
+
+**Confirmed 2026-10-28:** the last of these candidates is the right one. These are abandoned test attempts, so the others are hypotheses about a path nobody has driven to completion rather than explanations of observed user behaviour. Grouping the rows by `user_id` is still worth a minute, to see whether any attempt produced a confirmed on-chain transfer before stalling — that would narrow where the first supervised run is likely to stop.
+
+**Why it is worth doing before the retail-adopter work.** A redemption path that has never once completed end to end in production is not a path anyone should be invited onto. It also decides the real urgency of the Bitso webhook: the webhook only matters once intents actually reach `SPEI_SENT`, which has never happened.
+
+**Done when:** at least one withdrawal has gone `AWAITING_PXO` → `PXO_RECEIVED` → `SPEI_SENT` → `COMPLETED` in production, observed rather than assumed; and anything that blocked it along the way is either fixed or filed.
+
+**Related:** [SL-021](#sl-021--every-backend-service-is-on-the-public-internet-and-trusts-a-forgeable-identity-header) records the webhook's confirmation paths; the measurement above came out of that work.
+
+### SL-023 · ID documents are served from a public bucket, with no expiry
+**Type:** 🔧 Code + 🔐 Ops
+**Effort:** 2-3 hours for the code; the bucket flip and a backfill check are Adrian's
+**Status:** Open, found 2026-10-20 while establishing whether a KYC vendor was in use. Re-verified 2026-10-28.
+
+**What is true today.** `apps/api-kyc/src/lib/kyc-storage.ts` uploads passports and INE photos to the Supabase bucket `pxos-files` and returns `getPublicUrl(...)`. The bucket is public, so every uploaded identity document is readable over unauthenticated HTTP by anyone holding the URL, forever — no signature, no expiry, no revocation.
+
+Confirmed without touching a real document, by comparing error shapes on a path that cannot exist:
+
+```
+pxos-files/identification-photos/0000…0000.jpg  →  {"error":"not_found","code":"NoSuchKey"}
+definitely-not-a-bucket-xyz/a.jpg               →  {"error":"Bucket not found","code":"NoSuchBucket"}
+```
+
+`NoSuchKey` rather than a permission error is the bucket saying the object is missing from a bucket it was willing to read.
+
+**Why the UUID filenames are not the control.** Names are `randomUUID()`, so the set is not enumerable — but the URLs are stored in `kyc_submissions.documents`, rendered in the admin review modal, and sit in the browser history of every reviewer and every applicant. Anyone who obtains one keeps access indefinitely. That is obscurity, not access control, and it fails the moment a URL is pasted into a ticket, a chat, or a screenshot.
+
+**Why this is Tier 1.** The documents are government identity papers belonging to real users. The public landing page states compliance with the Ley Federal de Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita; serving the identity evidence for that process over anonymous HTTP is hard to square with it. This also sits directly in front of the retail-adopter work, which will multiply the number of documents held.
+
+**The fix is contained, because the database stores the path and not the URL.** `kyc_repository.ts` persists `documents[].path`; the public URL is reconstructed at render time in exactly three places:
+
+| Site | What it does |
+|---|---|
+| `api-kyc/src/lib/kyc-storage.ts:40` | returns `getPublicUrl` on upload |
+| `web/src/components/kyc/KycDetailsModal.tsx:14-19` | builds the URL for the admin reviewer |
+| `web/src/components/settings/KYCSettings.tsx:260` | builds the URL for the applicant's own view |
+
+So: make the bucket private, add a short-lived signed-URL endpoint in `api-kyc` behind the existing `requireCaller` / `requireAdmin` guards, and have both front-ends ask for a signed URL instead of composing one. Note that the two front-end call sites compose the URL from `VITE_SUPABASE_URL` client-side — they do not go through `api-kyc` at all today, so this is the part that actually changes shape.
+
+**Done when:** the bucket rejects unauthenticated reads (`NoSuchKey` becomes a permission error for a path-shaped request), both the applicant view and the admin review modal still display documents, and a signed URL stops working after its TTL.
+
+**Also worth deciding, not blocking:** whether documents should be retained indefinitely at all once a submission is approved, and what the deletion policy is. Nothing deletes them today.
+
+**Context, not part of this item.** KYC is entirely in-house: `api-kyc` depends only on Fastify, `@fastify/multipart` and Supabase, makes no outbound HTTP calls, and approval is one admin clicking approve or reject, gated by `KYC_ADMIN_WALLETS`. There is no OCR, liveness, face match, document authenticity check, or sanctions/PEP screening. Whether that is sufficient is a compliance decision Adrian is raising with management (2026-10-28); this entry is only about the storage exposure, which is wrong regardless of how that decision lands.
 
 ## 🟧 Tier 2 — Pre-official-launch
 
@@ -652,6 +1063,23 @@ The account has had no funding since 2026-03-27, and the worker reads the **last
 **Effort:** 2 days
 **Why:** `apps/pagos` is in the repo but its production status is unclear. Has 8+ dead env vars. Determine if it's live, deferred, or abandoned.
 **Done when:** Status documented; if live, add to monitoring; if abandoned, archive.
+
+### PL-008 · Automate the CFO treasury loop
+**Type:** 🔧 Code + 🔍 Discovery
+**Effort:** Unknown until the manual process has run for a while
+**Why:** Two treasury jobs are manual and owned by the CFO as of 2026-09-04:
+
+1. **Converting stablecoin backing into pesos.** PXO minted against a USDC/USDT purchase is backed by that stablecoin until the CFO sells it on Bitso for MXN. See SL-017.
+2. **Reconciling `unmatched_fundings`** — SPEI money that arrived without a matching deposit intent, recorded by the matcher for a human to place. See SL-016.
+
+Both are deliberately manual to start with, which is the right call: neither process is well enough understood to automate safely, and both move real money. This item exists so the intent to automate is not lost, and so the manual period is used to learn what the automation would need.
+
+**Worth capturing while it is manual, because it is what the automation will be built from:**
+- How long the mint→conversion gap actually runs in practice, and how far USDC/MXN moves inside it. That gap is the FX exposure named in SL-017 and nothing currently measures it.
+- What proportion of `unmatched_fundings` rows have a real explanation versus being noise, and which `reason` values dominate.
+- Whether conversion is better driven by a cadence (daily) or a threshold (accumulated balance), which is a treasury policy question rather than an engineering one.
+**Done when:** either the loop is automated, or there is a written decision that it stays manual and why.
+**Note:** do not automate either half before the reserve accounting question in SL-017 has an owner. Automating a process whose correctness nobody can currently check would just make the errors faster.
 
 ### PL-007 · api-pagos verifies inbound webhook signatures against re-serialised JSON
 **Type:** 🔧 Code

@@ -30,6 +30,7 @@ Types: 🔧 Code · 🔍 Discovery · 🔐 Ops · 📋 Docs · 📞 External
 - [ ] **DEP-008** — Inventory third-party account ownership and write a contributor offboarding checklist
 - [ ] **DEP-009** — Production was never configured for this version of the app (Railway + Vercel)
 - [ ] **DEP-010** — `apps/api-exchange` has no ESLint config; repo-wide lint fails there
+- [ ] **DEP-011** — Production shares a database with dev and qa (runbook written; execute after 2026-09-07)
 
 ---
 
@@ -287,6 +288,25 @@ The on-chain equivalent of this risk is already tracked as SL-009 / SL-010 in [B
 5. Move credentials into a company password manager rather than individual ones.
 **Done when:** A document in `docs/` lists every external dependency against a named company-held owner, no row depends solely on an individual, and the offboarding checklist exists and has been run once retroactively against the departed dev.
 **Note:** Do this before any further contributor joins or leaves. The cost of the audit is a few hours; the cost of the next DEP-007 is however long it takes to find someone who has stopped answering.
+
+### DEP-011 · Production shares a database with dev and qa
+**Type:** 🔐 Ops
+**Effort:** 2-3 days including verification; **not** to be started before 2026-09-07
+**Why:** `dev`, `qa` and `prod` all point at the same Supabase instance, `fraczjfaqjalvzexzcsp.supabase.co` — verified 2026-09-04 by reading `NEXT_PUBLIC_SUPABASE_URL` from all three Railway environments. There is one `users` table, one `deposit_intents`, one `trading_orders`.
+
+So local development and QA write to the data production serves; a destructive dev migration destroys production; test accounts sit in the same table the deposit matcher and KYC flows query; and there is no environment in which it is safe to try anything.
+
+It also raises SL-016's likelihood: "someone registers one of those five CLABEs" is not limited to real customers when dev and test accounts share the table.
+
+**Full procedure: [runbooks/prod-db-migration.md](./runbooks/prod-db-migration.md).** It covers the copy-vs-clean decision, the apply order across the four migration locations, the cutover surface (16 Railway variables plus 2 on Vercel), verification, and rollback.
+
+**Two things the runbook flags that are defects in their own right:**
+- `apps/api-kyc/migrations/` holds **three** files that each create `kyc_submissions`, all with different checksums and different RLS policies. Which is authoritative is unknown.
+- `apps/api-pagos/database/*.sql` redefines tables `db/migrations/000_initial_schema.sql` already creates. One of the two is stale.
+
+**Timing:** investors review the app on 2026-09-07. This change can leave the app broken mid-flight, and the shared instance has survived months. Until then the mitigation is a message, not a commit: **no destructive dev work against Supabase before the review.**
+**Done when:** production runs on its own instance, verified by exercising login, KYC upload (table *and* `pxos-files` bucket) and a deposit intent — not by a green deploy.
+**Follow-on:** give dev and qa separate instances too, and consolidate the four migration locations into one ordered directory.
 
 
 ---

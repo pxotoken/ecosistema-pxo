@@ -1,4 +1,4 @@
-import { getContract, prepareContractCall, sendTransaction, getGasPrice } from 'thirdweb';
+import { getContract, prepareContractCall, sendTransaction, getGasPrice, readContract } from 'thirdweb';
 import { getRpcClient, eth_getTransactionReceipt } from 'thirdweb/rpc';
 import { privateKeyToAccount } from 'thirdweb/wallets';
 import { polygon, polygonAmoy } from 'thirdweb/chains';
@@ -6,8 +6,16 @@ import { env } from '../config/env.js';
 import {
   PXO_TOKEN_ADDRESSES,
   TOKEN_TRANSFER_GAS_LIMIT,
+  PXO_MINT_GAS_LIMIT,
+  PXO_DECIMALS,
   type SupportedChainId,
 } from '../config/chains.js';
+import {
+  resolveIssuanceMode,
+  decideIssuance,
+  hasMinterRole,
+  type IssuanceAction,
+} from './pxo-issuance.js';
 import { getServerThirdwebClient } from './thirdweb-client.js';
 import { getDecryptedWalletKey } from './wallet-key.js';
 
@@ -24,6 +32,12 @@ export interface SendResult {
   transactionHash: string;
   blockNumber: bigint | null;
   message: string;
+  /**
+   * Whether the PXO was moved from the operational wallet or created.
+   * Worth persisting alongside the order: minted PXO increases total supply,
+   * which is a reserve-accounting fact, not just an implementation detail.
+   */
+  action: IssuanceAction;
 }
 
 export async function sendPXOToUser({
@@ -69,13 +83,49 @@ export async function sendPXOToUser({
     gasPrice = selectedChain.id === 80002 ? BigInt(30_000_000_000) : BigInt(20_000_000_000);
   }
 
-  const transaction = prepareContractCall({
-    contract,
-    method: 'function transfer(address to, uint256 value)',
-    params: [receiverAddress, quantity],
-    gas: TOKEN_TRANSFER_GAS_LIMIT,
-    gasPrice,
-  });
+  // Decide whether to move existing balance or create supply. Only the reads
+  // the decision actually needs are made: transfer mode reads nothing extra,
+  // and auto checks the minter role only when the balance falls short.
+  const mode = resolveIssuanceMode();
+  const decimals = PXO_DECIMALS[selectedChain.id as SupportedChainId] ?? 6;
+
+  let balance = 0n;
+  if (mode !== 'mint') {
+    balance = await readContract({
+      contract,
+      method: 'function balanceOf(address account) view returns (uint256)',
+      params: [serverWallet.address],
+    });
+  }
+
+  let minterRole = false;
+  if (mode === 'mint' || (mode === 'auto' && balance < quantity)) {
+    minterRole = await hasMinterRole({
+      client,
+      chain: selectedChain,
+      tokenAddress: pxoTokenAddress,
+      account: serverWallet.address,
+    });
+  }
+
+  const action = decideIssuance({ mode, balance, quantity, minterRole, decimals });
+
+  const transaction =
+    action === 'mint'
+      ? prepareContractCall({
+          contract,
+          method: 'function mint(address to, uint256 amount)',
+          params: [receiverAddress, quantity],
+          gas: PXO_MINT_GAS_LIMIT,
+          gasPrice,
+        })
+      : prepareContractCall({
+          contract,
+          method: 'function transfer(address to, uint256 value)',
+          params: [receiverAddress, quantity],
+          gas: TOKEN_TRANSFER_GAS_LIMIT,
+          gasPrice,
+        });
 
   const sent = await sendTransaction({ transaction, account: serverWallet });
 
@@ -86,7 +136,8 @@ export async function sendPXOToUser({
     success: true,
     transactionHash: sent.transactionHash,
     blockNumber: receipt?.blockNumber ?? null,
-    message: 'PXO tokens sent successfully',
+    message: action === 'mint' ? 'PXO minted to the buyer' : 'PXO tokens sent successfully',
+    action,
   };
 }
 

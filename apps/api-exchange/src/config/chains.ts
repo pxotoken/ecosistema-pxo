@@ -60,6 +60,10 @@ export const PXO_DECIMALS: Record<SupportedChainId, number> = {
   [POLYGON_AMOY_ID]: 8,
 };
 
+// Minting writes one more storage slot than a transfer (totalSupply as well
+// as the recipient balance), so it does not fit the transfer limit.
+export const PXO_MINT_GAS_LIMIT = 150_000n;
+
 export const STABLE_DECIMALS = 6;
 
 // Single source of truth lives in @pxo/shared so the web app's client sell can
