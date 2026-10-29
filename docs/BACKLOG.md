@@ -51,6 +51,7 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
+- [ ] **SL-024** — Crypto received is never converted to MXN; a merchant SPEI pay-out product now depends on it (decision due 2026-10-30)
 - [ ] **SL-023** — Identity documents (passports, INE) are served from a public bucket with no expiry; make it private + signed URLs
 - [ ] **SL-022** — The MXN withdrawal path has never been exercised end to end; run one supervised before inviting anyone onto it
 - [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
@@ -747,6 +748,41 @@ So: make the bucket private, add a short-lived signed-URL endpoint in `api-kyc` 
 
 **Context, not part of this item.** KYC is entirely in-house: `api-kyc` depends only on Fastify, `@fastify/multipart` and Supabase, makes no outbound HTTP calls, and approval is one admin clicking approve or reject, gated by `KYC_ADMIN_WALLETS`. There is no OCR, liveness, face match, document authenticity check, or sanctions/PEP screening. Whether that is sufficient is a compliance decision Adrian is raising with management (2026-10-28); this entry is only about the storage exposure, which is wrong regardless of how that decision lands.
 
+### SL-024 · Crypto received is never converted to pesos — and a merchant pay-out product now depends on it
+**Type:** 🔍 Discovery → 🔧 Code + 📞 External
+**Effort:** the decision is due 2026-10-30; the build is unknown until the three Bitso facts below are answered
+**Status:** Open, raised 2026-10-29. **Adrian needs the design defined by tomorrow.**
+
+**Two problems share one mechanism, and the second is the urgent one.**
+
+**1. The reserve drifts.** Buying PXO with USDC/USDT leaves the operational wallet holding a *dollar* asset backing a *peso* liability. The user is quoted correctly at trade time, so the 1:1 rule holds for them; what breaks is the backing. Until that stablecoin is sold for MXN, every move in USDC/MXN changes whether the reserve still covers the PXO in circulation. Today nothing converts it automatically — the CFO does it by hand ([PL-008](#pl-008--automate-the-cfo-treasury-loop)), and the gap is the FX exposure named in [SL-017](#sl-017--mint-pxo-on-demand-when-the-operational-wallet-cannot-cover-an-order).
+
+Current volume is small enough that this is a correctness problem rather than a financial one: 25 completed crypto-pair orders since May, **523 USDC/USDT total**, several individual trades under 1 USDC and one at 5.8e-05. Measured 2026-10-29 from `trading_orders`.
+
+**2. A merchant integration makes it a product.** The real driver: a merchant needs to accept digital dollars but cannot do so directly under their own regulatory position. PXO sits in between — a Stripe-for-crypto role. Their investors choose to pay in USDC/USDT, are redirected to a PXO-hosted page (location TBD), and send crypto to the operational wallet. PXO then liquidates it to MXN and pays the merchant by SPEI.
+
+**This inverts the cadence question.** For the reserve, batching is clearly better — the trades are tiny, buys and sells partly offset, and nothing external cares when conversion happens. For the merchant, the counterparty may well require **one SPEI per deposit**, so each investor payment is individually traceable into their bank account. That is their call, not a treasury optimisation. **Minimum transaction size is USD 10,000**, which flips every argument that favoured batching: fees stop being material relative to size, and a 10k position sitting unconverted is a real exposure rather than a rounding error.
+
+So the design must support both: **batched for the reserve, pass-through per-deposit for merchant flows** — most likely the same liquidation engine with the trigger policy as configuration, not one hardcoded cadence.
+
+**What has to be answered before anything is built.** None of this can be settled from the repo:
+
+1. **Does Bitso accept USDC/USDT deposits on Polygon** — the chain PXO's tokens live on? Adrian believes deposits are supported; the open part is the *network*. If Bitso only credits Ethereum or another chain, a bridge step enters the money path, with its own cost, latency and failure modes.
+2. **Does the Bitso API expose order placement** on this account tier, or is conversion only possible in their dashboard? Today's integration does SPEI fundings, SPEI withdrawals and public ticker quotes (`bitsoGetFundings`, `bitsoCreateSpeiWithdrawal`, `bitsoGetWithdrawalStatus`). **There is no crypto deposit address, no order placement, no trading** — liquidating anything is new Bitso surface.
+3. **Who executes, and who carries the risk between receipt and conversion?** If the answer stays "the CFO, by hand", then the engineering job shrinks to measuring the net position and alerting on a threshold — no new Bitso surface at all, and most of the risk handled by a person who can see the market.
+
+**A design constraint worth stating now.** Liquidation must not sit inside the user-facing sell path. A sell should not block, slow down or fail because a third-party exchange is unavailable. The existing deposit-matching worker is the right shape to copy: a background job with its own retry and its own record of what it could not place.
+
+**Also unresolved for the merchant flow,** and worth naming before it is designed rather than after:
+- what the merchant is owed if the MXN rate moves between receipt and conversion — who absorbs the difference
+- whether a failed or partial liquidation holds the SPEI pay-out or sends a partial one
+- how an investor's payment is tied to a merchant and a SPEI reference, end to end, so the merchant can reconcile
+- whether a 10k-minimum inbound changes the AML posture, given KYC today is manual and in-house ([SL-023](#sl-023--id-documents-are-served-from-a-public-bucket-with-no-expiry) has the context)
+
+**Done when:** the trigger policy is written down for both cases, the three Bitso questions have answers, and there is a decision on whether liquidation is automated or stays with the CFO.
+
+**Supersedes part of [PL-008](#pl-008--automate-the-cfo-treasury-loop):** that entry treats conversion cadence as a treasury-policy question to be learned from the manual period. The merchant integration overtakes it — the cadence is now partly dictated by an external counterparty and a deadline, not by what the CFO finds convenient.
+
 ## 🟧 Tier 2 — Pre-official-launch
 
 ### OL-001 · Add Bitso balance to admin view
@@ -1077,7 +1113,7 @@ Both are deliberately manual to start with, which is the right call: neither pro
 **Worth capturing while it is manual, because it is what the automation will be built from:**
 - How long the mint→conversion gap actually runs in practice, and how far USDC/MXN moves inside it. That gap is the FX exposure named in SL-017 and nothing currently measures it.
 - What proportion of `unmatched_fundings` rows have a real explanation versus being noise, and which `reason` values dominate.
-- Whether conversion is better driven by a cadence (daily) or a threshold (accumulated balance), which is a treasury policy question rather than an engineering one.
+- Whether conversion is better driven by a cadence (daily) or a threshold (accumulated balance), which is a treasury policy question rather than an engineering one. **2026-10-29: partly overtaken by [SL-024](#sl-024--crypto-received-is-never-converted-to-pesos--and-a-merchant-pay-out-product-now-depends-on-it)** — a merchant integration may require one SPEI per deposit, so the cadence is no longer ours alone to choose, and it has a deadline.
 **Done when:** either the loop is automated, or there is a written decision that it stays manual and why.
 **Note:** do not automate either half before the reserve accounting question in SL-017 has an owner. Automating a process whose correctness nobody can currently check would just make the errors faster.
 
