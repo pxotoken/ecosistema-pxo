@@ -18,6 +18,8 @@ interface GetQuery {
 
 interface CreateBody {
   concept: string;
+  /** Token symbol the band is counted in: PXO, MXN, USD, USDC, USDT. */
+  denomination: string;
   amount_from: number;
   amount_to: number;
   percent: number;
@@ -33,6 +35,8 @@ interface DeleteQuery {
 
 /** Mirrors the CHECK constraints in migration 004 — alphanumeric, 1-64 chars. */
 const CONCEPT_RE = /^[A-Za-z0-9]{1,64}$/;
+/** Shape of a token symbol. Not an allowlist — see migration 004. */
+const DENOM_RE = /^[A-Za-z0-9]{1,16}$/;
 
 /**
  * Validate the money-shaped fields. Returns a message, or null when fine.
@@ -43,6 +47,11 @@ function validateFields(b: Partial<CreateBody>, requireAll: boolean): string | n
   if (requireAll || b.concept !== undefined) {
     if (typeof b.concept !== 'string' || !CONCEPT_RE.test(b.concept)) {
       return 'concept must be 1-64 letters and digits only (no spaces or punctuation)';
+    }
+  }
+  if (requireAll || b.denomination !== undefined) {
+    if (typeof b.denomination !== 'string' || !DENOM_RE.test(b.denomination)) {
+      return 'denomination must be a token symbol, e.g. PXO, MXN, USD';
     }
   }
   for (const key of ['amount_from', 'amount_to', 'percent'] as const) {
@@ -100,6 +109,7 @@ export const feeRangesRoutes: FastifyPluginAsync = async (app: FastifyInstance) 
         .from('fee_ranges')
         .insert({
           concept: body.concept,
+          denomination: body.denomination,
           amount_from: body.amount_from,
           amount_to: body.amount_to,
           percent: body.percent,
@@ -127,7 +137,7 @@ export const feeRangesRoutes: FastifyPluginAsync = async (app: FastifyInstance) 
       if (invalid) return reply.code(400).send({ error: invalid });
 
       const updateData: Record<string, unknown> = {};
-      for (const key of ['concept', 'amount_from', 'amount_to', 'percent'] as const) {
+      for (const key of ['concept', 'denomination', 'amount_from', 'amount_to', 'percent'] as const) {
         if (rest[key] !== undefined) updateData[key] = rest[key];
       }
       if (Object.keys(updateData).length === 0) {

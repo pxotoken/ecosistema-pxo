@@ -7,6 +7,8 @@ export const FEE_CONCEPT_RE = /^[A-Za-z0-9]{1,64}$/;
 export interface FeeRange {
   id: string;
   concept: string;
+  /** Token symbol the band is counted in, from the tokens table. */
+  denomination: string;
   amount_from: number;
   amount_to: number;
   /** Whole percent as entered: 10 means 10%. */

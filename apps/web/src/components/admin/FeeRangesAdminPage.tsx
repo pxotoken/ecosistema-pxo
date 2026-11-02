@@ -96,6 +96,7 @@ export const FeeRangesAdminPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-light-border dark:border-dark-border text-left text-light-text-secondary dark:text-dark-text-secondary">
                   <th className="px-4 py-3 font-medium">Concept</th>
+                  <th className="px-4 py-3 font-medium">Unit</th>
                   <th className="px-4 py-3 font-medium text-right">From</th>
                   <th className="px-4 py-3 font-medium text-right">To</th>
                   <th className="px-4 py-3 font-medium text-right">Percent</th>
@@ -107,6 +108,9 @@ export const FeeRangesAdminPage: React.FC = () => {
                 {ranges.map((r) => (
                   <tr key={r.id} className="text-light-text dark:text-dark-text">
                     <td className="px-4 py-3 font-mono">{r.concept}</td>
+                    <td className="px-4 py-3 font-mono text-light-text-secondary dark:text-dark-text-secondary">
+                      {r.denomination}
+                    </td>
                     <td className="px-4 py-3 text-right tabular-nums">{fmtAmount(r.amount_from)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{fmtAmount(r.amount_to)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{r.percent}%</td>

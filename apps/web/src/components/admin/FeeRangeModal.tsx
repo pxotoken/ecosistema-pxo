@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { FeeRange, FeeRangeInput, FEE_CONCEPT_RE } from '../../hooks/useFeeRanges';
+import { useTokens } from '../../hooks/useTokens';
 
 interface FeeRangeModalProps {
   range: FeeRange | null;
@@ -10,7 +11,13 @@ interface FeeRangeModalProps {
   onSave: (input: FeeRangeInput) => Promise<void>;
 }
 
-const EMPTY: FeeRangeInput = { concept: '', amount_from: 0, amount_to: 0, percent: 0 };
+const EMPTY: FeeRangeInput = {
+  concept: '',
+  denomination: '',
+  amount_from: 0,
+  amount_to: 0,
+  percent: 0,
+};
 
 export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
   range,
@@ -18,6 +25,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { tokens, loading: tokensLoading } = useTokens();
   const [form, setForm] = useState<FeeRangeInput>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +36,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
       range
         ? {
             concept: range.concept,
+            denomination: range.denomination,
             amount_from: range.amount_from,
             amount_to: range.amount_to,
             percent: range.percent,
@@ -44,6 +53,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
     if (!FEE_CONCEPT_RE.test(form.concept)) {
       return 'Concept must be 1-64 letters and digits only — no spaces or punctuation.';
     }
+    if (!form.denomination) return 'Pick a denomination.';
     if (form.amount_from < 0) return 'From must not be negative.';
     if (form.amount_to <= form.amount_from) return 'To must be greater than From.';
     if (form.percent < 0 || form.percent > 100) return 'Percent must be between 0 and 100.';
@@ -116,6 +126,37 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
               placeholder="buypxodiscount"
               className={`${inputClass} font-mono`}
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="fee-denomination"
+              className="block text-sm font-medium text-light-text dark:text-dark-text mb-2"
+            >
+              Denomination
+            </label>
+            <select
+              id="fee-denomination"
+              value={form.denomination}
+              onChange={(e) => setForm({ ...form, denomination: e.target.value })}
+              disabled={tokensLoading}
+              className={`${inputClass} disabled:opacity-60`}
+            >
+              <option value="">
+                {tokensLoading ? 'Loading…' : 'Select a unit'}
+              </option>
+              {/* Symbols come from the tokens table, which carries both the
+                  on-chain tokens and the fiat units, so a band can be counted
+                  in PXO or in USD. */}
+              {tokens.map((t) => (
+                <option key={t.id} value={t.symbol}>
+                  {t.symbol}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+              What the From and To amounts are counted in.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
