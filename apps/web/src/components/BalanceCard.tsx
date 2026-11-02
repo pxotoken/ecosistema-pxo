@@ -7,6 +7,7 @@ import type { Chain } from 'thirdweb';
 import { getThirdwebClient } from '../lib/client';
 import useWalletStore from '../store/useWalletStore';
 import { useAuthContext } from '../contexts/AuthContext';
+import { usePXOPrices } from '../hooks/usePXOPrices';
 import { useToast } from './ui/Toast';
 import { SendFundsModal, ReceiveFundsModal } from './crypto';
 import { PATHS } from '../routes/paths';
@@ -30,6 +31,36 @@ function formatAmount(raw: string): string {
   return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
+/**
+ * USD total across the three tokens the card shows.
+ *
+ * USDT and USDC are treated as 1 USD each — they are dollar stablecoins and
+ * the app already quotes them that way throughout. PXO is peso-denominated,
+ * so it is converted at the PXO/USDC *sell* rate: what the holder would
+ * actually receive for it, which is the honest number for a balance. Using
+ * the buy rate would value the holding at what it costs to acquire, which is
+ * always the less favourable side.
+ *
+ * Returns null while any input is missing, so the caller can show a spinner
+ * rather than a figure that is wrong but confident — a total reading $0.00
+ * because a rate had not loaded is worse than no total at all.
+ */
+function usdTotal(
+  balances: BalanceState,
+  pxoSellRate: number,
+): number | null {
+  if (DISPLAY_SYMBOLS.some((s) => balances[s]?.loading)) return null;
+  if (!Number.isFinite(pxoSellRate) || pxoSellRate <= 0) return null;
+
+  let total = 0;
+  for (const symbol of DISPLAY_SYMBOLS) {
+    const amount = parseFloat(balances[symbol]?.value ?? '0');
+    if (!Number.isFinite(amount)) return null;
+    total += symbol === 'PXO' ? amount * pxoSellRate : amount;
+  }
+  return total;
+}
+
 export function BalanceCard() {
   const navigate = useNavigate();
   const account = useActiveAccount();
@@ -40,6 +71,8 @@ export function BalanceCard() {
   const [balances, setBalances] = useState<BalanceState>(initialState);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  // PXO/USDC: the sell leg converts a PXO holding into its USD equivalent.
+  const { sell: pxoSellRate, loading: ratesLoading } = usePXOPrices('USDC');
 
   const availableTokens = activeChain && activeChain.id in tokens ? tokens[activeChain.id] : [];
 
@@ -105,11 +138,36 @@ export function BalanceCard() {
     setShowSendModal(true);
   }, [user, addToast, navigate]);
 
+  const total = ratesLoading ? null : usdTotal(balances, pxoSellRate);
+
   const actionButtonClass =
     'flex flex-col items-center justify-center gap-1 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-pxo-primary dark:text-dark-text rounded-lg py-2.5 text-xs font-medium hover:border-pxo-primary hover:bg-pxo-primary/5 transition-colors';
 
   return (
     <div className="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-2xl shadow-glass overflow-hidden">
+      <div className="border-b border-light-border dark:border-dark-border px-4 py-5">
+        <span className="block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
+          Total balance
+        </span>
+        <span className="mt-1 flex items-baseline gap-1.5 text-2xl font-semibold text-light-text dark:text-dark-text tabular-nums">
+          {total === null ? (
+            <Loader2 className="h-6 w-6 animate-spin opacity-60" />
+          ) : (
+            <>
+              {total.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+              <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                USD
+              </span>
+            </>
+          )}
+        </span>
+      </div>
+
       <div className="divide-y divide-light-border dark:divide-dark-border">
         {DISPLAY_SYMBOLS.map((symbol) => {
           const state = balances[symbol];
