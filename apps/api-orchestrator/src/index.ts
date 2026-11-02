@@ -233,6 +233,16 @@ async function bootstrap() {
     replyOptions: injectIdentity,
   });
 
+  // /api/admin/fee-ranges -> api-exchange (authenticated, admin enforced inside).
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/admin/fee-ranges',
+    rewritePrefix: '/api/admin/fee-ranges',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
   await app.listen({ port: env.PORT, host: env.HOST });
 
   registerGracefulShutdown(app);
