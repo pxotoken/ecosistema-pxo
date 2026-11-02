@@ -10,6 +10,7 @@ import { sellPxoRoutes } from './routes/sell-pxo.js';
 import { gasSubsidyRoutes } from './routes/gas-subsidy.js';
 import { ordersRoutes } from './routes/orders.js';
 import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
+import { feeRangesRoutes } from './routes/admin/fee-ranges.js';
 import { buyPxoMxnRoutes } from './routes/buy-pxo-mxn.js';
 import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
@@ -39,6 +40,7 @@ async function bootstrap() {
   await app.register(ordersRoutes, { prefix: '/api/exchange' });
   await app.register(pricesRoutes, { prefix: '/api' });
   await app.register(pricingRulesRoutes, { prefix: '/api/admin' });
+  await app.register(feeRangesRoutes, { prefix: '/api/admin' });
 
   // Fiat (MXN) on-ramp (SPEI via Bitso) + off-ramp (SPEI withdrawal via
   // Bitso). Conekta was removed 2026-07-12 due to chargeback risk on
