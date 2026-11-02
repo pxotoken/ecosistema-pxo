@@ -11,8 +11,6 @@
 -- Deliberately undecided, and why there is no application logic yet:
 --   - whether `percent` is a discount or a premium (the concept label carries
 --     that meaning today, which is a convention, not a constraint)
---   - what the amount is denominated in — PXO, MXN, USD — which the table
---     cannot know because the concept does not say
 --   - whether overlapping ranges are an error or deliberate layering
 --   - what happens at a boundary when two ranges touch
 -- Writing the application logic before those are settled would bake in a guess
@@ -24,6 +22,14 @@ CREATE TABLE IF NOT EXISTS fee_ranges (
   -- Alphanumeric only, per the screen's input rule. Enforced here too so the
   -- constraint survives a caller that is not our form.
   concept     TEXT NOT NULL,
+
+  -- What the band is counted in. A symbol from the tokens table, which holds
+  -- both the on-chain tokens (PXO, USDC, USDT) and the fiat units (MXN, USD) —
+  -- so "1M PXO" and "10k USD" are both expressible, and a range is never
+  -- ambiguous about what it measures. Stored as the symbol rather than a FK
+  -- because the tokens table has one row per token and this names a unit, not
+  -- a specific contract on a specific chain.
+  denomination TEXT NOT NULL,
 
   -- Inclusive lower bound, exclusive upper bound is the reading that avoids
   -- boundary overlap, but nothing enforces that interpretation yet — see the
@@ -41,6 +47,9 @@ CREATE TABLE IF NOT EXISTS fee_ranges (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT fee_ranges_concept_alnum   CHECK (concept ~ '^[A-Za-z0-9]+$'),
+  -- Same alphanumeric shape as a token symbol. Not a foreign key: a symbol
+  -- withdrawn from `tokens` should not silently invalidate a saved scenario.
+  CONSTRAINT fee_ranges_denom_shape     CHECK (denomination ~ '^[A-Za-z0-9]{1,16}$'),
   CONSTRAINT fee_ranges_concept_len     CHECK (char_length(concept) BETWEEN 1 AND 64),
   CONSTRAINT fee_ranges_amounts_ordered CHECK (amount_to > amount_from),
   CONSTRAINT fee_ranges_amounts_nonneg  CHECK (amount_from >= 0),
@@ -52,7 +61,7 @@ CREATE TABLE IF NOT EXISTS fee_ranges (
 
 -- The list is read per concept, ordered by band.
 CREATE INDEX IF NOT EXISTS fee_ranges_concept_from_idx
-  ON fee_ranges (concept, amount_from);
+  ON fee_ranges (concept, denomination, amount_from);
 
 -- updated_at trigger (idempotent definition; may already exist from prior migrations).
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
