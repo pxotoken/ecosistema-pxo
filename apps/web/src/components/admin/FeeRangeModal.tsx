@@ -11,12 +11,28 @@ interface FeeRangeModalProps {
   onSave: (input: FeeRangeInput) => Promise<void>;
 }
 
-const EMPTY: FeeRangeInput = {
+/**
+ * While editing, the numeric fields are STRINGS.
+ *
+ * Holding them as numbers meant an empty field had to become something, and
+ * that something was 0 — so clearing the box put a "0" back in it, and the
+ * next keystroke produced "01000". A string lets empty stay empty; the values
+ * are parsed once, on submit.
+ */
+interface Draft {
+  concept: string;
+  denomination: string;
+  amount_from: string;
+  amount_to: string;
+  percent: string;
+}
+
+const EMPTY: Draft = {
   concept: '',
   denomination: '',
-  amount_from: 0,
-  amount_to: 0,
-  percent: 0,
+  amount_from: '',
+  amount_to: '',
+  percent: '',
 };
 
 export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
@@ -26,7 +42,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
   onSave,
 }) => {
   const { tokens, loading: tokensLoading } = useTokens();
-  const [form, setForm] = useState<FeeRangeInput>(EMPTY);
+  const [form, setForm] = useState<Draft>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +53,9 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
         ? {
             concept: range.concept,
             denomination: range.denomination,
-            amount_from: range.amount_from,
-            amount_to: range.amount_to,
-            percent: range.percent,
+            amount_from: String(range.amount_from),
+            amount_to: String(range.amount_to),
+            percent: String(range.percent),
           }
         : EMPTY,
     );
@@ -48,29 +64,46 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
 
   if (!isOpen) return null;
 
-  /** Mirrors the API and the table's CHECK constraints, so the slip is caught here first. */
-  const validate = (): string | null => {
+  /**
+   * Parse the draft into the payload, or explain what is wrong. Mirrors the API
+   * and the table's CHECK constraints, so the slip is caught here first.
+   */
+  const parse = (): { input: FeeRangeInput } | { error: string } => {
     if (!FEE_CONCEPT_RE.test(form.concept)) {
-      return 'Concept must be 1-64 letters and digits only — no spaces or punctuation.';
+      return { error: 'Concept must be 1-64 letters and digits only — no spaces or punctuation.' };
     }
-    if (!form.denomination) return 'Pick a denomination.';
-    if (form.amount_from < 0) return 'From must not be negative.';
-    if (form.amount_to <= form.amount_from) return 'To must be greater than From.';
-    if (form.percent < 0 || form.percent > 100) return 'Percent must be between 0 and 100.';
-    return null;
+    if (!form.denomination) return { error: 'Pick a denomination.' };
+
+    const amount_from = Number.parseFloat(form.amount_from);
+    const amount_to = Number.parseFloat(form.amount_to);
+    const percent = Number.parseFloat(form.percent);
+
+    // An empty box is now genuinely empty rather than silently 0, so it has to
+    // be named as missing instead of passing as a valid zero.
+    if (!Number.isFinite(amount_from)) return { error: 'Enter a From amount.' };
+    if (!Number.isFinite(amount_to)) return { error: 'Enter a To amount.' };
+    if (!Number.isFinite(percent)) return { error: 'Enter a percent.' };
+
+    if (amount_from < 0) return { error: 'From must not be negative.' };
+    if (amount_to <= amount_from) return { error: 'To must be greater than From.' };
+    if (percent < 0 || percent > 100) return { error: 'Percent must be between 0 and 100.' };
+
+    return {
+      input: { concept: form.concept, denomination: form.denomination, amount_from, amount_to, percent },
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const invalid = validate();
-    if (invalid) {
-      setError(invalid);
+    const parsed = parse();
+    if ('error' in parsed) {
+      setError(parsed.error);
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      await onSave(parsed.input);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -79,7 +112,6 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
     }
   };
 
-  const num = (v: string) => (v === '' ? 0 : Number.parseFloat(v));
   const inputClass =
     'w-full px-4 py-2 bg-light-glass dark:bg-dark-glass border border-light-border dark:border-dark-border rounded-lg text-light-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-brand-accent';
 
@@ -173,7 +205,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
                 min="0"
                 step="any"
                 value={form.amount_from}
-                onChange={(e) => setForm({ ...form, amount_from: num(e.target.value) })}
+                onChange={(e) => setForm({ ...form, amount_from: e.target.value })}
                 placeholder="1000000"
                 className={inputClass}
               />
@@ -191,7 +223,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
                 min="0"
                 step="any"
                 value={form.amount_to}
-                onChange={(e) => setForm({ ...form, amount_to: num(e.target.value) })}
+                onChange={(e) => setForm({ ...form, amount_to: e.target.value })}
                 placeholder="5000000"
                 className={inputClass}
               />
@@ -212,7 +244,7 @@ export const FeeRangeModal: React.FC<FeeRangeModalProps> = ({
               max="100"
               step="any"
               value={form.percent}
-              onChange={(e) => setForm({ ...form, percent: num(e.target.value) })}
+              onChange={(e) => setForm({ ...form, percent: e.target.value })}
               placeholder="10"
               className={inputClass}
             />
