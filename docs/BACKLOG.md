@@ -852,9 +852,56 @@ Today's client exposes `bitsoGetFundings`, `bitsoCreateSpeiWithdrawal`, `bitsoGe
 
 ### Sequencing
 
-Step 5 already defers the SPEI pay-out behind SL-022. That is the right call and it has a useful consequence: **steps 2-4 can be built and run without moving any money to a merchant.** A liquidation that converts DD to MXN and parks the pesos in Bitso is fully testable on stage, and the pay-out leg attaches later. The design constraint from above still holds — liquidation runs as a background worker, never inside a user-facing request.
+Step 5 already defers the SPEI pay-out behind SL-022. That is the right call and it has a useful consequence: **steps 2-4 can be built and run without moving any money to a merchant.** A liquidation that converts DD to MXN and parks the pesos in Bitso stands on its own, and the pay-out leg attaches later. (**Corrected 2026-11-02:** this paragraph originally said steps 2-4 were testable on stage. They are not — see the testing constraint below.) The design constraint from above still holds — liquidation runs as a background worker, never inside a user-facing request.
 
 **Blocked on:** the three Bitso questions, and a decision on whether the merchant flow gets its own receiving wallet.
+
+---
+
+## 2026-11-02 (later) · Two constraints from Adrian that change the plan
+
+### 1. Separating the use cases is a profitability requirement, not a float optimisation
+
+Recorded in Adrian's words: investment payments will not occur early on, and **if no distinction is made between use cases (investment/merchant vs. regular users), profitability is non-existent** — at which point investors are unlikely to come forward.
+
+This is a stronger reason for the two-flow split above than the one derived from the code. The float argument says sweeping the retail DD balance breaks the sell side. This says the *same fee treatment across both flows cannot work economically*: a merchant pass-through at USD 10,000 can absorb immediate-liquidation costs, and a retail trade of 1 USDC cannot. One fee schedule for both means either the merchant flow is underpriced or retail is unusable.
+
+So the separation is now a **decided requirement** rather than a design option, and it has a pricing dimension, not just a wallet dimension.
+
+**The mechanism for modelling it already exists.** `fee_ranges` (migration 004, live with data) holds `concept`, `denomination`, `amount_from`/`amount_to`, `percent` — and is deliberately not applied to any transaction yet. That is the surface for exactly this: distinct concepts per flow (e.g. a merchant-liquidation concept against the retail exchange-fee concepts), so stakeholders can model where each flow becomes profitable before any rule is wired in. The screen was built for stakeholder experimentation; this is the first concrete scenario it should be pointed at.
+
+### 2. There is no usable test environment — every test is live money
+
+**Bitso stage cannot be used.** Bitso does not guarantee that testnet tokens can be moved back and forth, so the deposit and liquidation legs cannot be exercised there at all. Consequences, in Adrian's framing: testing happens **live, with real funds**, with **no USD 10,000 minimum** during tests, and **fee expenditure accumulates** as users and merchants run their own trials.
+
+This invalidates the earlier note in this entry that steps 2-4 were "fully testable on stage." They are not. The design has to minimise the number of live round trips needed to learn anything.
+
+**What follows for the build:**
+
+**a) A shadow mode is now the first deliverable, not a nicety.** Run the entire worker — funding-destination lookup, amount selection, book selection, lot creation, state transitions, the step-4 book — and record what it *would* have placed, without calling order placement. This validates everything except the single irreversible call, at **zero fee cost**, and it can run repeatedly against live credentials safely because nothing it does moves money.
+
+**b) The four external interactions have very different costs, so they should be testable separately rather than only as one chain:**
+
+| Leg | Cost to test | Notes |
+|---|---|---|
+| Funding-destination lookup | Free | Read-only |
+| On-chain DD send to Bitso | Polygon gas only (cents) | The amount sent is *not* lost — it lands in the Bitso account |
+| Confirm the deposit credited | Free | Read-only, but see the minimum-credit risk below |
+| Place the DD→MXN order | Spread + Bitso fee | The only leg that actually burns money |
+
+**c) Test principal is recyclable; only fees burn.** A DD→MXN liquidation can be reversed by buying DD back with MXN. The round trip costs roughly two spreads plus two fees, but the principal returns. So live testing needs a **small fixed test float**, not fresh capital per test, and the real question is the per-round-trip fee — which makes Bitso's fee tier on this account a number worth getting precisely, not approximately.
+
+**d) The amount floor has to be configuration, with a hard ceiling in code.** Tests need amounts far below USD 10,000, so the minimum cannot be hardcoded. The dangerous corollary: `BITSO_API_BASE_URL` currently **defaults to `https://stage.bitso.com/api/v3`** (`apps/api-exchange/src/config/env.ts:54`). If live credentials are the only way to test, then dev/QA environments will hold them, and the environment stops being the thing that protects real money. Protection must move into code: a **per-lot and per-day MXN ceiling, defaulting low**, enforced in the worker regardless of environment, plus a kill switch. A bad deploy to dev must not be able to liquidate at scale.
+
+### Revised Bitso questions
+
+Question 1 is downgraded — **Adrian's understanding is that spot trading does not need a separate account**; he will confirm, but it is no longer assumed to be a blocker. The questions that now actually determine what testing costs:
+
+1. **What is the minimum order size on `usdt_mxn`** (and `usdc_mxn` if it exists)? This sets the floor on the cheapest possible live test — it is Bitso's number, not ours.
+2. **Is there a minimum deposit amount below which a crypto deposit is not credited?** This is the likeliest way to lose money on the very first test: send 1 USDT to Bitso, have it silently never credited, and get no error to debug. Confirm before sending anything.
+3. **What fee tier applies to this account**, maker and taker? Combined with (1), this gives the exact burn rate per test round trip and makes the testing budget a known number instead of an open-ended worry.
+4. Does `usdc_mxn` exist as a book, or is USDC liquidation a two-hop `usdc → usdt → mxn`?
+5. How is a Polygon USDT/USDC funding destination obtained, and is it stable or per-deposit?
 
 **Supersedes part of [PL-008](#pl-008--automate-the-cfo-treasury-loop):** that entry treats conversion cadence as a treasury-policy question to be learned from the manual period. The merchant integration overtakes it — the cadence is now partly dictated by an external counterparty and a deadline, not by what the CFO finds convenient.
 
