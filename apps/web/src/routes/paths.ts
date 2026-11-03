@@ -15,6 +15,7 @@ export const PATHS = {
     adminUsers: '/dashboard/admin-users',
     adminWalletStatus: '/dashboard/admin-wallet-status',
     adminPricingRules: '/dashboard/admin-pricing-rules',
+    adminFeeRanges: '/dashboard/admin-fee-ranges',
     qaMockDeposit: '/dashboard/qa/mock-deposit',
   },
 } as const;

@@ -14,6 +14,7 @@ import { KycAdminPage } from '../components/kyc/KycAdminPage';
 import { UserAdminPage } from '../components/admin/UserAdminPage';
 import { WalletStatusPage } from '../components/admin/WalletStatusPage';
 import { PricingRulesAdminPage } from '../components/admin/PricingRulesAdminPage';
+import { FeeRangesAdminPage } from '../components/admin/FeeRangesAdminPage';
 import { MockDepositPage } from '../components/qa/MockDepositPage';
 import { KYCGuard } from '../components/guards/KYCGuard';
 import { RequireAuth } from './RequireAuth';
@@ -69,6 +70,7 @@ const DASHBOARD_ROUTES = [
   { path: PATHS.dashboard.adminUsers, element: <UserAdminPage /> },
   { path: PATHS.dashboard.adminWalletStatus, element: <WalletStatusPage /> },
   { path: PATHS.dashboard.adminPricingRules, element: <PricingRulesAdminPage /> },
+  { path: PATHS.dashboard.adminFeeRanges, element: <FeeRangesAdminPage /> },
   ...(MOCK_DEPOSITS_ENABLED
     ? [{ path: PATHS.dashboard.qaMockDeposit, element: <MockDepositPage /> }]
     : []),

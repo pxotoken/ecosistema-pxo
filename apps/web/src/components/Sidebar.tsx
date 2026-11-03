@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut, Plus, ArrowUpRight } from 'lucide-react';
+import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut, Plus, ArrowUpRight, Percent } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { KYCStatus } from '@pxo/shared/types';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -47,6 +47,7 @@ const adminNavigation = [
   { id: 'admin-users', label: 'Users', icon: Users, path: PATHS.dashboard.adminUsers },
   { id: 'admin-wallet-status', label: 'Wallet Status', icon: Wallet, path: PATHS.dashboard.adminWalletStatus },
   { id: 'admin-pricing-rules', label: 'Pricing Rules', icon: TrendingUp, path: PATHS.dashboard.adminPricingRules },
+  { id: 'admin-fee-ranges', label: 'Fee by Range', icon: Percent, path: PATHS.dashboard.adminFeeRanges },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
