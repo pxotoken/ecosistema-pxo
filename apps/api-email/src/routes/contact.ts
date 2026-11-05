@@ -24,7 +24,7 @@ export function contactRoutes(emailService: EmailService): FastifyPluginAsync {
       const html = getContactEmailTemplate(email, message);
 
       await emailService.sendEmail({
-        to: EMAIL_CONFIG.replyTo,
+        to: EMAIL_CONFIG.contactInbox,
         subject: `Nuevo mensaje de contacto - ${email}`,
         html,
       });

@@ -51,7 +51,8 @@ The Tier 1 items, as a single scannable list. When all checked, F&F launch is sa
 - [ ] **SL-019** — A single private key owns the PXO contract; move ownership to a multisig (does not need a redeploy)
 - [ ] **SL-018** — Decide contract strategy: keep the unverifiable deployment, or redeploy before F&F (thinking exercise; not scheduled)
 - [ ] **SL-020** — Chain id is defaulted in seven disagreeing places; set it explicitly per environment (deferred 2026-10-03)
-- [ ] **SL-024** — Crypto received is never converted to MXN; a merchant SPEI pay-out product now depends on it (decision due 2026-10-30)
+- [ ] **SL-025** — `/buy-pxo` sends PXO on an unverified, client-supplied transaction hash; nothing checks the DD ever arrived
+- [ ] **SL-024** — Crypto received is never converted to MXN; a merchant SPEI pay-out product now depends on it (cadence decided 2026-11-02: liquidate on receipt; blocked on three Bitso questions)
 - [ ] **SL-023** — Identity documents (passports, INE) are served from a public bucket with no expiry; make it private + signed URLs
 - [ ] **SL-022** — The MXN withdrawal path has never been exercised end to end; run one supervised before inviting anyone onto it
 - [ ] **SL-021** — Forgeable identity header on publicly reachable services. **Phase 1 closed in prod 2026-10-15** (users, kyc, wallet, auth, email); api-exchange + api-pagos still open, pending the gateway-secret variant
@@ -781,7 +782,147 @@ So the design must support both: **batched for the reserve, pass-through per-dep
 
 **Done when:** the trigger policy is written down for both cases, the three Bitso questions have answers, and there is a decision on whether liquidation is automated or stays with the CFO.
 
+---
+
+## 2026-11-02 · Decision: liquidate on receipt — and the one thing that has to change first
+
+**Adrian's decision.** Liquidate **as soon as new DD enters the server wallet** — immediate pass-through, no batching. The driver is the investing use case: investors want the investment reflected in their bank account immediately and will accept worse fees to get it. Open question 1 above is now **answered** — Bitso accepts USDT/USDC deposits on Polygon, so no bridge enters the money path.
+
+Throughout this entry, **DD** = digital dollars = USDT/USDC on Polygon.
+
+**The intended sequence:**
+
+1. User buys PXO with DD. Unchanged.
+2. The remaining DD balance is deposited to Bitso over Polygon.
+3. A DD→MXN exchange is ordered through the Bitso API.
+4. The result is recorded in a book showing **DD sent to Bitso vs MXN received**. Per-step transaction records are deliberately deferred.
+5. Automatic SPEI pay-out to the merchant waits for [SL-022](#sl-022--the-mxn-withdrawal-path-has-never-been-exercised-end-to-end) to be executed.
+
+### The op wallet's DD balance is two-sided, so step 2 cannot mean "sweep it"
+
+This is the blocking structural issue, and it is worth settling before any code is written.
+
+The operational wallet's DD balance is not an accumulation of incoming funds. It is a **two-sided float**:
+
+- `POST /buy-pxo` — DD flows **in**. The user sends DD, `sendPXOToUser` sends PXO out.
+- `POST /sell-pxo` — DD flows **out**. The user sends PXO, `sendStablecoinToUser` pays DD out of the same wallet (`apps/api-exchange/src/routes/sell-pxo.ts:10`).
+
+If every incoming DD is liquidated to MXN on receipt, the sell side has no DD left to pay out. The next PXO sell either fails for lack of inventory, or PXO has to buy DD back with MXN — paying the spread a second time on inventory it already held, plus the round-trip Bitso fees. **The cost of immediate liquidation does not land on the investor who volunteered to pay it; it lands on PXO's own float.**
+
+So "whatever remains of the sale balance" in step 2 has to mean a **specific, earmarked portion** of the balance, never the whole balance.
+
+### This resolves the "lacks financial sense" question — the instinct is right about one flow, not both
+
+Adrian's own read was that immediate liquidation lacks financial sense. The accurate version is narrower than that, and it splits by flow:
+
+| | Merchant / investor pass-through | Retail PXO buy/sell |
+|---|---|---|
+| What the DD is | Earmarked for MXN pay-out to the merchant | Working inventory for a two-sided market |
+| Is there a claim on it? | No — it is passing through | Yes — the sell side will need it |
+| Immediate liquidation | **Correct.** Minimises FX exposure between receipt and pay-out, and at a USD 10,000 minimum the fees are immaterial | **Costly.** Pays the spread twice on inventory that was already in the right asset |
+| Volume to date | The product being built | 25 orders, 523 USDC/USDT lifetime, several under 1 USDC, one at 5.8e-05 |
+
+Immediate liquidation is financially *sound* for the case being built for. It only lacks sense when applied to the retail float — where the trades are tiny, buys and sells partly offset, and nothing external cares about the timing.
+
+**The fix is not a cadence parameter — it is separating the two flows.** Give the merchant pass-through flow its own receiving wallet, or at minimum an explicit earmark recorded at receipt. Then "immediate" is correct *by construction* for merchant deposits, and the retail float is never swept. The configurable trigger policy stays available for the reserve case, but it stops being the thing that protects the sell side.
+
+### Step 3 is the real blocker: this may be the wrong Bitso product
+
+Open question 2 above is **still unanswered, and it is sharper than an account tier**.
+
+The existing client (`apps/api-exchange/src/lib/bitso.ts:3`) is a **Bitso Business / Payouts-Funding** adapter — its own header cites `docs.bitso.com/bitso-payments`, and it defaults to **stage**. Spot order placement (`POST /v3/orders`) belongs to Bitso's *exchange* API, which is a different product. It is not a setting to be switched on; it may require a separate account and separate credentials.
+
+**What needs to be confirmed with Bitso, in this order:**
+
+1. Does the existing Business account expose spot trading, or does step 3 need a second account? Until this is answered, step 3 has no implementation.
+2. **Does a `usdc_mxn` book exist?** `usdt_mxn` does. If USDC has no direct MXN book, USDC liquidation becomes `usdc → usdt → mxn` — two hops, two spreads, and a second failure point for the asset most investors are likeliest to send.
+3. How is a crypto funding destination obtained for USDT/USDC on Polygon, and is the address stable or per-deposit? This determines whether the address can be configuration or must be fetched per liquidation.
+
+**One encouraging finding:** the HMAC transport in `bitsoRequest` signs the full URL path from the domain root and already supports a `baseUrl` override. If trading is available on these credentials, adding it is **additive to the existing client, not a rewrite** — three new functions alongside the five that exist.
+
+### What does not exist yet
+
+Today's client exposes `bitsoGetFundings`, `bitsoCreateSpeiWithdrawal`, `bitsoGetWithdrawalStatus`, `bitsoCreateMockSpeiDeposit`, `parseBitsoWithdrawalEvent`, plus public ticker quotes. Steps 2-4 need, all new:
+
+- a crypto funding destination lookup for USDT/USDC on Polygon
+- an on-chain DD send from the op wallet to that address (generalise `sendStablecoinToUser`, which today only targets users)
+- confirmation that the deposit credited — `bitsoGetFundings` exists but is written for SPEI fundings, not crypto
+- order placement, and polling until filled
+- the step-4 book itself: the `liquidation_lots` table, holding DD sent and MXN received per lot
+
+### Sequencing
+
+Step 5 already defers the SPEI pay-out behind SL-022. That is the right call and it has a useful consequence: **steps 2-4 can be built and run without moving any money to a merchant.** A liquidation that converts DD to MXN and parks the pesos in Bitso stands on its own, and the pay-out leg attaches later. (**Corrected 2026-11-02:** this paragraph originally said steps 2-4 were testable on stage. They are not — see the testing constraint below.) The design constraint from above still holds — liquidation runs as a background worker, never inside a user-facing request.
+
+**Blocked on:** the three Bitso questions, and a decision on whether the merchant flow gets its own receiving wallet.
+
+---
+
+## 2026-11-02 (later) · Two constraints from Adrian that change the plan
+
+### 1. Separating the use cases is a profitability requirement, not a float optimisation
+
+Recorded in Adrian's words: investment payments will not occur early on, and **if no distinction is made between use cases (investment/merchant vs. regular users), profitability is non-existent** — at which point investors are unlikely to come forward.
+
+This is a stronger reason for the two-flow split above than the one derived from the code. The float argument says sweeping the retail DD balance breaks the sell side. This says the *same fee treatment across both flows cannot work economically*: a merchant pass-through at USD 10,000 can absorb immediate-liquidation costs, and a retail trade of 1 USDC cannot. One fee schedule for both means either the merchant flow is underpriced or retail is unusable.
+
+So the separation is now a **decided requirement** rather than a design option, and it has a pricing dimension, not just a wallet dimension.
+
+**The mechanism for modelling it already exists.** `fee_ranges` (migration 004, live with data) holds `concept`, `denomination`, `amount_from`/`amount_to`, `percent` — and is deliberately not applied to any transaction yet. That is the surface for exactly this: distinct concepts per flow (e.g. a merchant-liquidation concept against the retail exchange-fee concepts), so stakeholders can model where each flow becomes profitable before any rule is wired in. The screen was built for stakeholder experimentation; this is the first concrete scenario it should be pointed at.
+
+### 2. There is no usable test environment — every test is live money
+
+**Bitso stage cannot be used.** Bitso does not guarantee that testnet tokens can be moved back and forth, so the deposit and liquidation legs cannot be exercised there at all. Consequences, in Adrian's framing: testing happens **live, with real funds**, with **no USD 10,000 minimum** during tests, and **fee expenditure accumulates** as users and merchants run their own trials.
+
+This invalidates the earlier note in this entry that steps 2-4 were "fully testable on stage." They are not. The design has to minimise the number of live round trips needed to learn anything.
+
+**What follows for the build:**
+
+**a) A shadow mode is now the first deliverable, not a nicety.** Run the entire worker — funding-destination lookup, amount selection, book selection, lot creation, state transitions, the step-4 book — and record what it *would* have placed, without calling order placement. This validates everything except the single irreversible call, at **zero fee cost**, and it can run repeatedly against live credentials safely because nothing it does moves money.
+
+**b) The four external interactions have very different costs, so they should be testable separately rather than only as one chain:**
+
+| Leg | Cost to test | Notes |
+|---|---|---|
+| Funding-destination lookup | Free | Read-only |
+| On-chain DD send to Bitso | Polygon gas only (cents) | The amount sent is *not* lost — it lands in the Bitso account |
+| Confirm the deposit credited | Free | Read-only, but see the minimum-credit risk below |
+| Place the DD→MXN order | Spread + Bitso fee | The only leg that actually burns money |
+
+**c) Test principal is recyclable; only fees burn.** A DD→MXN liquidation can be reversed by buying DD back with MXN. The round trip costs roughly two spreads plus two fees, but the principal returns. So live testing needs a **small fixed test float**, not fresh capital per test, and the real question is the per-round-trip fee — which makes Bitso's fee tier on this account a number worth getting precisely, not approximately.
+
+**d) The amount floor has to be configuration, with a hard ceiling in code.** Tests need amounts far below USD 10,000, so the minimum cannot be hardcoded. The dangerous corollary: `BITSO_API_BASE_URL` currently **defaults to `https://stage.bitso.com/api/v3`** (`apps/api-exchange/src/config/env.ts:54`). If live credentials are the only way to test, then dev/QA environments will hold them, and the environment stops being the thing that protects real money. Protection must move into code: a **per-lot and per-day MXN ceiling, defaulting low**, enforced in the worker regardless of environment, plus a kill switch. A bad deploy to dev must not be able to liquidate at scale.
+
+### Revised Bitso questions
+
+Question 1 is downgraded — **Adrian's understanding is that spot trading does not need a separate account**; he will confirm, but it is no longer assumed to be a blocker. The questions that now actually determine what testing costs:
+
+1. **What is the minimum order size on `usdt_mxn`** (and `usdc_mxn` if it exists)? This sets the floor on the cheapest possible live test — it is Bitso's number, not ours.
+2. **Is there a minimum deposit amount below which a crypto deposit is not credited?** This is the likeliest way to lose money on the very first test: send 1 USDT to Bitso, have it silently never credited, and get no error to debug. Confirm before sending anything.
+3. **What fee tier applies to this account**, maker and taker? Combined with (1), this gives the exact burn rate per test round trip and makes the testing budget a known number instead of an open-ended worry.
+4. Does `usdc_mxn` exist as a book, or is USDC liquidation a two-hop `usdc → usdt → mxn`?
+5. How is a Polygon USDT/USDC funding destination obtained, and is it stable or per-deposit?
+
 **Supersedes part of [PL-008](#pl-008--automate-the-cfo-treasury-loop):** that entry treats conversion cadence as a treasury-policy question to be learned from the manual period. The merchant integration overtakes it — the cadence is now partly dictated by an external counterparty and a deadline, not by what the CFO finds convenient.
+
+### SL-025 · `/buy-pxo` sends PXO on an unverified transaction hash
+**Type:** 🔐 Security + 🔧 Code
+**Effort:** 2-4 hours — the verification code already exists in the sell route and can be mirrored
+**Status:** Open, raised 2026-11-02 while mapping the liquidation flow ([SL-024](#sl-024--crypto-received-is-never-converted-to-pesos--and-a-merchant-pay-out-product-now-depends-on-it)).
+
+**What happens.** `POST /api/exchange/buy-pxo` takes `transactionHash` and `amount` from the request body and sends PXO to the caller without ever checking that transaction on chain. The route (`apps/api-exchange/src/routes/buy-pxo.ts`) imports no RPC helpers at all; `transactionHash` is used only to (a) reject a hash already present in `transactions`, and (b) be stored on the new row. `amount` — the DD the user claims to have sent — is taken entirely on trust and drives the PXO payout through `calculatedPxoAmount`.
+
+**The sell route does this correctly**, which is what makes the gap visible. `sell-pxo.ts` imports `eth_getTransactionReceipt` and `eth_getTransactionByHash`, confirms the transaction exists and succeeded, checks it was sent *from* the claimed user address, parses the logs for a real PXO `Transfer` to the exchange receiver, and rejects with `Valid PXO transfer to exchange not found in this transaction` if it is not there. Buy has none of these five checks.
+
+**What stands between this and loss.** Only two things: the caller must be KYC-`VALIDATED`, and each hash is single-use. Neither is a check on the money. Any KYC'd wallet can submit an unrelated real Polygon transaction hash with an arbitrary `amount` and receive PXO against it, bounded only by `getServerLiquidity`. The `expectedPxoAmount` tolerance check does not help — it compares the server's own calculation against the client's expectation, and both derive from the same unverified `amount`.
+
+**Nothing reconciles it afterwards.** The deposit-matching worker only handles MXN/SPEI fundings by CLABE (`deposit-matching-worker.ts`); no job re-checks crypto buy hashes against chain state. A bad buy would be discovered as a reserve shortfall, not as a failed transaction.
+
+**Why it surfaced now.** It is load-bearing for the liquidation design. Any liquidation driven off `trading_orders` or `transactions` rows would be converting DD that may never have arrived — selling phantom dollars for real pesos. The chosen trigger, *observed DD balance in the server wallet*, avoids this by construction, and that is a reason to keep the trigger on-chain rather than record-driven. The vulnerability still needs closing on its own merits.
+
+**Not yet established:** whether any of the 25 completed crypto-pair orders are affected. Each hash should be replayed against Polygon to confirm it is a genuine DD transfer to the receiver for the recorded amount. Lifetime volume is 523 USDC/USDT, so the exposure to date is small whatever the result.
+
+**Done when:** `/buy-pxo` verifies, before sending PXO, that the hash is a confirmed transaction sent from the claimed address containing a DD `Transfer` to the configured receiver for at least the claimed amount, with the token contract matched against `STABLECOIN_CONTRACTS` for the chain; and the existing 25 orders have been checked.
 
 ## 🟧 Tier 2 — Pre-official-launch
 

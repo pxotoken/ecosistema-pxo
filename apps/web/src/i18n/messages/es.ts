@@ -174,6 +174,7 @@ export const es = {
     viewerTitle: 'Términos y Condiciones',
     dashboardTitle: 'Legal',
     close: 'Cerrar',
+    loading: 'Cargando documento…',
     gateTitle: 'Antes de continuar',
     gateSubmit: 'Enviar',
     read: (label: string) => `Leer ${label}`,
@@ -190,15 +191,14 @@ export const es = {
    * landing nav drive the same LocaleContext as the rest of the app.
    */
   landingV4: {
-    nav: { products: 'Productos', how: 'Cómo funciona', benefits: 'Beneficios', trust: 'Transparencia', contact: 'Contacto' },
-    openAccount: 'Abre tu cuenta',
+    nav: { uses: 'Casos de uso', business: 'Empresas', products: 'Productos', how: 'Cómo funciona', benefits: 'Beneficios', trust: 'Transparencia', contact: 'Contacto' },
+    openAccount: 'Iniciar sesión',
     hero: {
       eyebrow: 'El activo digital de México',
       line1: 'Tus pesos,',
       line2: 'ahora también digitales.',
       lead: 'Compra, envía y cambia PXO en segundos. Todo en un sólo lugar.',
-      cta: 'Crea tu cuenta',
-      cta2: 'Conoce PXO',
+      cta: 'Iniciar sesión',
     },
     chips: { always: 'Siempre', send: 'Envía en segundos', swap: 'Cambia cuando quieras', hours: 'Sin horarios bancarios' },
     marquee: { buy: 'Compra', send: 'Envía', swap: 'Cambia', parity: '1 PXO = 1 MXN', always: '24/7', borderless: 'Sin fronteras', tokens: 'USDT · USDC' },
@@ -246,7 +246,7 @@ export const es = {
       done: '¡Gracias! Recibimos tu mensaje.',
       done2: 'Te contactaremos pronto.',
     },
-    cta: { eyebrow: 'Empieza hoy', heading: '¿Listo para usar PXO sin fronteras?', text: 'Crea tu cuenta en minutos.' },
+    cta: { eyebrow: 'Empieza hoy', heading: '¿Listo para usar PXO sin fronteras?', text: 'Inicia sesión o regístrate en minutos.' },
     footer: {
       menu: 'Menú',
       legal: 'Legal',

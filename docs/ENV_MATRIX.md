@@ -199,6 +199,7 @@ Payment processing + reconciliation + webhooks.
 |---|---|---|---|
 | Server + Supabase | yes | L, R | |
 | `RESEND_*` (4 vars) | yes | L, R | |
+| `CONTACT_INBOX_EMAIL` | no | L, R | Recipient for landing contact messages. Defaults to `info@pxotoken.com`, independent of `RESEND_REPLY_TO` so the reply-to header cannot redirect the inbox |
 | `VERCEL_URL` | yes | R | **Missing from local `.env`** — set to public web URL for email link generation |
 
 ---

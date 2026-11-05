@@ -1,6 +1,9 @@
 /*
- * Landing page styles — October 2026 design.
- * Ported from docs/looks/landing_last_version.html. Every rule is scoped under
+ * Landing page styles — November 2026 design.
+ * Ported from docs/looks/pxo_octubre.html, which revises the October design in
+ * docs/looks/PXO sitio web_3.html rather than replacing it: same palette, type
+ * and sections, with a pinned header, a right-aligned menu and the real legal
+ * documents. Every rule is scoped under
  * .pxo-landing-v4 so it cannot leak into the dashboard or Tailwind's globals:
  * the design's :root / html / body rules collapse onto that class, and its
  * @keyframes are renamed v4-* for the same reason.
@@ -38,13 +41,13 @@
 .pxo-landing-v4 .sec-h{font-size:clamp(30px,4.2vw,50px);font-weight:700}
 .pxo-landing-v4 .sec-p{margin:18px auto 0;max-width:46ch;font-size:19px;color:var(--muted)}
 .pxo-landing-v4 .grad-text{background:linear-gradient(100deg,#007481,#00bed6,#2f48c1,#007481);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
-.pxo-landing-v4 .nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(255,255,255,.82);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
+.pxo-landing-v4 .nav{position:fixed;top:0;left:0;right:0;padding-top:env(safe-area-inset-top,0px);z-index:30;background:rgba(255,255,255,.82);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
 .pxo-landing-v4 .nav.scrolled{border-bottom-color:var(--line)}
 .pxo-landing-v4 .nav .wrap{display:flex;align-items:center;gap:28px;height:90px}
 .pxo-landing-v4 .logo{display:flex;text-decoration:none}
 .pxo-landing-v4 .wm{height:60px;width:142px;display:block;fill:var(--navy)}
 @media (max-width:640px){.pxo-landing-v4 .nav .wm{height:48px;width:114px}}
-.pxo-landing-v4 .links{display:flex;gap:30px;flex:1;justify-content:center}
+.pxo-landing-v4 .links{display:flex;gap:30px;flex:1;justify-content:flex-end}
 .pxo-landing-v4 .links a{text-decoration:none;font-weight:500;font-size:15px;color:var(--muted);position:relative;padding-block:6px}
 .pxo-landing-v4 .links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:var(--grad);transform:scaleX(0);transition:transform .25s ease}
 .pxo-landing-v4 .links a:hover{color:var(--navy)}
@@ -57,6 +60,30 @@
 .pxo-landing-v4 .nav .wrap{justify-content:space-between;gap:12px}
 .pxo-landing-v4 .logo{margin-right:auto}}
 @media (max-width:440px){.pxo-landing-v4 .nav .btn{display:none}}
+/* The November design pins the header instead of letting it stick, so the page
+   has to reserve the space the header no longer occupies. In the design these
+   were `body { padding-top }` and `html { scroll-padding-top }`; here the first
+   collapses onto the scope class like every other body rule.
+
+   The second cannot: `scrollIntoView` (useAnchorScroll) and native hash jumps
+   both read scroll-padding from the *scrolling* element, which is <html> —
+   setting it on the scope class would do nothing. `:has()` keeps it off every
+   other page, so the dashboard is unaffected; where `:has()` is unsupported the
+   only consequence is that an anchor lands under the header. */
+.pxo-landing-v4{padding-top:90px}
+:root:has(.pxo-landing-v4){scroll-padding-top:104px}
+@media (max-width:860px){
+  .pxo-landing-v4 .nav .wrap{flex-wrap:wrap;height:auto;padding-block:10px;row-gap:4px}
+  .pxo-landing-v4 .links{display:flex;order:5;flex-basis:100%;justify-content:center;gap:32px}
+  .pxo-landing-v4 .links a{font-size:15px;padding-block:6px}
+  .pxo-landing-v4{padding-top:122px}
+  :root:has(.pxo-landing-v4){scroll-padding-top:136px}
+}
+@media (max-width:440px){
+  .pxo-landing-v4 .nav .wm{height:40px;width:96px}
+  .pxo-landing-v4 .nav .btn{display:inline-flex;height:38px;padding:0 14px;font-size:14px}
+  .pxo-landing-v4 .lang button{padding:0 9px}
+}
 .pxo-landing-v4 .hero{padding-block:70px 40px;overflow:hidden;isolation:isolate}
 .pxo-landing-v4 .hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
 .pxo-landing-v4 .hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;z-index:-2;background:radial-gradient(40% 50% at 20% 30%,rgba(0,190,214,.16),transparent 70%),radial-gradient(40% 50% at 80% 20%,rgba(47,72,193,.14),transparent 70%)}
@@ -177,9 +204,9 @@
 .pxo-landing-v4 .parity h2{color:#fff;font-size:clamp(40px,6vw,76px);font-weight:700;letter-spacing:-.03em}
 .pxo-landing-v4 .parity p{font-size:19px;color:rgba(255,255,255,.88);max-width:40ch}
 .pxo-landing-v4 .conv{margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;padding:14px;border-radius:28px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);backdrop-filter:blur(6px)}
-.pxo-landing-v4 .conv label{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 20px;border-radius:20px;background:#fff;color:var(--navy);min-width:220px}
+.pxo-landing-v4 .conv label{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:12px 20px;border-radius:20px;background:#fff;color:var(--navy);min-width:220px;flex:1 1 0}
 .pxo-landing-v4 .conv label small{font:600 12px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.pxo-landing-v4 .conv input,.pxo-landing-v4 .conv output{border:0;outline:none;background:transparent;font:700 32px var(--display);color:var(--navy);width:100%;padding:0;font-variant-numeric:tabular-nums}
+.pxo-landing-v4 .conv input,.pxo-landing-v4 .conv output{display:block;border:0;outline:none;background:transparent;font:700 32px var(--display);color:var(--navy);width:100%;padding:0;text-align:left;font-variant-numeric:tabular-nums}
 .pxo-landing-v4 .conv .eq{width:48px;height:48px;border-radius:50%;background:#fff;color:var(--blue);display:grid;place-items:center;font:700 22px var(--display)}
 .pxo-landing-v4 .conv label.out{background:var(--navy);color:#fff}
 .pxo-landing-v4 .conv label.out small{color:#9fe9f3}
