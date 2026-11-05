@@ -17,6 +17,14 @@ export const env = {
   RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || 'PXO Platform',
   RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'info@pxotoken.com',
 
+  // Where landing-page contact messages are delivered. Deliberately does NOT
+  // fall back to RESEND_REPLY_TO: that one only sets a header on outbound
+  // mail, but the contact route used it as the recipient too, so editing the
+  // reply-to address silently redirected the contact inbox. Contact mail now
+  // reaches info@pxotoken.com unless this var is set explicitly, whatever
+  // RESEND_REPLY_TO happens to be in a given environment.
+  CONTACT_INBOX_EMAIL: process.env.CONTACT_INBOX_EMAIL || 'info@pxotoken.com',
+
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || '',
 } as const;
