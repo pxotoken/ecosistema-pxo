@@ -16,4 +16,5 @@ export const EMAIL_CONFIG = {
   fromEmail: env.RESEND_FROM_EMAIL,
   fromName: env.RESEND_FROM_NAME,
   replyTo: env.RESEND_REPLY_TO,
+  contactInbox: env.CONTACT_INBOX_EMAIL,
 };

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import '../../styles/landing-v4.css';
 import { useLocale, useMessages } from '../../i18n';
-import { TermsViewerModal } from '../legal/TermsViewerModal';
+import { LegalDocumentModal } from '../legal/LegalDocumentModal';
+import type { LegalDocumentKey } from '../legal/legalDocuments';
 import { AccountCta } from './AccountCta';
 import { Coin } from './Coin';
 import { Wordmark } from './Wordmark';
@@ -38,6 +39,12 @@ const CTA_WAVES: WaveOpts = {
 };
 
 const SECTIONS = { products: 'productos', how: 'como', benefits: 'beneficios', trust: 'transparencia', contact: 'contacto' };
+
+/** Hashes the design uses to deep-link the published legal documents. */
+const LEGAL_HASHES: Record<string, LegalDocumentKey> = {
+  '#terminos': 'terms',
+  '#privacidad': 'privacy',
+};
 
 /** The floating coins behind the hero phone, with the design's depths. */
 const COINS: { cls: string; depth: number }[] = [
@@ -108,7 +115,7 @@ export const LandingV4: React.FC = () => {
   const reduced = useReducedMotion();
   const scrolled = useScrolled();
   const onAnchor = useAnchorScroll();
-  const [termsOpen, setTermsOpen] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocumentKey | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -126,12 +133,41 @@ export const LandingV4: React.FC = () => {
   useReveal(rootRef, reduced);
   useStepsReveal(stepsRef, pathRef, reduced);
 
-  const openTerms = useCallback((e: React.MouseEvent) => {
+  /* The design addresses the two documents by hash (#terminos, #privacidad) so
+     they can be linked to from outside, and clears the hash on close so the
+     page is not stuck on a document after dismissing it. */
+  const openLegal = useCallback((key: LegalDocumentKey) => (e: React.MouseEvent) => {
     e.preventDefault();
-    setTermsOpen(true);
+    setLegalDoc(key);
   }, []);
 
+  const closeLegal = useCallback(() => {
+    setLegalDoc(null);
+    if (LEGAL_HASHES[window.location.hash]) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fromHash = () => {
+      const key = LEGAL_HASHES[window.location.hash];
+      if (key) setLegalDoc(key);
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
+  }, []);
+
+  /* The pinned header carries only two entries in the November design, both
+     pointing at sections that already exist — "Casos de uso" at the products
+     carousel and "Empresas" at the contact form. The footer still lists every
+     section, so the two menus are no longer the same list. */
   const navLinks = [
+    { href: `#${SECTIONS.products}`, label: t.nav.uses },
+    { href: `#${SECTIONS.contact}`, label: t.nav.business },
+  ];
+
+  const footerLinks = [
     { href: `#${SECTIONS.products}`, label: t.nav.products },
     { href: `#${SECTIONS.how}`, label: t.nav.how },
     { href: `#${SECTIONS.benefits}`, label: t.nav.benefits },
@@ -146,7 +182,7 @@ export const LandingV4: React.FC = () => {
           <a className="logo" href="#top" aria-label="PXO Token" onClick={onAnchor}>
             <Wordmark />
           </a>
-          <nav className="links" aria-label={t.nav.products}>
+          <nav className="links" aria-label={t.footer.menu}>
             {navLinks.map((l) => (
               <a key={l.href} href={l.href} onClick={onAnchor}>
                 {l.label}
@@ -182,9 +218,6 @@ export const LandingV4: React.FC = () => {
             <p className="lead">{t.hero.lead}</p>
             <div className="ctas">
               <AccountCta label={t.hero.cta} />
-              <a className="btn ghost" href={`#${SECTIONS.products}`} onClick={onAnchor}>
-                {t.hero.cta2}
-              </a>
             </div>
             <div className="stage" ref={stageRef}>
               <div className="hp" ref={phoneRef} aria-hidden="true">
@@ -405,7 +438,7 @@ export const LandingV4: React.FC = () => {
             <div>
               <h4>{t.footer.menu}</h4>
               <ul>
-                {navLinks.map((l) => (
+                {footerLinks.map((l) => (
                   <li key={l.href}>
                     <a href={l.href} onClick={onAnchor}>
                       {l.label}
@@ -420,12 +453,12 @@ export const LandingV4: React.FC = () => {
                 {/* Both open the in-app legal viewer; the design had them as
                     placeholder anchors back to #top. */}
                 <li>
-                  <a href="#top" onClick={openTerms}>
+                  <a href="#privacidad" onClick={openLegal('privacy')}>
                     {t.footer.privacy}
                   </a>
                 </li>
                 <li>
-                  <a href="#top" onClick={openTerms}>
+                  <a href="#terminos" onClick={openLegal('terms')}>
                     {t.footer.terms}
                   </a>
                 </li>
@@ -442,7 +475,7 @@ export const LandingV4: React.FC = () => {
         </div>
       </footer>
 
-      <TermsViewerModal open={termsOpen} onClose={() => setTermsOpen(false)} />
+      <LegalDocumentModal docKey={legalDoc} onClose={closeLegal} />
     </div>
   );
 };
