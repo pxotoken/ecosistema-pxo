@@ -9,6 +9,10 @@ export const PATHS = {
     fiatBuy: '/dashboard/fiat/buy',
     fiatRedeem: '/dashboard/fiat/redeem',
     products: '/dashboard/products',
+    investments: '/dashboard/investments',
+    /** Route pattern for the router; use investmentDetail() to build a link. */
+    investmentDetailPattern: '/dashboard/investments/:typeName',
+    investmentDetail: (typeName: string) => `/dashboard/investments/${typeName}`,
     insights: '/dashboard/insights',
     settings: '/dashboard/settings',
     adminKyc: '/dashboard/admin-kyc',

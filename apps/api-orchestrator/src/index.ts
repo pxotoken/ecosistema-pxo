@@ -215,6 +215,27 @@ async function bootstrap() {
     replyOptions: injectIdentity,
   });
 
+  // /api/exchange/cd -> api-exchange (authenticated, identity propagated).
+  // One prefix covers /cd/terms, /cd/locks and /cd/locks/:id/confirm.
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/cd',
+    rewritePrefix: '/api/exchange/cd',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
+  // /api/exchange/investments -> api-exchange (authenticated, identity propagated).
+  await app.register(httpProxy, {
+    upstream: env.UPSTREAM_API_EXCHANGE,
+    prefix: '/api/exchange/investments',
+    rewritePrefix: '/api/exchange/investments',
+    http2: false,
+    preHandler: requireAuth,
+    replyOptions: injectIdentity,
+  });
+
   // /api/prices -> api-exchange (public)
   await app.register(httpProxy, {
     upstream: env.UPSTREAM_API_EXCHANGE,
