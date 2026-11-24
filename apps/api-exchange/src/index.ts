@@ -13,6 +13,8 @@ import { pricingRulesRoutes } from './routes/admin/pricing-rules.js';
 import { feeRangesRoutes } from './routes/admin/fee-ranges.js';
 import { buyPxoMxnRoutes } from './routes/buy-pxo-mxn.js';
 import { sellPxoMxnRoutes } from './routes/sell-pxo-mxn.js';
+import { cdRoutes } from './routes/cd.js';
+import { investmentsRoutes } from './routes/investments.js';
 import { bitsoWebhookRoutes } from './routes/webhooks/bitso.js';
 import { qaMockDepositRoutes } from './routes/qa/mock-deposit.js';
 import { startDepositMatchingWorker } from './workers/deposit-matching-worker.js';
@@ -48,6 +50,13 @@ async function bootstrap() {
   await app.register(buyPxoMxnRoutes, { prefix: '/api/exchange' });
   await app.register(sellPxoMxnRoutes, { prefix: '/api/exchange' });
   await app.register(bitsoWebhookRoutes, { prefix: '/api/exchange' });
+
+  // Fixed-term PXO certificates (CD). The lock is a transfer to the treasury
+  // plus a row in pxo_cetes_cd — the deployed token has no lock function.
+  await app.register(cdRoutes, { prefix: '/api/exchange' });
+
+  // The investments catalogue the Investments screen renders.
+  await app.register(investmentsRoutes, { prefix: '/api/exchange' });
 
   // QA-only mock deposit tool. Route is NOT registered when the env flag
   // is off — the endpoint literally does not exist in production.
