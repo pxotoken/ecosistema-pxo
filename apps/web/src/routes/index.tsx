@@ -10,6 +10,8 @@ import { ProductSection } from '../components/ProductSection';
 import { KYCSettings } from '../components/settings/KYCSettings';
 import { BuyPxoPage } from '../components/fiat/BuyPxoPage';
 import { RedeemPxoPage } from '../components/fiat/RedeemPxoPage';
+import { InvestmentsPage } from '../components/investments/InvestmentsPage';
+import { FixedTermPage } from '../components/cd/FixedTermPage';
 import { KycAdminPage } from '../components/kyc/KycAdminPage';
 import { UserAdminPage } from '../components/admin/UserAdminPage';
 import { WalletStatusPage } from '../components/admin/WalletStatusPage';
@@ -64,6 +66,17 @@ const DASHBOARD_ROUTES = [
   ) },
   { path: '/dashboard/fiat', element: <Navigate to={PATHS.dashboard.fiatBuy} replace /> },
   { path: PATHS.dashboard.products, element: <ProductSection /> },
+  // KYC-gated like the other money paths; the backend enforces it too.
+  { path: PATHS.dashboard.investments, element: (
+    <KYCGuard>
+      <InvestmentsPage />
+    </KYCGuard>
+  ) },
+  { path: PATHS.dashboard.investmentDetailPattern, element: (
+    <KYCGuard>
+      <FixedTermPage />
+    </KYCGuard>
+  ) },
   { path: PATHS.dashboard.insights, element: <TransactionHistory /> },
   { path: PATHS.dashboard.settings, element: <KYCSettings /> },
   { path: PATHS.dashboard.adminKyc, element: <KycAdminPage /> },

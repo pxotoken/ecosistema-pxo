@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut, Plus, ArrowUpRight, Percent } from 'lucide-react';
+import { Wallet, TrendingUp, Send, BarChart3, Settings, ChevronLeft, ChevronRight, Package, Shield, Users, LogOut, Plus, ArrowUpRight, Percent, Landmark } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { KYCStatus } from '@pxo/shared/types';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -35,6 +35,7 @@ const navigation: NavItem[] = [
   { id: 'wallet', label: 'Wallet', icon: Wallet, path: PATHS.dashboard.wallet },
   { id: 'buy', label: 'Buy', icon: Plus, path: null },
   { id: 'sell', label: 'Sell', icon: ArrowUpRight, path: null },
+  { id: 'investments', label: 'Investments', icon: Landmark, path: PATHS.dashboard.investments },
   { id: 'exchange', label: 'Exchange', icon: TrendingUp, path: PATHS.dashboard.exchange, hidden: true },
   { id: 'products', label: 'Products', icon: Package, path: PATHS.dashboard.products, hidden: true },
   { id: 'transfers', label: 'Transfers', icon: Send, path: null, hidden: true },
